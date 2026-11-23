@@ -1,6 +1,9 @@
-// The Ski Apex server: accounts, friends and the leaderboards among friends, on Cloudflare Workers
-// with one Durable Object. It keeps a name, a password hash and, for each season, the totals of
-// the days an account chose to share. No tracks, no places, no positions ever reach it.
+// The Ski Apex server: accounts, friends, the leaderboards among friends and, for those who turn
+// it on, where each friend is while skiing. On Cloudflare Workers with one Durable Object. It
+// keeps a name, a password hash (or, for who signs in with Apple or Google, the identifier those
+// give: no email), a small profile picture if one was set and, for each season, the totals of the
+// days an account chose to share. No tracks and no places are ever stored; a position shared live
+// is held in memory only, the last one, and forgotten ten minutes after its last update.
 
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const USERNAME = /^[A-Za-z0-9_.-]{3,20}$/;
@@ -15,6 +18,16 @@ const INVITE_TTL = 7 * 24 * 3600 * 1000;
 const MAX_FRIENDS = 200;
 const MAX_DAYS = 400;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
+const POSITION_TTL = 10 * 60 * 1000;
+const PHASES = ['run', 'lift', 'idle'];
+const MAX_PHOTO = 100 * 1024;
+// Who signs the tokens of "Sign in with Apple" and of Google, and what they call themselves.
+const PROVIDERS = {
+  apple: { keys: 'https://appleid.apple.com/auth/keys', issuers: ['https://appleid.apple.com'] },
+  google: { keys: 'https://www.googleapis.com/oauth2/v3/certs', issuers: ['https://accounts.google.com', 'accounts.google.com'] },
+};
+// The apps an Apple token may be for: the TestFlight one and the sideloaded one.
+const APPLE_AUDIENCES = ['win.shadowbyte.skiapex', 'com.local.skiapex'];
 
 export default {
   async fetch(request, env) {
@@ -42,6 +55,10 @@ export class Accounts {
     this.env = env || {};
     this.failures = new Map();
     this.signups = new Map();
+    // Where the people sharing live are now: never written to storage.
+    this.positions = new Map();
+    // The public keys of Apple and Google, kept for an hour.
+    this.jwks = new Map();
   }
 
   async fetch(request) {
@@ -56,6 +73,8 @@ export class Accounts {
     }
     if (path === '/v1/accounts' && method === 'POST') return this.signUp(await body(request), ip);
     if (path === '/v1/sessions' && method === 'POST') return this.signIn(await body(request), ip);
+    const social = path.match(/^\/v1\/sessions\/(apple|google)$/);
+    if (social && method === 'POST') return this.signInWith(social[1], await body(request), ip);
     const found = await this.byToken(request);
     if (!found) return json({ error: 'signed out' }, 401);
     const { user, hash } = found;
@@ -68,16 +87,28 @@ export class Accounts {
     if (path === '/v1/me' && method === 'GET') return json(this.view(user));
     if (path === '/v1/me' && method === 'DELETE') {
       const b = await body(request);
-      if (!(await this.check(user, b?.password))) return json({ error: 'wrong password' }, 403);
+      // The password, or for an account made with Apple or Google a plain yes: the token says who it is.
+      if (user.hash ? !(await this.check(user, b?.password)) : b?.confirm !== true) return json({ error: 'wrong password' }, 403);
       for (const f of user.friends || []) {
         const other = await this.byID(f.id);
         if (other) await this.unfriend(user, other);
       }
       if (user.invite) await this.state.storage.delete('invite:' + user.invite);
+      this.positions.delete(user.id);
       const seasons = (user.seasons || []).map(year => `season:${user.id}:${year}`);
-      await this.state.storage.delete([...user.tokens.map(t => 'token:' + t), ...seasons, 'user:' + user.name.toLowerCase(), 'id:' + user.id]);
+      const own = ['photo:' + user.id, ...(user.ext ? [user.ext] : [])];
+      await this.state.storage.delete([...user.tokens.map(t => 'token:' + t), ...seasons, ...own, 'user:' + user.name.toLowerCase(), 'id:' + user.id]);
       return json({ ok: true });
     }
+    if (path === '/v1/me/photo' && method === 'PUT') return this.setPhoto(user, request);
+    if (path === '/v1/me/photo' && method === 'DELETE') {
+      await this.state.storage.delete('photo:' + user.id);
+      user.photo = 0;
+      await this.save(user);
+      return json(this.view(user));
+    }
+    const photo = path.match(/^\/v1\/photos\/([^/]+)$/);
+    if (photo && method === 'GET') return this.photo(user, photo[1]);
     if (path === '/v1/me/invite' && method === 'POST') return this.invite(user, (await body(request))?.renew === true);
     if (path === '/v1/friends' && method === 'GET') return json({ friends: await this.friendsOf(user) });
     if (path === '/v1/friends' && method === 'POST') return this.accept(user, (await body(request))?.code);
@@ -88,6 +119,12 @@ export class Accounts {
       await this.unfriend(user, other);
       return json({ ok: true });
     }
+    if (path === '/v1/me/position' && method === 'PUT') return this.place(user, await body(request));
+    if (path === '/v1/me/position' && method === 'DELETE') {
+      this.positions.delete(user.id);
+      return json({ ok: true });
+    }
+    if (path === '/v1/friends/positions' && method === 'GET') return json({ friends: await this.around(user) });
     const season = path.match(/^\/v1\/me\/seasons\/(\d{4})$/);
     if (season && method === 'PUT') return this.share(user, Number(season[1]), await body(request));
     if (path === '/v1/board' && method === 'GET') return this.board(user, Number(url.searchParams.get('season')));
@@ -121,6 +158,119 @@ export class Accounts {
     }
     this.failures.delete(named);
     return json({ token: await this.issue(user), account: this.view(user) });
+  }
+
+  /// In with Apple or with Google: the token they gave the phone is checked against their public
+  /// keys, and the account is the one of that person there, made the first time. No email is asked
+  /// for or kept: only the identifier, and a name to show to friends.
+  async signInWith(provider, b, ip) {
+    const audiences = list(provider === 'apple' ? this.env.APPLE_AUDIENCES : this.env.GOOGLE_CLIENT_IDS)
+      ?? (provider === 'apple' ? APPLE_AUDIENCES : []);
+    if (!audiences.length) return json({ error: 'not set up' }, 503);
+    const tries = 'ip:' + ip;
+    if (!this.allowed(tries)) return json({ error: 'too many attempts' }, 429);
+    const claims = await this.verify(provider, b?.token, audiences);
+    if (!claims) {
+      this.fail(tries);
+      return json({ error: 'bad token' }, 403);
+    }
+    const key = `ext:${provider}:${claims.sub}`;
+    const id = await this.state.storage.get(key);
+    let user = id ? await this.byID(id) : null;
+    let status = 200;
+    if (!user) {
+      if (!this.count(this.signups, ip, SIGNUPS_PER_HOUR, 3600 * 1000)) return json({ error: 'too many accounts' }, 429);
+      const name = await this.freeName(typeof b?.name === 'string' && b.name.trim() ? b.name : claims.given_name || claims.name || '');
+      user = { id: crypto.randomUUID(), name, created: Date.now(), tokens: [], friends: [], seasons: [], ext: key, kind: provider };
+      await this.state.storage.put({ ['user:' + name.toLowerCase()]: user, ['id:' + user.id]: name.toLowerCase(), [key]: user.id });
+      status = 201;
+    }
+    return json({ token: await this.issue(user), account: this.view(user) }, status);
+  }
+
+  /// The claims of a token signed by Apple or Google for one of our apps, or null.
+  async verify(provider, token, audiences) {
+    if (typeof token !== 'string' || token.length > 6000) return null;
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    let header, claims, signature;
+    try {
+      header = JSON.parse(new TextDecoder().decode(unbase64url(parts[0])));
+      claims = JSON.parse(new TextDecoder().decode(unbase64url(parts[1])));
+      signature = unbase64url(parts[2]);
+    } catch {
+      return null;
+    }
+    if (header?.alg !== 'RS256' || typeof header.kid !== 'string') return null;
+    const jwk = await this.signingKey(provider, header.kid);
+    if (!jwk) return null;
+    try {
+      const key = await crypto.subtle.importKey('jwk', { kty: 'RSA', n: jwk.n, e: jwk.e, alg: 'RS256', ext: true },
+        { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']);
+      const signed = new TextEncoder().encode(parts[0] + '.' + parts[1]);
+      if (!(await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, signature, signed))) return null;
+    } catch {
+      return null;
+    }
+    if (!PROVIDERS[provider].issuers.includes(claims?.iss)) return null;
+    const meant = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
+    if (!meant.some(a => audiences.includes(a))) return null;
+    if (!(typeof claims.exp === 'number' && claims.exp > Date.now() / 1000)) return null;
+    if (typeof claims.sub !== 'string' || !claims.sub || claims.sub.length > 200) return null;
+    return claims;
+  }
+
+  /// The public key a token says it was signed with. The keys are asked for again when an hour
+  /// has passed or a new one shows up, but not more than once a minute.
+  async signingKey(provider, kid) {
+    let known = this.jwks.get(provider);
+    const age = known ? Date.now() - known.at : Infinity;
+    if (age > 3600 * 1000 || (!known.keys.some(k => k.kid === kid) && age > 60 * 1000)) {
+      try {
+        const res = await fetch(PROVIDERS[provider].keys);
+        if (res.ok) {
+          known = { keys: (await res.json()).keys || [], at: Date.now() };
+          this.jwks.set(provider, known);
+        }
+      } catch {
+        // The keys already here, if any, will do.
+      }
+    }
+    return known?.keys.find(k => k.kid === kid) || null;
+  }
+
+  /// A name nobody has, as close as can be to the one wanted: letters without accents, dots for
+  /// spaces, and a number at the end when it is taken.
+  async freeName(wanted) {
+    let base = String(wanted).normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().replace(/\s+/g, '.')
+      .replace(/[^A-Za-z0-9_.-]/g, '').slice(0, 16);
+    if (base.length < 3) base = 'sciatore';
+    for (let i = 1; i < 60; i++) {
+      const name = i === 1 ? base : base + (i < 40 ? i : randomCode(4).toLowerCase());
+      if (!(await this.state.storage.get('user:' + name.toLowerCase()))) return name;
+    }
+    return base.slice(0, 8) + randomCode(8).toLowerCase();
+  }
+
+  // Profile pictures
+
+  /// A small JPEG, seen by you and by your friends.
+  async setPhoto(user, request) {
+    if (Number(request.headers.get('Content-Length') || 0) > MAX_PHOTO) return json({ error: 'photo too big' }, 413);
+    const bytes = new Uint8Array(await request.arrayBuffer());
+    if (bytes.length > MAX_PHOTO) return json({ error: 'photo too big' }, 413);
+    if (bytes.length < 100 || bytes[0] !== 0xff || bytes[1] !== 0xd8 || bytes[2] !== 0xff) return json({ error: 'bad photo' }, 400);
+    user.photo = Date.now();
+    await this.state.storage.put({ ['photo:' + user.id]: bytes, ['user:' + user.name.toLowerCase()]: user });
+    return json(this.view(user));
+  }
+
+  async photo(user, id) {
+    if (id !== user.id && !(user.friends || []).some(f => f.id === id)) return json({ error: 'not found' }, 404);
+    const bytes = await this.state.storage.get('photo:' + id);
+    if (!bytes) return json({ error: 'not found' }, 404);
+    // The address changes with the picture (the app adds its version), so it can be kept for good.
+    return new Response(bytes, { headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'private, max-age=31536000, immutable' } });
   }
 
   /// A new token for a phone; the oldest go when there are too many.
@@ -159,8 +309,15 @@ export class Accounts {
     return this.state.storage.put('user:' + user.name.toLowerCase(), user);
   }
 
+  /// An account as its owner sees it. `photo` is when the picture was set (0: none); `kind` is
+  /// how one signs in: password, apple or google.
   view(user) {
-    return { id: user.id, name: user.name };
+    return { ...this.card(user), kind: user.kind || 'password' };
+  }
+
+  /// An account as the others see it.
+  card(user) {
+    return { id: user.id, name: user.name, photo: user.photo || 0 };
   }
 
   // Friends
@@ -234,7 +391,7 @@ export class Accounts {
 
   friendView(other, user) {
     const since = (user.friends || []).find(f => f.id === other.id)?.since ?? null;
-    return { ...this.view(other), since };
+    return { ...this.card(other), since };
   }
 
   // Seasons and leaderboards
@@ -276,6 +433,7 @@ export class Accounts {
       rows.push({
         id: person.id,
         name: person.name,
+        photo: person.photo || 0,
         me: person.id === user.id,
         days: t.days || 0,
         vertical: t.vertical || 0,
@@ -286,6 +444,39 @@ export class Accounts {
       });
     }
     return json({ season: year, rows });
+  }
+
+  // Live positions
+
+  /// Where you are now, for your friends: the last one only, in memory. The answer has the friends
+  /// who are sharing, so that a phone in a pocket asks once for both.
+  async place(user, b) {
+    if (typeof b?.lat !== 'number' || typeof b?.lon !== 'number' || !(Math.abs(b.lat) <= 90) || !(Math.abs(b.lon) <= 180)) {
+      return json({ error: 'bad position' }, 400);
+    }
+    this.positions.set(user.id, {
+      lat: b.lat,
+      lon: b.lon,
+      alt: number(b.alt, -500, 9000),
+      speed: number(b.speed, 0, 70),
+      phase: PHASES.includes(b.phase) ? b.phase : 'idle',
+      at: Date.now(),
+    });
+    return json({ ok: true, friends: await this.around(user) });
+  }
+
+  /// Your friends who are sharing right now; the ones not heard from for ten minutes are forgotten.
+  async around(user) {
+    const now = Date.now();
+    for (const [id, p] of this.positions) if (now - p.at > POSITION_TTL) this.positions.delete(id);
+    const out = [];
+    for (const f of user.friends || []) {
+      const p = this.positions.get(f.id);
+      if (!p) continue;
+      const other = await this.byID(f.id);
+      if (other) out.push({ ...this.card(other), ...p });
+    }
+    return out;
   }
 
   // Too many tries
@@ -435,6 +626,18 @@ async function sha256(s) {
 
 function hex(bytes) {
   return [...bytes].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function unbase64url(s) {
+  const text = atob(String(s).replace(/-/g, '+').replace(/_/g, '/'));
+  return Uint8Array.from(text, c => c.charCodeAt(0));
+}
+
+/// A list written with commas in a setting of the worker, or null when there is none.
+function list(value) {
+  if (typeof value !== 'string') return null;
+  const items = value.split(',').map(s => s.trim()).filter(Boolean);
+  return items.length ? items : null;
 }
 
 function base64url(bytes) {

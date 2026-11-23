@@ -280,7 +280,6 @@
 /* Friends */
 "Amici" = "Friends";
 "Statistiche, record e mappa di calore" = "Stats, records and heat map";
-"Con gli amici condividi solo il nome e i totali della stagione: giorni, discese, dislivello, chilometri, tempo e velocità massima. Tracce, posti e posizione restano sul tuo iPhone." = "With friends you share only your name and the totals of the season: days, runs, vertical, distance, time and top speed. Tracks, places and location stay on your iPhone.";
 "Codice dell'invito" = "Invitation code";
 "Codice di 8 caratteri" = "8-character code";
 "Scrivi il codice che ti ha mandato il tuo amico." = "Type the code your friend sent you.";
@@ -324,3 +323,133 @@
 "Uno dei due ha già troppi amici." = "One of you already has too many friends.";
 "Devi accedere di nuovo." = "You need to sign in again.";
 "Il server degli amici ha risposto con un errore. Riprova tra poco." = "The friends' server answered with an error. Try again shortly.";
+
+/* 0.3.0: friends live */
+"Con gli amici condividi il nome, la foto se la metti e i totali della stagione: giorni, discese, dislivello, chilometri, tempo e velocità massima. La posizione la vedono solo se accendi \"Fatti vedere dagli amici\", e solo mentre registri. Le tracce e i posti delle tue giornate restano sul tuo iPhone." = "With friends you share your name, your picture if you set one and the totals of the season: days, runs, vertical, distance, time and top speed. They see where you are only if you turn on \"Let friends see you\", and only while you record. The tracks and the places of your days stay on your iPhone.";
+"In diretta" = "Live";
+"Fatti vedere dagli amici mentre registri" = "Let friends see you while you record";
+"Nessun amico sta sciando in questo momento." = "No friend is skiing right now.";
+"Acceso, mentre registri una giornata i tuoi amici vedono dove sei, e ricevi un avviso quando uno di loro è a meno di 300 metri o scia nella tua zona. Passa da internet (rete del telefono), quindi serve campo. Il server tiene solo l'ultima posizione, non la salva, e la dimentica dieci minuti dopo l'ultimo aggiornamento, o subito quando metti in pausa o finisci." = "When on, while you record a day your friends see where you are, and you get a notice when one of them is within 300 meters or skiing in your area. It goes over the internet (mobile data), so it needs signal. The server holds only the last position, does not store it, and forgets it ten minutes after the last update, or at once when you pause or finish.";
+"Avvisami quando un amico è vicino" = "Tell me when a friend is close";
+"%@ è vicino a te" = "%@ is close to you";
+"È a %@ da te." = "%@ away from you.";
+"%@ sta sciando nella tua zona" = "%@ is skiing in your area";
+"È a %@ da te: lo trovi sulla mappa." = "%@ away from you: find them on the map.";
+
+/* 0.4.0: looks and icons */
+"Aspetto" = "Look";
+"Tema" = "Theme";
+"Icona dell'app" = "App icon";
+"L'icona cambia sulla schermata Home: iOS te lo conferma con un avviso." = "The icon changes on the Home Screen: iOS confirms it with a notice.";
+"Notte" = "Night";
+"Aurora" = "Aurora";
+"Alba" = "Sunrise";
+"Bosco" = "Forest";
+"Carbone" = "Carbon";
+
+/* 0.4.0: the map of the pistes and the way from one point to another */
+"Esplora la zona" = "Explore the area";
+"Piste, impianti e rifugi intorno a te, e il percorso da un punto all'altro." = "Pistes, lifts and huts around you, and the way from one point to another.";
+"Intorno a te" = "Around you";
+"Piste e percorsi" = "Pistes and routes";
+"Piste" = "Pistes";
+"Impianti" = "Lifts";
+"Rifugi" = "Huts";
+"Partenza" = "Start";
+"Arrivo" = "Finish";
+"Cerco piste e impianti…" = "Looking for pistes and lifts…";
+"Non riesco a scaricare le piste di questa zona. Controlla la connessione e riprova." = "Can't download the pistes of this area. Check the connection and try again.";
+"Riprova" = "Try again";
+"Qui OpenStreetMap non ha piste o impianti." = "OpenStreetMap has no pistes or lifts here.";
+"%lld piste · %lld impianti · %@" = "%lld pistes · %lld lifts · %@";
+"Ricomincia" = "Start over";
+"Non trovo un percorso tra questi due punti con le piste scelte. Tocca un'altra pista o un altro impianto." = "No way found between these two points with the pistes chosen. Touch another piste or another lift.";
+"Ora tocca la pista o l'impianto dove vuoi arrivare." = "Now touch the piste or the lift you want to get to.";
+"Ora tocca la pista o l'impianto da cui parti." = "Now touch the piste or the lift you leave from.";
+"Tocca una pista o un impianto per vedere cos'è e per calcolare un percorso." = "Touch a piste or a lift to see what it is and to find a way.";
+"Pista senza nome" = "Piste with no name";
+"Impianto senza nome" = "Lift with no name";
+"Parto da qui" = "I leave from here";
+"Arrivo qui" = "I get here";
+"Blu" = "Blue";
+"Rosse" = "Red";
+"Tutte" = "All";
+"Tempi indicativi. Controlla sempre i cartelli e le piste aperte." = "Times are a guess. Always check the signs and which pistes are open.";
+
+/* 0.4.0: friends close by over Bluetooth */
+"Cerca gli amici anche con il Bluetooth" = "Look for friends over Bluetooth too";
+"Mentre registri, l'iPhone riconosce gli amici a pochi passi anche dove non c'è campo. Funziona se anche loro lo hanno acceso e stanno registrando. Non passa nessuna posizione: solo un codice che cambia ogni giorno e che solo i tuoi amici sanno leggere." = "While you record, the iPhone recognizes the friends a few steps away even where there is no signal. It works if they turned it on too and are recording. No position is sent: only a code that changes every day and that only your friends can read.";
+"È a pochi passi da te." = "A few steps from you.";
+
+/* 0.4.0: what the iPhone answers to the Apple Watch */
+"Apri Ski Apex sull'iPhone e consenti la posizione." = "Open Ski Apex on the iPhone and allow the location.";
+"Apri Ski Apex sull'iPhone, poi riprova." = "Open Ski Apex on the iPhone, then try again.";
+"Troppo pochi punti GPS: niente da salvare." = "Too few GPS points: nothing to save.";
+"Non riesco a salvare la giornata: apri Ski Apex sull'iPhone." = "Can't save the day: open Ski Apex on the iPhone.";
+
+/* 0.4.0: profile, pictures, signing in, the settings as a list of pages */
+"Foto del profilo" = "Profile picture";
+"Cambia foto" = "Change picture";
+"Scegli una foto" = "Choose a picture";
+"Togli la foto" = "Remove the picture";
+"La vedono i tuoi amici: nella classifica, nell'elenco e sulla mappa quando condividi la posizione. Viene rimpicciolita prima di partire." = "Your friends see it: in the leaderboard, in the list and on the map when you share where you are. It is made small before it is sent.";
+"Profilo" = "Profile";
+"Non riesco a usare questa foto: provane un'altra." = "Can't use this picture: try another one.";
+"Il nome, la foto, gli amici e i totali condivisi vengono cancellati dal server. Le giornate sul tuo iPhone restano." = "Your name, your picture, your friends and the totals you shared are deleted from the server. The days on your iPhone stay.";
+"Accesso con Apple" = "Signed in with Apple";
+"Accesso con Google" = "Signed in with Google";
+"Accesso con nome e password" = "Signed in with a name and a password";
+"Accesso rapido" = "Quick sign-in";
+"Continua con Google" = "Continue with Google";
+"Al server arriva solo un identificativo e il nome da mostrare agli amici: niente email." = "The server gets only an identifier and the name to show to friends: no email.";
+"L'accesso non è riuscito. Riprova." = "Signing in did not work. Try again.";
+"Accedi con Apple funziona solo con l'app installata da TestFlight. Qui usa un nome e una password." = "Sign in with Apple works only with the app installed from TestFlight. Here, use a name and a password.";
+"Questo modo di accedere non è ancora attivo." = "This way of signing in is not on yet.";
+"Foto, account e uscita" = "Picture, account and sign out";
+"Registrazione" = "Recording";
+"Integrazioni" = "Integrations";
+"Aiuto e prova" = "Help and trial";
+"Novità" = "What's new";
+"Ski Apex e i tuoi dati" = "Ski Apex and your data";
+"Riconoscimenti" = "Credits";
+"Consiglia Ski Apex" = "Recommend Ski Apex";
+"Pagina su GitHub" = "Page on GitHub";
+"Accedi o crea un account" = "Sign in or make an account";
+"Profilo, foto e account" = "Profile, picture and account";
+"Per le classifiche e gli amici in diretta" = "For the leaderboards and friends live";
+"Il diario delle tue giornate sulla neve: registra discese e risalite da sola, e tiene tutto sul tuo iPhone. %lld giornate salvate." = "The diary of your days on the snow: it records runs and lifts by itself, and keeps everything on your iPhone. %lld days saved.";
+"Niente pubblicità, niente abbonamenti, niente dati venduti." = "No ads, no subscriptions, no data sold.";
+"Siri e widget" = "Siri and widgets";
+"Sul Watch, Ski Apex registra la giornata da sola con il GPS dell'orologio: l'iPhone può restare in tasca o a casa. Quando finisci, la giornata arriva qui in Giornate appena i due sono vicini." = "On the Watch, Ski Apex records the day by itself with the GPS of the watch: the iPhone can stay in a pocket or at home. When you finish, the day arrives here in Days as soon as the two are near.";
+"Se invece registri con l'iPhone, il Watch ne mostra i numeri e fa da telecomando: pausa, riprendi, fine. L'app per il Watch arriva con la versione TestFlight." = "If you record with the iPhone instead, the Watch shows its numbers and works as a remote: pause, resume, finish. The Watch app comes with the TestFlight build.";
+"\"Inizia la giornata con Ski Apex\", \"Metti in pausa Ski Apex\", \"Finisci la giornata con Ski Apex\": li trovi anche nell'app Comandi Rapidi. I widget \"Registra\" e \"Neve in arrivo\" si aggiungono dalla schermata Home tenendo premuto." = "\"Start the day with Ski Apex\", \"Pause Ski Apex\", \"Finish the day with Ski Apex\": you find them in the Shortcuts app too. The \"Record\" and \"Snow to come\" widgets are added from the Home Screen, touching and holding.";
+"Dove sono le giornate" = "Where the days are";
+"Restano solo su questo iPhone e le trovi anche nell'app File, nella cartella Ski Apex." = "They stay on this iPhone only, and you find them in the Files app too, in the Ski Apex folder.";
+"Il Watch registra da solo" = "The Watch records by itself";
+"Con il GPS dell'orologio, senza iPhone: la giornata arriva qui quando finisci." = "With the GPS of the watch, without the iPhone: the day arrives here when you finish.";
+"Mappa delle piste e percorsi" = "Piste map and routes";
+"Piste, impianti e rifugi di una stazione, e la strada da un punto all'altro. Dalla Guida." = "The pistes, lifts and huts of a ski area, and the way from one point to another. From the Guide.";
+"I tuoi amici ti vedono in classifica e sulla mappa con la tua foto." = "Your friends see you in the leaderboard and on the map with your picture.";
+"Accesso con Apple e Google" = "Sign in with Apple and Google";
+"Un account per gli amici senza inventare una password." = "An account for friends without making up a password.";
+"Temi e icone" = "Looks and icons";
+"Sei aspetti per l'app e l'icona negli stessi colori." = "Six looks for the app and the icon in the same colors.";
+"Widget" = "Widgets";
+"La neve in arrivo in una località a scelta, e un tasto per registrare." = "The snow to come at a place of your choice, and a button to record.";
+"Amici vicini" = "Friends nearby";
+"In diretta sulla mappa, con un avviso quando uno è vicino; con il Bluetooth anche senza campo." = "Live on the map, with a notice when one is close; over Bluetooth even with no signal.";
+"Sul tuo iPhone" = "On your iPhone";
+"Quello che esce" = "What leaves it";
+"Mai" = "Never";
+"Le giornate, con le tracce e i posti, restano sul tuo iPhone. Nessuno le vede se non le condividi tu." = "The days, with their tracks and places, stay on your iPhone. Nobody sees them unless you share them.";
+"Nomi delle piste e meteo: la zona della giornata, a OpenStreetMap e Open-Meteo, senza il tuo nome. Si spegne da Integrazioni." = "Names of the pistes and weather: the area of the day, to OpenStreetMap and Open-Meteo, without your name. Turned off from Integrations.";
+"Amici: il nome, la foto se la metti e i totali della stagione. Se accedi con Apple o Google, al server arriva solo un identificativo: niente email." = "Friends: your name, your picture if you set one and the totals of the season. If you sign in with Apple or Google, the server gets only an identifier: no email.";
+"Posizione in diretta: solo se la accendi e solo mentre registri. Il server tiene l'ultima, non la salva e la dimentica dopo dieci minuti." = "Live position: only if you turn it on and only while you record. The server holds the last one, does not store it and forgets it after ten minutes.";
+"Bluetooth: solo se lo accendi. Passa un codice che cambia ogni giorno, non la posizione." = "Bluetooth: only if you turn it on. A code that changes every day is exchanged, not your position.";
+"Niente pubblicità, niente tracciamento, niente dati venduti. Eliminando l'account dal Profilo, il server cancella tutto quello che aveva." = "No ads, no tracking, no data sold. Deleting the account from the Profile, the server erases everything it had.";
+"Mappe e nomi" = "Maps and names";
+"Meteo e quote" = "Weather and altitudes";
+"Nomi di piste, impianti, rifugi e stazioni: © i contributori di OpenStreetMap, con licenza ODbL. Ricerca delle stazioni: Photon di komoot." = "Names of pistes, lifts, huts and ski areas: © OpenStreetMap contributors, under the ODbL license. Search of the ski areas: Photon by komoot.";
+"Meteo delle giornate, neve prevista e quote: Open-Meteo.com, con licenza CC BY 4.0." = "Weather of the days, snow forecast and altitudes: Open-Meteo.com, under the CC BY 4.0 license.";
+"La mappa sotto le tracce è Mappe di Apple." = "The map under the tracks is Apple Maps.";
+

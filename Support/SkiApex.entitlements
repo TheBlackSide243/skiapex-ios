@@ -5,5 +5,10 @@
 	<!-- Apple Health: only the TestFlight build is signed with it (see .github/workflows/testflight.yml). -->
 	<key>com.apple.developer.healthkit</key>
 	<true/>
+	<!-- Sign in with Apple, for the friends' account. -->
+	<key>com.apple.developer.applesignin</key>
+	<array>
+		<string>Default</string>
+	</array>
 </dict>
 </plist>

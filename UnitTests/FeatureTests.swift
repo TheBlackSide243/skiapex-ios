@@ -1,3 +1,4 @@
+import UIKit
 import XCTest
 @testable import SkiApex
 
@@ -232,6 +233,250 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(sent["runs"] as? Int, 2)
         XCTAssertEqual((sent["date"] as? String)?.count, 10)
         XCTAssertFalse(String(data: try JSONSerialization.data(withJSONObject: sent), encoding: .utf8)?.contains("segreto") ?? true)
+    }
+
+    func testFriendsLiveAsTheServerSendsThem() throws {
+        struct Answer: Decodable { let friends: [LiveFriend] }
+        let json = """
+        {"friends":[{"id":"a","name":"Anna Rossi","lat":45.9336,"lon":7.6295,"alt":2500,"speed":12.5,"phase":"run","at":1800000000000},
+                    {"id":"b","name":"luca","lat":45.94,"lon":7.63,"alt":2100,"speed":0,"phase":"altro","at":1800000030000}]}
+        """
+        let friends = try JSONDecoder().decode(Answer.self, from: Data(json.utf8)).friends
+        XCTAssertEqual(friends.count, 2)
+        XCTAssertEqual(friends[0].initials, "AR")
+        XCTAssertEqual(friends[1].initials, "LU")
+        XCTAssertEqual(friends[0].phaseLabel, "In pista")
+        XCTAssertEqual(friends[1].phaseLabel, "Fermo", "anything unknown is standing")
+        XCTAssertEqual(friends[0].date.timeIntervalSince1970, 1_800_000_000)
+        XCTAssertEqual(friends[0].coordinate.latitude, 45.9336, accuracy: 0.00001)
+    }
+
+    func testAFriendCloseIsAnnouncedOnce() {
+        let now = Date()
+        func friend(_ id: String, metersNorth: Double, secondsAgo: Double = 10) -> LiveFriend {
+            LiveFriend(id: id, name: id, lat: 46.0 + metersNorth / 111_320, lon: 7.0, alt: 2000, speed: 5, phase: "run",
+                       at: (now.timeIntervalSince1970 - secondsAgo) * 1000)
+        }
+        XCTAssertEqual(Nearby.range(120), .close)
+        XCTAssertEqual(Nearby.range(2500), .area)
+        XCTAssertEqual(Nearby.range(40_000), .far)
+        let friends = [friend("vicino", metersNorth: 150), friend("zona", metersNorth: 3000), friend("lontano", metersNorth: 50_000),
+                       friend("vecchio", metersNorth: 100, secondsAgo: 600)]
+        let first = Nearby.notices(lat: 46.0, lon: 7.0, friends: friends, now: now, told: [:])
+        XCTAssertEqual(first.map(\.key), ["vicino:close", "zona:area"], "the far one and the stale one say nothing")
+        XCTAssertEqual(first[0].meters, 150, accuracy: 2)
+        // Told a moment ago: quiet. Twenty minutes later the close one is said again, the area one not yet.
+        var told: [String: Date] = [:]
+        for notice in first { told[notice.key] = now }
+        XCTAssertTrue(Nearby.notices(lat: 46.0, lon: 7.0, friends: friends, now: now.addingTimeInterval(60), told: told).isEmpty)
+        let later = now.addingTimeInterval(21 * 60)
+        let again = friends.filter { $0.id != "vecchio" }.map { friend($0.id, metersNorth: ($0.lat - 46.0) * 111_320, secondsAgo: -21 * 60 + 10) }
+        XCTAssertEqual(Nearby.notices(lat: 46.0, lon: 7.0, friends: again, now: later, told: told).map(\.key), ["vicino:close"])
+        // A friend announced as close who moves away is not announced as "in the area" right after.
+        let away = [friend("vicino", metersNorth: 2000)]
+        XCTAssertTrue(Nearby.notices(lat: 46.0, lon: 7.0, friends: away, now: now.addingTimeInterval(60), told: told).isEmpty)
+    }
+
+    func testTheWayGoesDownThePistesAndUpTheLifts() throws {
+        let terrain = Terrain.demo(lat: 45.93, lon: 7.63)
+        let graph = RouteGraph(ways: terrain.ways)
+        func way(_ name: String) throws -> OSMWay { try XCTUnwrap(terrain.ways.first { $0.name == name }) }
+        let gondola = try way("Cabinovia Cima Bianca")
+        // A lift starts at its bottom, a piste at its top.
+        let village = (gondola.lats[0], gondola.lons[0])
+        let top = (try way("Canalone").lats[0], try way("Canalone").lons[0])
+        let west = (try way("Gran Bosco").lats[0], try way("Gran Bosco").lons[0])
+
+        let up = try XCTUnwrap(graph.route(fromLat: village.0, fromLon: village.1, toLat: top.0, toLon: top.1))
+        XCTAssertEqual(up.steps.map(\.label), ["Cabinovia Cima Bianca"])
+        XCTAssertEqual(up.seconds, gondola.meters / RouteGraph.liftSpeed("gondola") + RouteGraph.boarding, accuracy: 8)
+        XCTAssertEqual(up.meters, gondola.meters, accuracy: 5)
+        XCTAssertGreaterThan(up.lats.count, 10, "the line of the lift is all there to draw")
+
+        // From the top only red and black pistes leave: who wants the blue ones rides the gondola down.
+        let easy = try XCTUnwrap(graph.route(fromLat: top.0, fromLon: top.1, toLat: village.0, toLon: village.1, level: .easy))
+        XCTAssertEqual(easy.steps.map(\.label), ["Cabinovia Cima Bianca"])
+        let medium = try XCTUnwrap(graph.route(fromLat: top.0, fromLon: top.1, toLat: village.0, toLon: village.1, level: .medium))
+        XCTAssertFalse(medium.steps.contains { $0.difficulty == "advanced" })
+        XCTAssertLessThanOrEqual(medium.seconds, easy.seconds + 0.5)
+        let all = try XCTUnwrap(graph.route(fromLat: top.0, fromLon: top.1, toLat: village.0, toLon: village.1, level: .all))
+        XCTAssertLessThanOrEqual(all.seconds, medium.seconds + 0.5)
+        XCTAssertFalse(all.steps.isEmpty)
+
+        // A chairlift does not carry down: from its top the way is the red piste, or none.
+        let red = try XCTUnwrap(graph.route(fromLat: west.0, fromLon: west.1, toLat: village.0, toLon: village.1, level: .medium))
+        XCTAssertEqual(red.steps.map(\.label), ["Gran Bosco"])
+        XCTAssertEqual(red.steps.first?.difficulty, "intermediate")
+        XCTAssertNil(graph.route(fromLat: west.0, fromLon: west.1, toLat: village.0, toLon: village.1, level: .easy))
+        // And there is no skiing up a piste.
+        let back = try XCTUnwrap(graph.route(fromLat: village.0, fromLon: village.1, toLat: west.0, toLon: west.1))
+        XCTAssertEqual(back.steps.map(\.kind), [.lift])
+        // Far from every line: nothing.
+        XCTAssertNil(graph.route(fromLat: 44.0, fromLon: 7.63, toLat: village.0, toLon: village.1))
+
+        XCTAssertTrue(RouteLevel.easy.allows("easy"))
+        XCTAssertTrue(RouteLevel.easy.allows(nil))
+        XCTAssertFalse(RouteLevel.easy.allows("intermediate"))
+        XCTAssertFalse(RouteLevel.medium.allows("expert"))
+        XCTAssertTrue(RouteLevel.all.allows("freeride"))
+    }
+
+    func testALineDrawnAgainstItsWayIsTurnedAround() throws {
+        var ways = [
+            try XCTUnwrap(OSMWay(kind: .piste, name: "Pista", ref: nil, difficulty: "easy", lats: [46.0, 46.01], lons: [7.0, 7.0])),
+            try XCTUnwrap(OSMWay(kind: .lift, name: "Seggiovia", ref: nil, difficulty: nil, lats: [46.0, 46.01], lons: [7.1, 7.1], lift: "chair_lift")),
+            try XCTUnwrap(OSMWay(kind: .lift, name: "Cabinovia", ref: nil, difficulty: nil, lats: [46.0, 46.01], lons: [7.2, 7.2], lift: "gondola")),
+            try XCTUnwrap(OSMWay(kind: .piste, name: "Giusta", ref: nil, difficulty: "easy", lats: [46.0, 46.01], lons: [7.3, 7.3])),
+        ]
+        XCTAssertEqual(ways[0].meters, 1113, accuracy: 3)
+        let altitudes = try Terrain.parseAltitudes(Data(#"{"elevation":[1500.0,2000,2000.0,1500,2000,1500,2100,1700]}"#.utf8))
+        Terrain.apply(altitudes, to: &ways)
+        XCTAssertEqual(ways[0].lats, [46.01, 46.0], "a piste starts at its top")
+        XCTAssertEqual(ways[0].startAlt, 2000)
+        XCTAssertEqual(ways[0].drop, 500)
+        XCTAssertEqual(ways[1].lats, [46.01, 46.0], "a chairlift starts at its bottom")
+        XCTAssertEqual(ways[1].endAlt, 2000)
+        XCTAssertEqual(ways[2].lats, [46.0, 46.01], "a gondola goes both ways: left as drawn")
+        XCTAssertEqual(ways[3].lats, [46.0, 46.01])
+        // Fewer altitudes than ends: nothing is touched.
+        var same = ways
+        Terrain.apply([1, 2], to: &same)
+        XCTAssertEqual(same[0].lats, ways[0].lats)
+    }
+
+    func testTheHutsByThePistes() throws {
+        let piste = try XCTUnwrap(OSMWay(kind: .piste, name: "Pista", ref: nil, difficulty: "easy", lats: [46.0, 46.01], lons: [7.0, 7.0]))
+        let json = """
+        {"elements":[
+          {"type":"way","id":1,"tags":{"piste:type":"downhill"},"geometry":[{"lat":46.0,"lon":7.0},{"lat":46.01,"lon":7.0}]},
+          {"type":"node","id":2,"lat":46.005,"lon":7.0005,"tags":{"tourism":"alpine_hut","name":"Rifugio Alto"}},
+          {"type":"way","id":3,"center":{"lat":46.002,"lon":7.0003},"tags":{"amenity":"restaurant","name":"Baita"}},
+          {"type":"node","id":4,"lat":46.005,"lon":7.05,"tags":{"amenity":"bar","name":"Bar in paese"}},
+          {"type":"node","id":5,"lat":46.006,"lon":7.0002,"tags":{"amenity":"cafe"}}
+        ]}
+        """
+        let huts = Terrain.parseHuts(Data(json.utf8), near: [piste])
+        XCTAssertEqual(huts.map(\.name), ["Rifugio Alto", "Baita"], "the one in the village and the one with no name are left out")
+        XCTAssertEqual(huts[1].id, "way3")
+        let map = try Pistes.parse(Data(json.utf8))
+        XCTAssertEqual(map.ways.count, 1)
+        XCTAssertEqual(map.ways[0].id, 1)
+        let terrain = Terrain(ways: map.ways, huts: huts)
+        XCTAssertEqual(terrain.nearest(lat: 46.005, lon: 7.0004, within: 90), 0)
+        XCTAssertNil(terrain.nearest(lat: 46.005, lon: 7.01, within: 90))
+        XCTAssertTrue(Terrain.query(lat: 46, lon: 7).contains("alpine_hut"))
+    }
+
+    func testTheBluetoothCodeTellsFriendsOnly() {
+        let day = Date(timeIntervalSince1970: 1_800_000_000)
+        let friends = [Friend(id: "a1", name: "Giulia"), Friend(id: "b2", name: "Luca")]
+        let code = Proximity.code(id: "b2", day: day)
+        XCTAssertEqual(code.count, 8)
+        XCTAssertEqual(code, Proximity.code(id: "b2", day: day), "the same all day")
+        XCTAssertNotEqual(code, Proximity.code(id: "b2", day: day.addingTimeInterval(3 * 86_400)), "another one each day")
+        XCTAssertNotEqual(code, Proximity.code(id: "a1", day: day))
+        XCTAssertEqual(Proximity.friend(for: code, among: friends, day: day)?.name, "Luca")
+        // A phone whose clock is already in tomorrow is still recognized; a stranger is not.
+        XCTAssertEqual(Proximity.friend(for: Proximity.code(id: "a1", day: day.addingTimeInterval(86_400)), among: friends, day: day)?.name, "Giulia")
+        XCTAssertNil(Proximity.friend(for: Proximity.code(id: "zz", day: day), among: friends, day: day))
+        XCTAssertNil(Proximity.friend(for: code, among: friends, day: day.addingTimeInterval(5 * 86_400)))
+    }
+
+    func testTheDayAsTheWatchHearsIt() throws {
+        let idle = WatchBridge.state(of: Recorder(journal: nil))
+        XCTAssertEqual(idle, WatchState.idle)
+        let points = Segmenter.clean(SkiSim.day(laps: 3, start: Date(timeIntervalSinceNow: -7200), seed: 9))
+        let recorder = Recorder.preview(points)
+        let state = WatchBridge.state(of: recorder)
+        XCTAssertEqual(state.state, "recording")
+        XCTAssertEqual(state.runs, recorder.analysis.stats.runs)
+        XCTAssertGreaterThan(state.runs, 0)
+        XCTAssertEqual(state.vertical, Fmt.height(recorder.analysis.stats.vertical))
+        XCTAssertEqual(state.start, points.first?.t)
+        XCTAssertEqual(state.speed, "0", "the last point is old: no speed to show")
+        // There and back, as it travels to the watch.
+        let back = try XCTUnwrap(WatchState(packed: state.packed))
+        XCTAssertEqual(back, state)
+        XCTAssertNil(WatchState(packed: [:]))
+        XCTAssertEqual(WatchCommand(rawValue: "finish"), .finish)
+    }
+
+    func testAProfilePictureIsMadeSmall() throws {
+        let big = UIGraphicsImageRenderer(size: CGSize(width: 900, height: 500)).image { context in
+            UIColor.systemTeal.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 900, height: 500))
+        }
+        let data = try XCTUnwrap(Avatars.prepare(big))
+        XCTAssertLessThanOrEqual(data.count, Avatars.maxBytes)
+        XCTAssertEqual(Array(data.prefix(3)), [0xFF, 0xD8, 0xFF], "a JPEG, as the server wants")
+        let small = try XCTUnwrap(UIImage(data: data))
+        XCTAssertEqual(small.size.width * small.scale, 320)
+        XCTAssertEqual(small.size.height * small.scale, 320, "the square in the middle")
+        XCTAssertEqual(Avatars.initials(of: "Anna Rossi"), "AR")
+        XCTAssertEqual(Avatars.initials(of: "alessio.vitali"), "AV")
+        XCTAssertEqual(Avatars.initials(of: "luca"), "LU")
+        // Kept on the iPhone once seen, each picture by its version.
+        let id = "test-\(UUID().uuidString)"
+        XCTAssertNotNil(Avatars.keep(data, id: id, version: 1234))
+        XCTAssertNotNil(Avatars.image(id: id, version: 1234))
+        XCTAssertNil(Avatars.image(id: id, version: 99))
+        XCTAssertNil(Avatars.keep(data, id: id, version: 0), "no version, no picture")
+    }
+
+    func testSigningInWithGoogleAsksForTheNameOnly() throws {
+        // The example of RFC 7636.
+        XCTAssertEqual(GoogleSignIn.challenge(for: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"), "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM")
+        let client = "123-abc.apps.googleusercontent.com"
+        XCTAssertEqual(GoogleSignIn.scheme(for: client), "com.googleusercontent.apps.123-abc")
+        let page = try XCTUnwrap(GoogleSignIn.page(clientID: client, verifier: "secret", state: "word"))
+        let items = URLComponents(url: page, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        func value(_ name: String) -> String? { items.first { $0.name == name }?.value }
+        XCTAssertEqual(page.host, "accounts.google.com")
+        XCTAssertEqual(value("client_id"), client)
+        XCTAssertEqual(value("redirect_uri"), "com.googleusercontent.apps.123-abc:/oauth2redirect")
+        XCTAssertEqual(value("scope"), "openid profile", "no email")
+        XCTAssertEqual(value("code_challenge"), GoogleSignIn.challenge(for: "secret"))
+        XCTAssertEqual(value("state"), "word")
+    }
+
+    func testAnAccountAsTheServerSendsIt() throws {
+        let old = try JSONDecoder().decode(SocialAccount.self, from: Data(#"{"id":"a","name":"Anna"}"#.utf8))
+        XCTAssertNil(old.photo)
+        XCTAssertEqual(ProfileView.kindLabel(old.kind), "Accesso con nome e password")
+        let new = try JSONDecoder().decode(SocialAccount.self, from: Data(#"{"id":"a","name":"Anna","photo":1800000000000,"kind":"apple"}"#.utf8))
+        XCTAssertEqual(new.photo, 1_800_000_000_000)
+        XCTAssertEqual(ProfileView.kindLabel(new.kind), "Accesso con Apple")
+        let friend = try JSONDecoder().decode(Friend.self, from: Data(#"{"id":"b","name":"Luca","photo":0,"since":1}"#.utf8))
+        XCTAssertEqual(friend.photo, 0)
+    }
+
+    func testADayRecordedOnTheWatchIsKept() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("skiapex-watch-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let library = Library(directory: dir)
+        // The file as the watch writes it: one point a line.
+        let points = SkiSim.day(laps: 3, start: Date(timeIntervalSinceNow: -6 * 3600), seed: 4)
+        let encoder = JSONEncoder()
+        var file = Data()
+        for point in points {
+            file.append(try encoder.encode(point))
+            file.append(0x0A)
+        }
+        let read = WatchBridge.points(in: file)
+        XCTAssertEqual(read.count, points.count)
+        let id = UUID()
+        XCTAssertTrue(WatchBridge.keep(read, id: id, inHealth: true, in: library))
+        let day = try XCTUnwrap(library.day(id))
+        XCTAssertGreaterThan(day.stats.runs, 0)
+        XCTAssertEqual(day.inHealth, true, "the watch saved the workout: the iPhone does not save it again")
+        // The same file sent twice is one day; a handful of points is none.
+        XCTAssertFalse(WatchBridge.keep(read, id: id, inHealth: true, in: library))
+        XCTAssertFalse(WatchBridge.keep(Array(read.prefix(4)), id: UUID(), inHealth: false, in: library))
+        XCTAssertEqual(library.days.count, 1)
+        // The watch's own numbers of a day under way travel like the iPhone's.
+        let state = WatchState(state: "recording", phase: "run", start: nil, speed: "31", speedUnit: "km/h", runs: 2, vertical: "800 m",
+                               distance: "3.2 km", maxSpeed: "74 km/h", altitude: "2300 m", heart: "128")
+        XCTAssertEqual(WatchState(packed: state.packed)?.heart, "128")
     }
 
     func testDaysSavedByTheFirstVersionStillOpen() throws {

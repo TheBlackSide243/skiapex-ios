@@ -6,3 +6,18 @@
 "Discese" = "Runs";
 "Dislivello" = "Vertical";
 "Velocità max" = "Top speed";
+
+/* The widgets for the Home Screen and the Lock Screen. */
+"Registra" = "Record";
+"Apre Ski Apex pronto a registrare la giornata." = "Opens Ski Apex ready to record the day.";
+"Registra la giornata" = "Record the day";
+"Tocca per iniziare la giornata" = "Tap to start the day";
+"Località" = "Place";
+"Neve in arrivo" = "Snow to come";
+"Scegli la località di cui vedere la neve prevista." = "Choose the place to see the snow forecast of.";
+"La neve prevista nei prossimi giorni in una località a tua scelta." = "The snow expected in the next days at a place of your choice.";
+"di neve in 3 giorni" = "of snow in 3 days";
+"%@ in 3 giorni" = "%@ in 3 days";
+"Previsioni non disponibili ora" = "No forecast right now";
+"Tieni premuto e scegli una località" = "Touch and hold to choose a place";
+"Scegli una località" = "Choose a place";

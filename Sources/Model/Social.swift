@@ -1,6 +1,8 @@
+import CoreLocation
 import Foundation
 import Observation
 import Security
+import UIKit
 
 /// A secret kept in the keychain of the iPhone: the token of the friends' account.
 enum Keychain {
@@ -29,11 +31,17 @@ enum Keychain {
 struct SocialAccount: Codable, Hashable {
     var id: String
     var name: String
+    /// When the profile picture was set, in milliseconds since 1970: it tells one picture from
+    /// the next. nil or 0 when there is none.
+    var photo: Double?
+    /// How one signs in: password, apple or google.
+    var kind: String?
 }
 
 struct Friend: Codable, Identifiable, Hashable {
     var id: String
     var name: String
+    var photo: Double?
 }
 
 /// One person in a leaderboard: the totals of a season.
@@ -47,6 +55,61 @@ struct BoardRow: Codable, Identifiable, Hashable {
     var distance: Double
     var time: Double
     var maxSpeed: Double
+    var photo: Double?
+}
+
+/// A friend who is skiing now and shares where: the last position the server heard of.
+struct LiveFriend: Codable, Identifiable, Hashable {
+    var id: String
+    var name: String
+    var lat: Double
+    var lon: Double
+    var alt: Double
+    /// m/s.
+    var speed: Double
+    /// run, lift or idle.
+    var phase: String
+    /// When it was sent, in milliseconds since 1970.
+    var at: Double
+    var photo: Double?
+
+    var coordinate: CLLocationCoordinate2D { CLLocationCoordinate2D(latitude: lat, longitude: lon) }
+    var date: Date { Date(timeIntervalSince1970: at / 1000) }
+
+    var phaseLabel: String {
+        switch phase {
+        case "run": "In pista"
+        case "lift": "In risalita"
+        default: "Fermo"
+        }
+    }
+
+    /// One or two letters for the pin on the map.
+    var initials: String { Avatars.initials(of: name) }
+}
+
+/// Your position to your friends while a day is recorded, if you turned it on: sent every half
+/// minute at most, and taken back when the recording pauses or ends, or when you turn it off.
+enum LiveShare {
+    private static var lastSent = Date.distantPast
+    private static var active = false
+
+    static func update(state: Recorder.State, point: TrackPoint?, phase: SegmentKind) {
+        let social = Shared.social
+        // The friends a few steps away, over Bluetooth: with or without signal.
+        Proximity.shared.update(recording: state == .recording)
+        let on = UserDefaults.standard.bool(forKey: Prefs.shareLive) && social.signedIn
+        if on, state == .recording, let point, Date().timeIntervalSince(point.t) < 90 {
+            guard Date().timeIntervalSince(lastSent) >= 25 else { return }
+            lastSent = Date()
+            active = true
+            Task { await social.sendPosition(point, phase: phase.rawValue) }
+        } else if active {
+            active = false
+            lastSent = .distantPast
+            Task { await social.stopSharing() }
+        }
+    }
 }
 
 /// What a leaderboard is sorted by.
@@ -119,6 +182,9 @@ enum SocialError: LocalizedError {
             case "that is you": return String(localized: "Questo è il tuo invito: mandalo a un amico.")
             case "too many friends": return String(localized: "Uno dei due ha già troppi amici.")
             case "signed out": return String(localized: "Devi accedere di nuovo.")
+            case "bad token": return String(localized: "L'accesso non è riuscito. Riprova.")
+            case "not set up": return String(localized: "Questo modo di accedere non è ancora attivo.")
+            case "photo too big", "bad photo": return String(localized: "Non riesco a usare questa foto: provane un'altra.")
             default: return String(localized: "Il server degli amici ha risposto con un errore. Riprova tra poco.")
             }
         }
@@ -132,6 +198,8 @@ enum SocialError: LocalizedError {
     private(set) var account: SocialAccount?
     private(set) var friends: [Friend] = []
     private(set) var rows: [BoardRow] = []
+    /// The friends skiing now who share where they are.
+    private(set) var live: [LiveFriend] = []
     private(set) var busy = false
     /// The code of the invitation link, once asked for.
     private(set) var inviteCode: String?
@@ -144,6 +212,17 @@ enum SocialError: LocalizedError {
     @ObservationIgnored private let demo: Bool
 
     private static let accountKey = "socialAccount"
+    private static let friendsKey = "socialFriends"
+
+    /// The friends as last read from the server: to know them where there is no signal.
+    static func keptFriends() -> [Friend] {
+        guard let data = UserDefaults.standard.data(forKey: friendsKey) else { return [] }
+        return (try? JSONDecoder().decode([Friend].self, from: data)) ?? []
+    }
+
+    private func keepFriends() {
+        if let data = try? JSONEncoder().encode(friends) { UserDefaults.standard.set(data, forKey: Self.friendsKey) }
+    }
 
     init(demo: Bool = false) {
         self.demo = demo
@@ -159,6 +238,11 @@ enum SocialError: LocalizedError {
                 BoardRow(id: "a", name: "Giulia", me: false, days: 12, vertical: 38_900, runs: 121, distance: 201_000, time: 70_000, maxSpeed: 18.9),
                 BoardRow(id: "b", name: "Luca", me: false, days: 6, vertical: 29_500, runs: 58, distance: 119_000, time: 39_000, maxSpeed: 23.1),
                 BoardRow(id: "c", name: "Sara", me: false, days: 4, vertical: 12_300, runs: 31, distance: 54_000, time: 21_000, maxSpeed: 16.2),
+            ]
+            let now = Date().timeIntervalSince1970 * 1000
+            live = [
+                LiveFriend(id: "a", name: "Giulia", lat: 45.9418, lon: 7.6392, alt: 2610, speed: 11.4, phase: "run", at: now - 20_000),
+                LiveFriend(id: "b", name: "Luca", lat: 45.9372, lon: 7.6318, alt: 2240, speed: 4.8, phase: "lift", at: now - 45_000),
             ]
             return
         }
@@ -187,16 +271,30 @@ enum SocialError: LocalizedError {
         }
     }
 
+    /// In with Apple or with Google: the token they gave the iPhone goes to the server, which
+    /// checks it and finds the account, or makes it with the name given the first time.
+    @MainActor func enter(with provider: String, token: String, name: String?) async {
+        await run {
+            var body: [String: Any] = ["token": token]
+            if let name, !name.isEmpty { body["name"] = name }
+            let data = try await self.call("POST", "/v1/sessions/\(provider)", body, signed: false)
+            struct Answer: Decodable { let token: String; let account: SocialAccount }
+            let answer = try JSONDecoder().decode(Answer.self, from: data)
+            self.remember(answer.account, token: answer.token)
+        }
+    }
+
     @MainActor func signOut() async {
         _ = try? await call("DELETE", "/v1/sessions")
         forget()
     }
 
-    /// Deletes the account and everything it shared. True when done.
-    @MainActor func deleteAccount(password: String) async -> Bool {
+    /// Deletes the account and everything it shared. True when done. The password, for the
+    /// accounts that have one; nil for the ones made with Apple or Google.
+    @MainActor func deleteAccount(password: String?) async -> Bool {
         var done = false
         await run {
-            _ = try await self.call("DELETE", "/v1/me", ["password": password])
+            _ = try await self.call("DELETE", "/v1/me", password.map { ["password": $0] } ?? ["confirm": true])
             self.forget()
             done = true
         }
@@ -215,9 +313,40 @@ enum SocialError: LocalizedError {
         token = nil
         friends = []
         rows = []
+        live = []
         inviteCode = nil
         Keychain.set(nil, for: "token")
         UserDefaults.standard.removeObject(forKey: Self.accountKey)
+        UserDefaults.standard.removeObject(forKey: Self.friendsKey)
+    }
+
+    // MARK: Profile pictures
+
+    /// Sets your picture: a small JPEG (see `Avatars.prepare`), seen by you and by your friends.
+    @MainActor func setPhoto(_ jpeg: Data) async {
+        await run {
+            let data = try await self.call("PUT", "/v1/me/photo", raw: jpeg)
+            let account = try JSONDecoder().decode(SocialAccount.self, from: data)
+            Avatars.keep(jpeg, id: account.id, version: account.photo ?? 0)
+            if let token = self.token { self.remember(account, token: token) }
+        }
+    }
+
+    @MainActor func removePhoto() async {
+        await run {
+            let data = try await self.call("DELETE", "/v1/me/photo")
+            let account = try JSONDecoder().decode(SocialAccount.self, from: data)
+            if let token = self.token { self.remember(account, token: token) }
+        }
+    }
+
+    /// The picture of an account, yours or a friend's: from the iPhone when it was seen before,
+    /// from the server the first time.
+    func photo(of id: String, version: Double) async -> UIImage? {
+        guard version > 0 else { return nil }
+        if let kept = Avatars.image(id: id, version: version) { return kept }
+        guard !demo, let data = try? await call("GET", "/v1/photos/\(id)?v=\(Int(version))") else { return nil }
+        return Avatars.keep(data, id: id, version: version)
     }
 
     // MARK: Friends
@@ -245,6 +374,7 @@ enum SocialError: LocalizedError {
         await run {
             _ = try await self.call("DELETE", "/v1/friends/\(friend.id)")
             self.friends.removeAll { $0.id == friend.id }
+            self.keepFriends()
             self.rows.removeAll { $0.id == friend.id }
         }
     }
@@ -271,9 +401,45 @@ enum SocialError: LocalizedError {
             struct Friends: Decodable { let friends: [Friend] }
             let friendsData = try await self.call("GET", "/v1/friends")
             self.friends = try JSONDecoder().decode(Friends.self, from: friendsData).friends
+            self.keepFriends()
             struct Board: Decodable { let rows: [BoardRow] }
             let boardData = try await self.call("GET", "/v1/board?season=\(season.year)")
             self.rows = try JSONDecoder().decode(Board.self, from: boardData).rows
+        }
+    }
+
+    // MARK: Live positions
+
+    /// Tells the friends where you are. Silent: a recording must not show errors for this.
+    @MainActor func sendPosition(_ point: TrackPoint, phase: String) async {
+        guard signedIn, !demo else { return }
+        struct Answer: Decodable { let friends: [LiveFriend] }
+        // The answer has the friends who share: with the iPhone in a pocket this is the only
+        // moment they are asked for, and the moment to say that one is close.
+        guard let data = try? await call("PUT", "/v1/me/position", ["lat": point.lat, "lon": point.lon, "alt": point.alt,
+                                                                      "speed": max(0, point.speed), "phase": phase]),
+              let answer = try? JSONDecoder().decode(Answer.self, from: data) else { return }
+        live = answer.friends
+        Nearby.check(lat: point.lat, lon: point.lon, friends: live)
+    }
+
+    /// Takes your position back from the server.
+    @MainActor func stopSharing() async {
+        guard signedIn, !demo else { return }
+        _ = try? await call("DELETE", "/v1/me/position")
+    }
+
+    /// Where the friends who share are now. Silent too: it is asked again in half a minute.
+    @MainActor func loadLive() async {
+        guard signedIn, !demo else { return }
+        struct Answer: Decodable { let friends: [LiveFriend] }
+        guard let data = try? await call("GET", "/v1/friends/positions"),
+              let answer = try? JSONDecoder().decode(Answer.self, from: data) else { return }
+        live = answer.friends
+        // While a day is recorded: is anyone close?
+        let recorder = Shared.recorder
+        if recorder.state == .recording, let me = recorder.lastPoint, Date().timeIntervalSince(me.t) < 120 {
+            Nearby.check(lat: me.lat, lon: me.lon, friends: live)
         }
     }
 
@@ -295,7 +461,7 @@ enum SocialError: LocalizedError {
         }
     }
 
-    private func call(_ method: String, _ path: String, _ body: [String: Any]? = nil, signed: Bool = true) async throws -> Data {
+    private func call(_ method: String, _ path: String, _ body: [String: Any]? = nil, signed: Bool = true, raw: Data? = nil) async throws -> Data {
         guard let url = URL(string: path, relativeTo: server) else { throw SocialError.offline }
         var request = URLRequest(url: url, timeoutInterval: 25)
         request.httpMethod = method
@@ -304,6 +470,9 @@ enum SocialError: LocalizedError {
         if let body {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        } else if let raw {
+            request.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
+            request.httpBody = raw
         }
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let status = (response as? HTTPURLResponse)?.statusCode else { throw SocialError.offline }

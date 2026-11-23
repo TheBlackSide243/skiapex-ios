@@ -1,11 +1,23 @@
 import SwiftUI
 import UIKit
+import UserNotifications
 
 /// The app is used upright, in a pocket and on a lift. App Store Connect wants every orientation
 /// declared in Info.plist, so the limit is set here.
-final class AppDelegate: NSObject, UIApplicationDelegate {
+final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
         .portrait
+    }
+
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        UNUserNotificationCenter.current().delegate = self
+        WatchBridge.shared.start()
+        return true
+    }
+
+    /// "A friend is close" is shown also with the app on screen.
+    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
+        [.banner, .sound]
     }
 }
 
@@ -31,12 +43,6 @@ struct SkiApexApp: App {
                 .environment(recorder)
                 .environment(Shared.guide)
                 .environment(Shared.social)
-                .onOpenURL { url in
-                    // skiapex://friend/<code>: an invitation, from the page of its link.
-                    if url.scheme == "skiapex", url.host == "friend", let code = url.pathComponents.last, code.count == 8 {
-                        Shared.social.pendingCode = code.uppercased()
-                    }
-                }
                 .onChange(of: phase) { _, now in
                     recorder.setActive(now == .active)
                 }
@@ -57,11 +63,19 @@ enum Prefs {
     static let online = "online"
     /// Save every day in Apple Health as it ends. Off unless set on.
     static let healthAuto = "healthAuto"
+    /// Tell the friends where you are while a day is recorded. Off unless set on.
+    static let shareLive = "shareLive"
+    /// Say when a friend who shares is close. On unless set off.
+    static let nearAlerts = "nearAlerts"
+    /// Look for the friends a few steps away over Bluetooth too. Off unless set on.
+    static let bluetooth = "bluetoothNear"
+    /// `Look.rawValue`: the colors of the app.
+    static let theme = "theme"
 }
 
 /// Launched with `-demo`: made-up days and a day under way, for the screenshots. `-screen <name>`
 /// opens one screen: ready, live, days, day, timeline, run, replay, share, manual, stats, heat,
-/// guide, friends, settings, empty.
+/// guide, explore, friends, settings, looks, profile, empty.
 enum Demo {
     static let isOn = ProcessInfo.processInfo.arguments.contains("-demo")
 
@@ -75,9 +89,9 @@ enum Demo {
     static var tab: Int {
         switch screen {
         case "days", "day", "timeline", "run", "replay", "share", "manual", "stats", "heat", "empty": 1
-        case "guide": 2
+        case "guide", "explore": 2
         case "friends": 3
-        case "settings": 4
+        case "settings", "looks", "profile": 4
         default: 0
         }
     }

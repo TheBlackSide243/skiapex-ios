@@ -56,15 +56,9 @@ jobs:
       - name: Tools
         run: brew install xcodegen librsvg
 
-      # The Store wants the icon without an alpha channel: through JPEG and back to PNG.
-      - name: App icon
-        run: |
-          set -eu
-          OUT=Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png
-          rsvg-convert -w 1024 -h 1024 -b '#08111E' icon.svg -o "$RUNNER_TEMP/icon.png"
-          sips -s format jpeg -s formatOptions 100 "$RUNNER_TEMP/icon.png" --out "$RUNNER_TEMP/icon.jpg" > /dev/null
-          sips -s format png "$RUNNER_TEMP/icon.jpg" --out "$OUT" > /dev/null
-          sips -g hasAlpha "$OUT"
+      # The icon of the app and the ones to choose from in Settings, without an alpha channel.
+      - name: App icons
+        run: python3 scripts/icons.py
 
       - name: Xcode project
         run: xcodegen generate
@@ -96,6 +90,7 @@ jobs:
             CURRENT_PROJECT_VERSION="$BUILD" \
             archive 2>&1 | tee build.log | grep -E "error:|warning: unre|BUILD|ARCHIVE|Signing" || true
           test -d build/SkiApex.xcarchive/Products/Applications/SkiApex.app || { grep -E "error" build.log | head -60; exit 1; }
+          test -d build/SkiApex.xcarchive/Products/Applications/SkiApex.app/Watch/SkiApexWatch.app || { echo "::error::The Apple Watch app is not inside the iPhone app"; exit 1; }
 
       # An unsigned archive has no entitlements, and the export would sign it without them. A
       # signature of its own carries them (Apple Health) to the export, which signs the app for
@@ -105,9 +100,12 @@ jobs:
           set -eu
           APP=build/SkiApex.xcarchive/Products/Applications/SkiApex.app
           for x in "$APP"/PlugIns/*.appex; do if [ -d "$x" ]; then codesign --force --sign - --timestamp=none "$x"; fi; done
+          # The watch app with Apple Health too: its workout session keeps a recording going.
+          codesign --force --sign - --timestamp=none --entitlements Support/SkiApexWatch.entitlements "$APP/Watch/SkiApexWatch.app"
           codesign --force --sign - --timestamp=none --entitlements Support/SkiApex.entitlements "$APP"
           codesign -d --entitlements - "$APP" 2>&1 | tee "$RUNNER_TEMP/entitlements.txt"
           grep -q healthkit "$RUNNER_TEMP/entitlements.txt"
+          grep -q applesignin "$RUNNER_TEMP/entitlements.txt"
 
       - name: Upload to TestFlight
         run: |

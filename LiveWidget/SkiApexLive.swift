@@ -2,16 +2,21 @@ import ActivityKit
 import SwiftUI
 import WidgetKit
 
-/// The extension of Ski Apex: the day under way on the lock screen and in the Dynamic Island.
+/// The extension of Ski Apex: the day under way on the lock screen and in the Dynamic Island, and
+/// the widgets for the Home Screen and the Lock Screen (see HomeWidgets.swift).
 @main
 struct SkiApexLiveBundle: WidgetBundle {
     var body: some Widget {
         SkiLiveActivity()
+        RecordWidget()
+        SnowWidget()
     }
 }
 
-private enum Ink {
+enum Ink {
     static let bg = Color(red: 0.043, green: 0.086, blue: 0.149)
+    static let panel = Color(red: 0.082, green: 0.145, blue: 0.235)
+    static let text = Color(red: 0.949, green: 0.965, blue: 0.984)
     static let accent = Color(red: 0.361, green: 0.812, blue: 1.0)
     static let lift = Color(red: 0.769, green: 0.710, blue: 0.992)
     static let sub = Color(red: 0.596, green: 0.663, blue: 0.749)

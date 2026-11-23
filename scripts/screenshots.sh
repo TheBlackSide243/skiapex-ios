@@ -9,7 +9,7 @@ BUNDLE=com.local.skiapex
 mkdir -p "$OUT"
 
 xcodebuild -project SkiApex.xcodeproj -scheme SkiApex -configuration Debug \
-  -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+  -destination 'generic/platform=iOS Simulator' \
   -derivedDataPath build/sim CODE_SIGNING_ALLOWED=NO build 2>&1 | tail -3
 APP="build/sim/Build/Products/Debug-iphonesimulator/SkiApex.app"
 test -d "$APP"
@@ -44,7 +44,7 @@ xcrun simctl status_bar "$udid" override --time "9:41" --batteryState charged --
   --cellularMode active --cellularBars 4 --wifiBars 3 || true
 xcrun simctl install "$udid" "$APP"
 
-for s in ${SCREENS:-ready live days day timeline run replay share manual stats heat guide friends settings empty}; do
+for s in ${SCREENS:-ready live days day timeline run replay share manual stats heat guide explore friends settings empty}; do
   xcrun simctl terminate "$udid" "$BUNDLE" 2>/dev/null || true
   tries=0
   until xcrun simctl launch "$udid" "$BUNDLE" -demo -screen "$s" ${ARGS:-} -AppleLanguages "(${LANG_CODE:-it})" -AppleLocale "${LOCALE_CODE:-it_IT}" >/dev/null; do

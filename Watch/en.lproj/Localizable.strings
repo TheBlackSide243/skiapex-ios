@@ -1,0 +1,27 @@
+/* Ski Apex on the Apple Watch, in English. The keys are the Italian texts. */
+"In pista" = "Skiing";
+"In risalita" = "On a lift";
+"In pausa" = "Paused";
+"Fermo" = "Standing";
+"Pronto" = "Ready";
+"Inizia" = "Start";
+"Pausa" = "Pause";
+"Riprendi" = "Resume";
+"Fine" = "Finish";
+"Discese" = "Runs";
+"Dislivello" = "Vertical";
+"Sciati" = "Skied";
+"Vel. max" = "Top speed";
+"Quota" = "Altitude";
+"Finita la giornata?" = "Is the day over?";
+"Salva la giornata" = "Save the day";
+"Annulla" = "Cancel";
+"iPhone non raggiungibile. Avvicinalo e apri Ski Apex." = "Can't reach the iPhone. Bring it close and open Ski Apex.";
+"L'iPhone non ha risposto. Riprova." = "The iPhone did not answer. Try again.";
+"Con l'iPhone" = "On the iPhone";
+"Il Watch registra da solo con il suo GPS: l'iPhone può restare in tasca." = "The Watch records by itself with its GPS: the iPhone can stay in a pocket.";
+"Giornate in attesa dell'iPhone: %lld" = "Days waiting for the iPhone: %lld";
+"Consenti la posizione a Ski Apex nelle Impostazioni del Watch." = "Allow Ski Apex to use the location in the Settings of the Watch.";
+"Troppo pochi punti GPS: niente da salvare." = "Too few GPS points: nothing to save.";
+"Giornata finita: la trovi sull'iPhone appena è vicino." = "Day ended: you will find it on the iPhone as soon as it is near.";
+"Non riesco a salvare la giornata." = "Can't save the day.";

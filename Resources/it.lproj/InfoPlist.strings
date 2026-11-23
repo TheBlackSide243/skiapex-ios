@@ -4,3 +4,4 @@
 "NSPhotoLibraryUsageDescription" = "Per mostrarti nella giornata le foto che hai scattato sulla neve. Restano nella tua libreria.";
 "NSHealthUpdateUsageDescription" = "Per salvare le tue giornate sugli sci in Salute come allenamenti, con il percorso.";
 "NSHealthShareUsageDescription" = "Per mostrarti il battito cardiaco delle tue giornate sugli sci.";
+"NSBluetoothAlwaysUsageDescription" = "Per riconoscere gli amici a pochi passi da te mentre registri, anche dove non c'è campo. Solo se lo accendi.";

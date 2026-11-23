@@ -1,0 +1,4 @@
+"NSLocationWhenInUseUsageDescription" = "Per registrare le tue discese, le risalite e la velocità con il GPS del Watch.";
+"NSMotionUsageDescription" = "Per misurare il dislivello con il barometro del Watch, molto più preciso del GPS.";
+"NSHealthShareUsageDescription" = "Per mostrarti il battito mentre scii.";
+"NSHealthUpdateUsageDescription" = "Per salvare la giornata sugli sci in Salute come allenamento, con il percorso.";

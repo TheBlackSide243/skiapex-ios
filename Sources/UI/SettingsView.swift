@@ -2,151 +2,276 @@ import CoreLocation
 import SwiftUI
 import UniformTypeIdentifiers
 
+/// The pages the settings open.
+enum SettingsPage: String, Hashable {
+    case profile, look, recording, integrations, backup, help, news, privacy, credits
+}
+
+/// Settings: your profile at the top, then a short list of pages, each with its own things, and
+/// what the app is at the bottom.
 struct SettingsView: View {
-    @Environment(Recorder.self) private var recorder
+    @Environment(Social.self) private var social
     @Environment(Library.self) private var library
-    @AppStorage(Prefs.units) private var units = Units.metric.rawValue
-    @AppStorage(Prefs.mapLook) private var mapLook = MapLook.standard.rawValue
-    @AppStorage(Prefs.sport) private var sport = Sport.ski.rawValue
-    @AppStorage(Prefs.online) private var online = true
-    @AppStorage(Prefs.healthAuto) private var healthAuto = false
-    @State private var made = false
-    @State private var backup: URL?
-    @State private var restoring = false
-    @State private var backupNote: String?
-    @State private var error: String?
+    @State private var path: [SettingsPage] = SettingsView.demoPath
+
+    /// For the pictures: `-screen looks` and `-screen profile` open a page.
+    private static var demoPath: [SettingsPage] {
+        switch Demo.screen {
+        case "looks": [.look]
+        case "profile": [.profile]
+        default: []
+        }
+    }
 
     private var version: String {
         let v = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
         let b = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
-        return "\(v) (\(b))"
+        return "v\(v) (\(b))"
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             ScrollView {
                 VStack(spacing: 14) {
-                    Panel("Attività") {
-                        Picker("Attività", selection: $sport) {
-                            ForEach(Sport.allCases) { Text(LocalizedStringKey($0.label)).tag($0.rawValue) }
-                        }
-                        .pickerStyle(.segmented)
-                        Text("Le nuove giornate vengono salvate così. Puoi cambiarlo per ogni giornata dal suo menu.")
-                            .prose().font(.caption).foregroundStyle(Theme.sub)
-                            .fixedSize(horizontal: false, vertical: true)
+                    profileCard
+                    MenuGroup {
+                        MenuRow(page: .look, symbol: "paintpalette.fill", color: Color(hex: 0x8b5cf6), title: "Aspetto",
+                                detail: String(localized: String.LocalizationValue(Looks.shared.look.label)))
+                        MenuRow(page: .recording, symbol: "slider.horizontal.3", color: Color(hex: 0x3b82f6), title: "Registrazione")
+                        MenuRow(page: .integrations, symbol: "arrow.left.arrow.right", color: Color(hex: 0x6366f1), title: "Integrazioni")
+                        MenuRow(page: .backup, symbol: "archivebox.fill", color: Color(hex: 0x22a55b), title: "Copia di sicurezza", last: true)
                     }
-                    Panel("Unità") {
-                        Picker("Unità", selection: $units) {
-                            ForEach(Units.allCases) { Text($0.label).tag($0.rawValue) }
-                        }
-                        .pickerStyle(.segmented)
+                    MenuGroup {
+                        MenuRow(page: .help, symbol: "questionmark.bubble.fill", color: Color(hex: 0xef4444), title: "Aiuto e prova", last: true)
                     }
-                    Panel("Mappa") {
-                        Picker("Mappa", selection: $mapLook) {
-                            ForEach(MapLook.allCases) { Text(LocalizedStringKey($0.label)).tag($0.rawValue) }
-                        }
-                        .pickerStyle(.segmented)
+                    about
+                    MenuGroup {
+                        MenuRow(page: .news, symbol: "sparkles", color: Color(hex: 0xeab308), title: "Novità")
+                        MenuRow(page: .privacy, symbol: "lock.shield.fill", color: Color(hex: 0x0ea5e9), title: "Ski Apex e i tuoi dati")
+                        MenuRow(page: .credits, symbol: "hammer.fill", color: Color(hex: 0xf97316), title: "Riconoscimenti", last: true)
                     }
-                    Panel("Internet") {
-                        Toggle(isOn: $online) {
-                            Text("Nomi delle piste e meteo").font(.subheadline).foregroundStyle(Theme.text)
-                        }
-                        .tint(Theme.accent)
-                        Text("Quando apri una giornata, Ski Apex chiede a OpenStreetMap i nomi delle piste e degli impianti della zona e a Open-Meteo il meteo di quel giorno. Viene inviata solo la zona della giornata, senza account e senza il tuo nome. Spento, non esce niente dall'iPhone.")
-                            .prose().font(.caption).foregroundStyle(Theme.sub)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    if HealthSync.available {
-                        Panel("Salute") {
-                            Toggle(isOn: $healthAuto) {
-                                Text("Salva le giornate in Salute").font(.subheadline).foregroundStyle(Theme.text)
-                            }
-                            .tint(Theme.accent)
-                            Text("Ogni giornata finita viene salvata in Salute come allenamento di sci o snowboard, con il percorso, e se portavi un Apple Watch ne leggo il battito. Puoi farlo anche a mano dal menu di una giornata. Con l'app installata da Feather può non essere disponibile.")
-                                .prose().font(.caption).foregroundStyle(Theme.sub)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    Panel("Copia di sicurezza") {
-                        ErrorBanner(error: $error)
-                        Text("Tutte le giornate in un file zip, da tenere su iCloud Drive o da portare su un altro iPhone. Ripristinando, le giornate che ci sono già non vengono toccate.")
-                            .prose().font(.caption).foregroundStyle(Theme.sub)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Button {
-                            do {
-                                backup = try library.exportBackup()
-                                backupNote = nil
-                            } catch {
-                                self.error = error.localizedDescription
-                            }
-                        } label: { Label("Prepara la copia", systemImage: "archivebox") }
-                            .buttonStyle(SecondaryButtonStyle())
-                            .disabled(library.days.isEmpty)
-                        if let backup {
-                            ShareLink(item: backup) { Label("Salva o invia la copia", systemImage: "square.and.arrow.up") }
-                                .buttonStyle(PrimaryButtonStyle())
-                        }
-                        Button { restoring = true } label: { Label("Ripristina da una copia", systemImage: "arrow.down.doc") }
-                            .buttonStyle(SecondaryButtonStyle())
-                        if let backupNote {
-                            Text(backupNote).font(.caption).foregroundStyle(Theme.good)
-                        }
-                    }
-                    Panel("Sensori") {
-                        InfoRow("Posizione", permission)
-                        InfoRow("Barometro", recorder.hasBarometer ? String(localized: "Sì, per il dislivello") : String(localized: "No, quota dal GPS"))
-                    }
-                    Panel("Come funziona") {
-                        Text("Ski Apex registra il GPS circa una volta al secondo, anche a schermo spento, e misura la quota con il barometro. Una discesa è quando scendi muovendoti per almeno \(Int(Segmenter.minRunDrop)) m di dislivello; una risalita quando sali di almeno \(Int(Segmenter.minLiftGain)) m. Le soste brevi in pista restano dentro la discesa.")
-                            .prose().font(.subheadline).foregroundStyle(Theme.sub)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Text("Consigli: carica l'iPhone prima di partire, con il freddo la batteria scende in fretta. Tienilo in una tasca interna. Le giornate restano solo su questo iPhone e le trovi anche nell'app File, nella cartella Ski Apex.")
-                            .prose().font(.subheadline).foregroundStyle(Theme.sub)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    Panel("Prova") {
-                        Text("Una giornata inventata, con risalite e discese, per vedere l'app senza andare sulla neve.")
-                            .prose().font(.subheadline).foregroundStyle(Theme.sub)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Button {
-                            let laps = 6 + Int.random(in: 0...4)
-                            let start = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
-                            var day = SkiDay(points: SkiSim.day(laps: laps, start: start, seed: UInt64.random(in: 1...1_000_000)),
-                                             place: String(localized: "Giornata di prova"), sport: Sport.current)
-                            // Made up: there is nothing to look for on the internet.
-                            day.mapped = true
-                            day.weather = DayWeather(tempMin: -6, tempMax: -1, snowfall: 8, windMax: 15, code: 71)
-                            try? library.save(day)
-                            made = true
-                        } label: { Label("Crea una giornata di prova", systemImage: "wand.and.stars") }
-                            .buttonStyle(SecondaryButtonStyle())
-                            .sensoryFeedback(.success, trigger: made)
-                        if made {
-                            Text("Fatto: la trovi in Giornate.").font(.caption).foregroundStyle(Theme.good)
-                        }
-                    }
-                    Panel("Informazioni") {
-                        InfoRow("Versione", version)
-                        InfoRow("Giornate salvate", "\(library.days.count)")
-                        Text("Velocità, distanze e quote sono stime del GPS e del barometro: non usarle per la sicurezza.")
-                            .prose().font(.caption).foregroundStyle(Theme.sub)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Text("Nomi di piste e impianti: © i contributori di OpenStreetMap (ODbL). Meteo: Open-Meteo.com.")
-                            .prose().font(.caption).foregroundStyle(Theme.sub)
-                            .fixedSize(horizontal: false, vertical: true)
+                    HStack(spacing: 10) {
+                        ShareLink(item: Self.invite) { tile("Consiglia Ski Apex", symbol: "square.and.arrow.up") }
+                            .buttonStyle(PressStyle())
+                        Link(destination: Self.source) { tile("Pagina su GitHub", symbol: "link") }
+                            .buttonStyle(PressStyle())
                     }
                 }
                 .padding(16)
             }
             .screen()
             .navigationTitle("Impostazioni")
-            .fileImporter(isPresented: $restoring, allowedContentTypes: [.zip]) { result in
-                do {
-                    let added = try library.restore(from: try result.get())
-                    backupNote = String(localized: "Giornate aggiunte: \(added).")
-                } catch {
-                    self.error = error.localizedDescription
+            .navigationDestination(for: SettingsPage.self) { page in
+                switch page {
+                case .profile: ProfileView()
+                case .look: LookPage()
+                case .recording: RecordingPage()
+                case .integrations: IntegrationsPage()
+                case .backup: BackupPage()
+                case .help: HelpPage()
+                case .news: NewsPage()
+                case .privacy: PrivacyPage()
+                case .credits: CreditsPage()
                 }
+            }
+        }
+    }
+
+    static let invite = URL(string: "https://testflight.apple.com/join/Kszu8FAj")!
+    static let source = URL(string: "https://github.com/TheBlackSide243/skiapex-ios")!
+
+    /// Who you are for your friends, or the way to an account.
+    private var profileCard: some View {
+        NavigationLink(value: SettingsPage.profile) {
+            HStack(spacing: 14) {
+                if let account = social.account {
+                    Avatar(id: account.id, name: account.name, photo: account.photo, size: 62)
+                } else {
+                    Image(systemName: "person.fill").font(.title2).foregroundStyle(Theme.accent)
+                        .frame(width: 62, height: 62)
+                        .background(Theme.deep, in: Circle())
+                        .overlay(Circle().strokeBorder(Theme.line, lineWidth: 1))
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(social.account?.name ?? String(localized: "Accedi o crea un account"))
+                        .font(.display(.headline)).foregroundStyle(Theme.text).lineLimit(1).minimumScaleFactor(0.7)
+                    Text(LocalizedStringKey(social.signedIn ? "Profilo, foto e account" : "Per le classifiche e gli amici in diretta"))
+                        .font(.caption).foregroundStyle(Theme.sub).lineLimit(2)
+                }
+                Spacer(minLength: 6)
+                Image(systemName: "chevron.right").font(.caption.weight(.bold)).foregroundStyle(Theme.sub)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .card()
+        }
+        .buttonStyle(PressStyle())
+    }
+
+    /// What the app is, with its icon and its version.
+    private var about: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 14) {
+                Image(Look.iconInUse.iconPreview)
+                    .resizable()
+                    .frame(width: 60, height: 60)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Theme.line, lineWidth: 1))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Ski Apex").font(.display(.title3)).foregroundStyle(Theme.text)
+                    Text(version).font(.subheadline).foregroundStyle(Theme.sub)
+                }
+            }
+            Text("Il diario delle tue giornate sulla neve: registra discese e risalite da sola, e tiene tutto sul tuo iPhone. \(library.days.count) giornate salvate.")
+                .prose().font(.subheadline).foregroundStyle(Theme.sub)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("Niente pubblicità, niente abbonamenti, niente dati venduti.")
+                .prose().font(.subheadline).foregroundStyle(Theme.sub)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 8)
+    }
+
+    private func tile(_ title: String, symbol: String) -> some View {
+        VStack(spacing: 6) {
+            Image(systemName: symbol).font(.body.weight(.semibold))
+            Text(LocalizedStringKey(title)).font(.caption.weight(.semibold)).multilineTextAlignment(.center)
+        }
+        .foregroundStyle(Theme.accent)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+        .padding(.horizontal, 8)
+        .card()
+    }
+}
+
+/// A group of rows in one card.
+struct MenuGroup<Content: View>: View {
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        VStack(spacing: 0) { content }
+            .padding(.horizontal, 14)
+            .frame(maxWidth: .infinity)
+            .card()
+    }
+}
+
+/// One row of the settings: a colored tile with a symbol, a title, and the page it opens.
+struct MenuRow: View {
+    let page: SettingsPage
+    let symbol: String
+    let color: Color
+    let title: String
+    var detail: String?
+    /// The last of its group: no line under it.
+    var last = false
+
+    var body: some View {
+        NavigationLink(value: page) {
+            HStack(spacing: 14) {
+                Image(systemName: symbol)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 34, height: 34)
+                    .background(color.gradient, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                    .accessibilityHidden(true)
+                Text(LocalizedStringKey(title)).font(.body).foregroundStyle(Theme.text).lineLimit(1)
+                    .layoutPriority(1)
+                Spacer(minLength: 6)
+                if let detail {
+                    Text(detail).font(.subheadline).foregroundStyle(Theme.sub).lineLimit(1)
+                }
+                Image(systemName: "chevron.right").font(.caption.weight(.bold)).foregroundStyle(Theme.sub)
+            }
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            // The line under it starts where the words do.
+            .overlay(alignment: .bottom) {
+                if !last {
+                    Rectangle().fill(Theme.line).frame(height: 1).padding(.leading, 48)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PressStyle())
+    }
+}
+
+/// A page of the settings: its panels one under the other.
+private struct SettingsPageBody<Content: View>: View {
+    let title: String
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 14) { content }
+                .padding(16)
+        }
+        .screen()
+        .navigationTitle(LocalizedStringKey(title))
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/// A sentence of a page, in the plain face.
+private struct Words: View {
+    let text: LocalizedStringKey
+    var small = false
+
+    init(_ text: LocalizedStringKey, small: Bool = false) {
+        self.text = text
+        self.small = small
+    }
+
+    var body: some View {
+        Text(text).prose().font(small ? .caption : .subheadline).foregroundStyle(Theme.sub)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+// MARK: The pages
+
+private struct LookPage: View {
+    var body: some View {
+        SettingsPageBody(title: "Aspetto") { LookPanel() }
+    }
+}
+
+/// What a recording is saved as and how its numbers are shown.
+private struct RecordingPage: View {
+    @Environment(Recorder.self) private var recorder
+    @AppStorage(Prefs.units) private var units = Units.metric.rawValue
+    @AppStorage(Prefs.mapLook) private var mapLook = MapLook.standard.rawValue
+    @AppStorage(Prefs.sport) private var sport = Sport.ski.rawValue
+
+    var body: some View {
+        SettingsPageBody(title: "Registrazione") {
+            Panel("Attività") {
+                Picker("Attività", selection: $sport) {
+                    ForEach(Sport.allCases) { Text(LocalizedStringKey($0.label)).tag($0.rawValue) }
+                }
+                .pickerStyle(.segmented)
+                Words("Le nuove giornate vengono salvate così. Puoi cambiarlo per ogni giornata dal suo menu.", small: true)
+            }
+            Panel("Unità") {
+                Picker("Unità", selection: $units) {
+                    ForEach(Units.allCases) { Text($0.label).tag($0.rawValue) }
+                }
+                .pickerStyle(.segmented)
+            }
+            Panel("Mappa") {
+                Picker("Mappa", selection: $mapLook) {
+                    ForEach(MapLook.allCases) { Text(LocalizedStringKey($0.label)).tag($0.rawValue) }
+                }
+                .pickerStyle(.segmented)
+            }
+            Panel("Sensori") {
+                InfoRow("Posizione", permission)
+                InfoRow("Barometro", recorder.hasBarometer ? String(localized: "Sì, per il dislivello") : String(localized: "No, quota dal GPS"))
             }
         }
     }
@@ -156,6 +281,198 @@ struct SettingsView: View {
         case .authorizedAlways, .authorizedWhenInUse: String(localized: "Permessa")
         case .denied, .restricted: String(localized: "Non permessa")
         default: String(localized: "Da chiedere")
+        }
+    }
+}
+
+/// What Ski Apex talks to: the internet for names and weather, Apple Health, the Apple Watch.
+private struct IntegrationsPage: View {
+    @AppStorage(Prefs.online) private var online = true
+    @AppStorage(Prefs.healthAuto) private var healthAuto = false
+
+    var body: some View {
+        SettingsPageBody(title: "Integrazioni") {
+            Panel("Internet") {
+                Toggle(isOn: $online) {
+                    Text("Nomi delle piste e meteo").font(.subheadline).foregroundStyle(Theme.text)
+                }
+                .tint(Theme.accent)
+                Words("Quando apri una giornata, Ski Apex chiede a OpenStreetMap i nomi delle piste e degli impianti della zona e a Open-Meteo il meteo di quel giorno. Viene inviata solo la zona della giornata, senza account e senza il tuo nome. Spento, non esce niente dall'iPhone.", small: true)
+            }
+            if HealthSync.available {
+                Panel("Salute") {
+                    Toggle(isOn: $healthAuto) {
+                        Text("Salva le giornate in Salute").font(.subheadline).foregroundStyle(Theme.text)
+                    }
+                    .tint(Theme.accent)
+                    Words("Ogni giornata finita viene salvata in Salute come allenamento di sci o snowboard, con il percorso, e se portavi un Apple Watch ne leggo il battito. Puoi farlo anche a mano dal menu di una giornata. Con l'app installata da Feather può non essere disponibile.", small: true)
+                }
+            }
+            Panel("Apple Watch") {
+                Words("Sul Watch, Ski Apex registra la giornata da sola con il GPS dell'orologio: l'iPhone può restare in tasca o a casa. Quando finisci, la giornata arriva qui in Giornate appena i due sono vicini.")
+                Words("Se invece registri con l'iPhone, il Watch ne mostra i numeri e fa da telecomando: pausa, riprendi, fine. L'app per il Watch arriva con la versione TestFlight.", small: true)
+            }
+            Panel("Siri e widget") {
+                Words("\"Inizia la giornata con Ski Apex\", \"Metti in pausa Ski Apex\", \"Finisci la giornata con Ski Apex\": li trovi anche nell'app Comandi Rapidi. I widget \"Registra\" e \"Neve in arrivo\" si aggiungono dalla schermata Home tenendo premuto.", small: true)
+            }
+        }
+    }
+}
+
+/// All the days in one file, and back.
+private struct BackupPage: View {
+    @Environment(Library.self) private var library
+    @State private var backup: URL?
+    @State private var restoring = false
+    @State private var note: String?
+    @State private var error: String?
+
+    var body: some View {
+        SettingsPageBody(title: "Copia di sicurezza") {
+            Panel("Copia di sicurezza") {
+                ErrorBanner(error: $error)
+                Words("Tutte le giornate in un file zip, da tenere su iCloud Drive o da portare su un altro iPhone. Ripristinando, le giornate che ci sono già non vengono toccate.", small: true)
+                Button {
+                    do {
+                        backup = try library.exportBackup()
+                        note = nil
+                    } catch {
+                        self.error = error.localizedDescription
+                    }
+                } label: { Label("Prepara la copia", systemImage: "archivebox") }
+                    .buttonStyle(SecondaryButtonStyle())
+                    .disabled(library.days.isEmpty)
+                if let backup {
+                    ShareLink(item: backup) { Label("Salva o invia la copia", systemImage: "square.and.arrow.up") }
+                        .buttonStyle(PrimaryButtonStyle())
+                }
+                Button { restoring = true } label: { Label("Ripristina da una copia", systemImage: "arrow.down.doc") }
+                    .buttonStyle(SecondaryButtonStyle())
+                if let note {
+                    Text(note).font(.caption).foregroundStyle(Theme.good)
+                }
+            }
+            Panel("Dove sono le giornate") {
+                InfoRow("Giornate salvate", "\(library.days.count)")
+                Words("Restano solo su questo iPhone e le trovi anche nell'app File, nella cartella Ski Apex.", small: true)
+            }
+        }
+        .fileImporter(isPresented: $restoring, allowedContentTypes: [.zip]) { result in
+            do {
+                let added = try library.restore(from: try result.get())
+                note = String(localized: "Giornate aggiunte: \(added).")
+            } catch {
+                self.error = error.localizedDescription
+            }
+        }
+    }
+}
+
+/// How it works, and a made-up day to try it.
+private struct HelpPage: View {
+    @Environment(Library.self) private var library
+    @State private var made = false
+
+    var body: some View {
+        SettingsPageBody(title: "Aiuto e prova") {
+            Panel("Come funziona") {
+                Words("Ski Apex registra il GPS circa una volta al secondo, anche a schermo spento, e misura la quota con il barometro. Una discesa è quando scendi muovendoti per almeno \(Int(Segmenter.minRunDrop)) m di dislivello; una risalita quando sali di almeno \(Int(Segmenter.minLiftGain)) m. Le soste brevi in pista restano dentro la discesa.")
+                Words("Consigli: carica l'iPhone prima di partire, con il freddo la batteria scende in fretta. Tienilo in una tasca interna. Le giornate restano solo su questo iPhone e le trovi anche nell'app File, nella cartella Ski Apex.")
+                Words("Velocità, distanze e quote sono stime del GPS e del barometro: non usarle per la sicurezza.", small: true)
+            }
+            Panel("Prova") {
+                Words("Una giornata inventata, con risalite e discese, per vedere l'app senza andare sulla neve.")
+                Button {
+                    let laps = 6 + Int.random(in: 0...4)
+                    let start = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
+                    var day = SkiDay(points: SkiSim.day(laps: laps, start: start, seed: UInt64.random(in: 1...1_000_000)),
+                                     place: String(localized: "Giornata di prova"), sport: Sport.current)
+                    // Made up: there is nothing to look for on the internet.
+                    day.mapped = true
+                    day.weather = DayWeather(tempMin: -6, tempMax: -1, snowfall: 8, windMax: 15, code: 71)
+                    try? library.save(day)
+                    made = true
+                } label: { Label("Crea una giornata di prova", systemImage: "wand.and.stars") }
+                    .buttonStyle(SecondaryButtonStyle())
+                    .sensoryFeedback(.success, trigger: made)
+                if made {
+                    Text("Fatto: la trovi in Giornate.").font(.caption).foregroundStyle(Theme.good)
+                }
+            }
+        }
+    }
+}
+
+/// What came with this version.
+private struct NewsPage: View {
+    private static let news: [(symbol: String, title: String, text: String)] = [
+        ("applewatch", "Il Watch registra da solo", "Con il GPS dell'orologio, senza iPhone: la giornata arriva qui quando finisci."),
+        ("point.topleft.down.to.point.bottomright.curvepath", "Mappa delle piste e percorsi", "Piste, impianti e rifugi di una stazione, e la strada da un punto all'altro. Dalla Guida."),
+        ("person.crop.circle", "Foto del profilo", "I tuoi amici ti vedono in classifica e sulla mappa con la tua foto."),
+        ("person.badge.key", "Accesso con Apple e Google", "Un account per gli amici senza inventare una password."),
+        ("paintpalette", "Temi e icone", "Sei aspetti per l'app e l'icona negli stessi colori."),
+        ("square.grid.2x2", "Widget", "La neve in arrivo in una località a scelta, e un tasto per registrare."),
+        ("dot.radiowaves.left.and.right", "Amici vicini", "In diretta sulla mappa, con un avviso quando uno è vicino; con il Bluetooth anche senza campo."),
+    ]
+
+    var body: some View {
+        SettingsPageBody(title: "Novità") {
+            Panel {
+                ForEach(Array(Self.news.enumerated()), id: \.offset) { i, item in
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: item.symbol).font(.footnote.weight(.semibold)).foregroundStyle(Theme.accent)
+                            .frame(width: 34, height: 34)
+                            .iconBox()
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(LocalizedStringKey(item.title)).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
+                            Text(LocalizedStringKey(item.text)).prose().font(.caption).foregroundStyle(Theme.sub)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    if i < Self.news.count - 1 { Divider().overlay(Theme.line) }
+                }
+            }
+        }
+    }
+}
+
+/// What stays on the iPhone and what leaves it.
+private struct PrivacyPage: View {
+    var body: some View {
+        SettingsPageBody(title: "Ski Apex e i tuoi dati") {
+            Panel("Sul tuo iPhone") {
+                Words("Le giornate, con le tracce e i posti, restano sul tuo iPhone. Nessuno le vede se non le condividi tu.")
+            }
+            Panel("Quello che esce") {
+                Words("Nomi delle piste e meteo: la zona della giornata, a OpenStreetMap e Open-Meteo, senza il tuo nome. Si spegne da Integrazioni.")
+                Words("Amici: il nome, la foto se la metti e i totali della stagione. Se accedi con Apple o Google, al server arriva solo un identificativo: niente email.")
+                Words("Posizione in diretta: solo se la accendi e solo mentre registri. Il server tiene l'ultima, non la salva e la dimentica dopo dieci minuti.")
+                Words("Bluetooth: solo se lo accendi. Passa un codice che cambia ogni giorno, non la posizione.")
+            }
+            Panel("Mai") {
+                Words("Niente pubblicità, niente tracciamento, niente dati venduti. Eliminando l'account dal Profilo, il server cancella tutto quello che aveva.")
+            }
+        }
+    }
+}
+
+/// Whose work Ski Apex stands on.
+private struct CreditsPage: View {
+    var body: some View {
+        SettingsPageBody(title: "Riconoscimenti") {
+            Panel("Mappe e nomi") {
+                Words("Nomi di piste, impianti, rifugi e stazioni: © i contributori di OpenStreetMap, con licenza ODbL. Ricerca delle stazioni: Photon di komoot.")
+                Link("openstreetmap.org/copyright", destination: URL(string: "https://www.openstreetmap.org/copyright")!)
+                    .font(.subheadline)
+            }
+            Panel("Meteo e quote") {
+                Words("Meteo delle giornate, neve prevista e quote: Open-Meteo.com, con licenza CC BY 4.0.")
+                Link("open-meteo.com", destination: URL(string: "https://open-meteo.com")!)
+                    .font(.subheadline)
+            }
+            Panel("Mappa") {
+                Words("La mappa sotto le tracce è Mappe di Apple.")
+            }
         }
     }
 }

@@ -55,7 +55,13 @@ function server() {
     const accepted = await call('POST', '/v1/friends', { token: b.token, body: { code: body.code } });
     assert.equal(accepted.status, 201);
   };
-  return { call, signUp, befriend, data: state.storage.data };
+  // Bytes instead of JSON, there and back: for the profile pictures.
+  const send = (method, path, { token, bytes, type = 'image/jpeg' } = {}) => worker.fetch(new Request('https://skiapex.test' + path, {
+    method,
+    headers: { 'CF-Connecting-IP': '9.9.9.9', ...(token ? { Authorization: 'Bearer ' + token } : {}), ...(bytes ? { 'Content-Type': type } : {}) },
+    body: bytes,
+  }), env);
+  return { call, signUp, befriend, send, data: state.storage.data, object };
 }
 
 const day = (date, vertical, more = {}) => ({ date, vertical, runs: 10, distance: 20000, time: 7200, maxSpeed: 18, ...more });
@@ -182,6 +188,50 @@ test('the invitation page opens the app, and says so when the link is old', asyn
   assert.ok(gone.body.includes('Invitation expired'));
 });
 
+test('a position shared live reaches friends only, and does not last', async () => {
+  const { call, signUp, befriend, data, object } = server();
+  const a = await signUp('Alessio');
+  const b = await signUp('Alex');
+  const c = await signUp('Estraneo');
+  await befriend(a, b);
+  const here = { lat: 45.9336, lon: 7.6295, alt: 2500, speed: 12.5, phase: 'run' };
+  assert.equal((await call('PUT', '/v1/me/position', { body: here })).status, 401);
+  assert.equal((await call('PUT', '/v1/me/position', { token: a.token, body: { lat: 'qui', lon: 7 } })).status, 400);
+  assert.equal((await call('PUT', '/v1/me/position', { token: a.token, body: { lat: 95, lon: 7 } })).status, 400);
+  assert.equal((await call('PUT', '/v1/me/position', { token: a.token, body: { ...here, phase: 'volo', speed: 900 } })).status, 200);
+  let seen = (await call('GET', '/v1/friends/positions', { token: b.token })).body.friends;
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0].name, 'Alessio');
+  assert.equal(seen[0].lat, 45.9336);
+  assert.equal(seen[0].phase, 'idle', 'an unknown phase is standing');
+  assert.equal(seen[0].speed, 70);
+  assert.deepEqual((await call('GET', '/v1/friends/positions', { token: c.token })).body.friends, [], 'not to strangers');
+  assert.deepEqual((await call('GET', '/v1/friends/positions', { token: a.token })).body.friends, [], 'not yourself');
+  assert.ok(!JSON.stringify([...data.entries()]).includes('45.9336'), 'never written to storage');
+
+  // Sending yours answers with theirs.
+  const mine = await call('PUT', '/v1/me/position', { token: b.token, body: { ...here, lat: 45.94 } });
+  assert.deepEqual(mine.body.friends.map(f => f.name), ['Alessio']);
+  assert.deepEqual((await call('PUT', '/v1/me/position', { token: c.token, body: here })).body.friends, []);
+  await call('DELETE', '/v1/me/position', { token: b.token });
+  await call('DELETE', '/v1/me/position', { token: c.token });
+
+  // Ten minutes without news and it is gone.
+  object.positions.get(a.id).at -= 11 * 60 * 1000;
+  assert.deepEqual((await call('GET', '/v1/friends/positions', { token: b.token })).body.friends, []);
+  assert.equal(object.positions.size, 0);
+
+  // Stopped by hand, and gone with the friendship and with the account.
+  await call('PUT', '/v1/me/position', { token: a.token, body: here });
+  assert.equal((await call('DELETE', '/v1/me/position', { token: a.token })).status, 200);
+  assert.deepEqual((await call('GET', '/v1/friends/positions', { token: b.token })).body.friends, []);
+  await call('PUT', '/v1/me/position', { token: a.token, body: here });
+  await call('DELETE', '/v1/friends/' + a.id, { token: b.token });
+  assert.deepEqual((await call('GET', '/v1/friends/positions', { token: b.token })).body.friends, []);
+  await call('DELETE', '/v1/me', { token: a.token, body: { password: 'neve-2026' } });
+  assert.equal(object.positions.size, 0);
+});
+
 test('too many wrong passwords stop the guessing', async () => {
   const { call, signUp } = server();
   await signUp('Alessio');
@@ -189,4 +239,110 @@ test('too many wrong passwords stop the guessing', async () => {
     assert.equal((await call('POST', '/v1/sessions', { body: { username: 'Alessio', password: 'prova-' + i } })).status, 403);
   }
   assert.equal((await call('POST', '/v1/sessions', { body: { username: 'Alessio', password: 'neve-2026' } })).status, 429);
+});
+
+test('a profile picture is seen by friends only', async () => {
+  const { call, signUp, befriend, send, data } = server();
+  const a = await signUp('Alessio');
+  const b = await signUp('Alex');
+  const c = await signUp('Estraneo');
+  await befriend(a, b);
+  const jpeg = new Uint8Array(400).fill(7);
+  jpeg.set([0xff, 0xd8, 0xff, 0xe0]);
+  assert.equal((await send('PUT', '/v1/me/photo', { bytes: jpeg })).status, 401);
+  assert.equal((await send('PUT', '/v1/me/photo', { token: a.token, bytes: new Uint8Array(400).fill(1) })).status, 400, 'not a JPEG');
+  assert.equal((await send('PUT', '/v1/me/photo', { token: a.token, bytes: new Uint8Array(200 * 1024).fill(0xff) })).status, 413);
+  const set = await send('PUT', '/v1/me/photo', { token: a.token, bytes: jpeg });
+  assert.equal(set.status, 200);
+  const version = (await set.json()).photo;
+  assert.ok(version > 0);
+  assert.equal((await call('GET', '/v1/me', { token: a.token })).body.photo, version);
+
+  // The friend sees it, in the list, in the leaderboard and by its address; a stranger does not.
+  const friends = (await call('GET', '/v1/friends', { token: b.token })).body.friends;
+  assert.equal(friends[0].photo, version);
+  assert.equal(friends[0].kind, undefined, 'how a friend signs in is their own business');
+  const rows = (await call('GET', '/v1/board?season=2026', { token: b.token })).body.rows;
+  assert.equal(rows.find(r => r.name === 'Alessio').photo, version);
+  assert.equal(rows.find(r => r.name === 'Alex').photo, 0);
+  const got = await send('GET', '/v1/photos/' + a.id, { token: b.token });
+  assert.equal(got.status, 200);
+  assert.equal(got.headers.get('Content-Type'), 'image/jpeg');
+  assert.deepEqual(new Uint8Array(await got.arrayBuffer()), jpeg);
+  assert.equal((await send('GET', '/v1/photos/' + a.id, { token: a.token })).status, 200, 'and you see your own');
+  assert.equal((await send('GET', '/v1/photos/' + a.id, { token: c.token })).status, 404);
+  assert.equal((await send('GET', '/v1/photos/' + b.id, { token: a.token })).status, 404, 'no picture set');
+
+  // Taken off, and gone with the account.
+  assert.equal((await call('DELETE', '/v1/me/photo', { token: a.token })).body.photo, 0);
+  assert.equal((await send('GET', '/v1/photos/' + a.id, { token: b.token })).status, 404);
+  await send('PUT', '/v1/me/photo', { token: a.token, bytes: jpeg });
+  assert.ok(data.has('photo:' + a.id));
+  await call('DELETE', '/v1/me', { token: a.token, body: { password: 'neve-2026' } });
+  assert.ok(!data.has('photo:' + a.id));
+});
+
+test('signing in with Apple or Google makes one account for each person', async () => {
+  const { call, object, data } = server();
+  const pair = await crypto.subtle.generateKey(
+    { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' }, true, ['sign', 'verify']);
+  const jwk = { ...(await crypto.subtle.exportKey('jwk', pair.publicKey)), kid: 'k1' };
+  const b64 = bytes => Buffer.from(bytes).toString('base64url');
+  const token = async (claims, { kid = 'k1', key = pair.privateKey } = {}) => {
+    const head = b64(JSON.stringify({ alg: 'RS256', kid })) + '.' + b64(JSON.stringify(claims));
+    return head + '.' + b64(new Uint8Array(await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(head))));
+  };
+  const soon = Math.floor(Date.now() / 1000) + 600;
+  object.jwks.set('apple', { keys: [jwk], at: Date.now() });
+  object.jwks.set('google', { keys: [jwk], at: Date.now() });
+  const apple = { iss: 'https://appleid.apple.com', aud: 'win.shadowbyte.skiapex', sub: '001.abc', exp: soon };
+
+  // Apple: made the first time with the name the phone gives, found again the second.
+  const first = await call('POST', '/v1/sessions/apple', { body: { token: await token(apple), name: 'Alessio Vitàli' } });
+  assert.equal(first.status, 201);
+  assert.equal(first.body.account.name, 'Alessio.Vitali');
+  assert.equal(first.body.account.kind, 'apple');
+  const again = await call('POST', '/v1/sessions/apple', { body: { token: await token(apple) } });
+  assert.equal(again.status, 200);
+  assert.equal(again.body.account.id, first.body.account.id);
+  assert.equal((await call('GET', '/v1/me', { token: again.body.token })).body.name, 'Alessio.Vitali');
+  assert.ok(!JSON.stringify([...data.entries()]).includes('@'), 'no email anywhere');
+
+  // Someone else with the same name gets a number; with no name at all, a plain one.
+  const other = await call('POST', '/v1/sessions/apple', { body: { token: await token({ ...apple, sub: '001.def' }), name: 'Alessio Vitali' } });
+  assert.equal(other.body.account.name, 'Alessio.Vitali2');
+  const nameless = await call('POST', '/v1/sessions/apple', { body: { token: await token({ ...apple, sub: '001.ghi' }) } });
+  assert.equal(nameless.body.account.name, 'sciatore');
+
+  // What is not a good token gets nothing.
+  const stranger = await crypto.subtle.generateKey(
+    { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' }, true, ['sign', 'verify']);
+  for (const bad of [
+    await token(apple, { key: stranger.privateKey }),
+    await token(apple, { kid: 'k9' }),
+    await token({ ...apple, aud: 'com.someone.else' }),
+    await token({ ...apple, iss: 'https://evil.example' }),
+    await token({ ...apple, exp: soon - 3600 }),
+    'not.a.token',
+    42,
+  ]) {
+    assert.equal((await call('POST', '/v1/sessions/apple', { body: { token: bad } })).status, 403);
+  }
+
+  // Google: off until the worker is told which app it is for.
+  const google = { iss: 'https://accounts.google.com', aud: '123.apps.googleusercontent.com', sub: '9988', exp: soon, given_name: 'Giulia' };
+  assert.equal((await call('POST', '/v1/sessions/google', { body: { token: await token(google) } })).status, 503);
+  object.env.GOOGLE_CLIENT_IDS = '999.apps.googleusercontent.com, 123.apps.googleusercontent.com';
+  const g = await call('POST', '/v1/sessions/google', { body: { token: await token(google) } });
+  assert.equal(g.status, 201);
+  assert.equal(g.body.account.name, 'Giulia');
+  assert.equal(g.body.account.kind, 'google');
+  assert.equal((await call('POST', '/v1/sessions/google', { body: { token: await token(apple) } })).status, 403, 'an Apple token is not a Google one');
+
+  // No password to sign in with, and the account goes with a plain yes.
+  assert.equal((await call('POST', '/v1/sessions', { body: { username: 'Giulia', password: 'undefined' } })).status, 403);
+  assert.equal((await call('DELETE', '/v1/me', { token: g.body.token, body: {} })).status, 403);
+  assert.equal((await call('DELETE', '/v1/me', { token: g.body.token, body: { confirm: true } })).status, 200);
+  assert.ok(!data.has('ext:google:9988'));
+  assert.equal((await call('POST', '/v1/sessions/google', { body: { token: await token(google) } })).status, 201, 'a new account, from nothing');
 });

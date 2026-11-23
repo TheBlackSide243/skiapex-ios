@@ -7,6 +7,7 @@ import UIKit
 struct LiveView: View {
     @Environment(Recorder.self) private var recorder
     @Environment(Library.self) private var library
+    @Environment(Social.self) private var social
     @Environment(\.openURL) private var openURL
     @AppStorage(Prefs.mapLook) private var mapLook = MapLook.standard.rawValue
     @State private var camera: MapCameraPosition = .userLocation(fallback: .automatic)
@@ -23,6 +24,10 @@ struct LiveView: View {
                 Map(position: $camera) {
                     UserAnnotation()
                     TrackMapContent(tracks: recorder.tracks, colorful: false)
+                    // The friends skiing now who share where they are.
+                    ForEach(social.live) { friend in
+                        Annotation(friend.name, coordinate: friend.coordinate) { FriendMarker(friend: friend) }
+                    }
                 }
                 .mapStyle(look.style)
                 .mapControls { MapCompass() }
@@ -51,6 +56,14 @@ struct LiveView: View {
             }
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(item: $saved) { DayDetailView(id: $0.id) }
+            // While a day is recorded, the friends on the map are asked for every half minute.
+            .task(id: recorder.state == .recording) {
+                guard recorder.state == .recording else { return }
+                while !Task.isCancelled {
+                    await social.loadLive()
+                    try? await Task.sleep(for: .seconds(30))
+                }
+            }
             .confirmationDialog("Finita la giornata?", isPresented: $confirmStop, titleVisibility: .visible) {
                 Button("Salva la giornata") { Task { await save() } }
                 Button("Scarta la registrazione", role: .destructive) { recorder.forget() }

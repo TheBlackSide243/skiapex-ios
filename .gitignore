@@ -1,8 +1,11 @@
+*.ipa
 *.xcodeproj/
-build/
+.DS_Store
+.wrangler/
 DerivedData/
 Payload/
-*.ipa
-Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png
-.DS_Store
+*.appiconset/*.png
+Resources/Assets.xcassets/IconPreview-*.imageset/*.png
 __pycache__/
+build/
+node_modules/

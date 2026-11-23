@@ -1,19 +1,8 @@
-Ski Apex 0.2.0
-- Piste and lift names (from OpenStreetMap) with the color of the difficulty, and the weather of the day.
-- Timeline of the day: runs, lifts and breaks in order.
-- Replay the day on the map with time, speed and altitude.
-- Every run drawn on the map in the colors of its speed.
-- New Stats tab: totals, averages, records and charts.
-- Picture to share with the track and the numbers.
-- Import GPX files from other apps.
-- Ski, snowboard, telemark or sled for each day.
-- The day under way on the lock screen and in the Dynamic Island.
-- Siri commands: start, pause and finish the day.
-- Photos of the day from your library.
-- Apple Health: the day as a workout with its route, and heart rate from Apple Watch.
-- Backup of all your days in one zip file.
-- Guide to ski areas with the snow expected for 8 days.
-- Diary with the map of your places, planned trips and days written by hand.
-- Heat map of your runs.
-- Friends: season leaderboards with the friends you invite.
-To test: a real day on the snow. Tell me whether the piste names are right.
+Ski Apex 0.4.0
+- Apple Watch: records the day by itself with its GPS, and sends it to the iPhone when you finish. Or works as a remote when the iPhone records.
+- Piste map: the pistes, lifts and huts of a ski area, and the way from one point to another (from the Guide).
+- Profile pictures, and Sign in with Apple.
+- New Settings, with looks and app icons (Settings, Look).
+- Widgets: the snow to come at a place of your choice, and a button to record.
+- Friends live on the map while you record, with a notice when one is close; over Bluetooth even with no signal.
+To test: a recording started from the Watch, until it shows up in Days; friends live with two people.

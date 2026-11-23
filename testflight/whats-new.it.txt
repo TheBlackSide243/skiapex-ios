@@ -1,19 +1,8 @@
-Ski Apex 0.2.0
-- Nomi delle piste e degli impianti (da OpenStreetMap) con il colore della difficolta, e meteo della giornata.
-- Cronologia della giornata: discese, risalite e soste in ordine.
-- Rivivi la giornata: replay sulla mappa con ora, velocita e quota.
-- Ogni discesa disegnata sulla mappa con i colori della velocita.
-- Nuova scheda Statistiche: totali, medie, record e grafici.
-- Immagine da condividere con traccia e numeri.
-- Importazione di file GPX da altre app.
-- Sci, snowboard, telemark o slittino per ogni giornata.
-- Giornata in corso sulla schermata di blocco e nella Dynamic Island.
-- Comandi di Siri: inizia, metti in pausa e finisci la giornata.
-- Foto della giornata dalla tua libreria.
-- Apple Salute: giornata come allenamento con percorso, e battito dall Apple Watch.
-- Copia di sicurezza di tutte le giornate in un file zip.
-- Guida delle stazioni con la neve prevista per 8 giorni.
-- Diario con mappa dei posti, viaggi in programma e giornate scritte a mano.
-- Mappa di calore delle tue discese.
-- Amici: classifiche della stagione con gli amici che inviti.
-Da provare: una giornata vera sulla neve. Dimmi se i nomi delle piste sono giusti.
+Ski Apex 0.4.0
+- Apple Watch: registra la giornata da solo con il suo GPS, e la manda all'iPhone quando finisci. Oppure fa da telecomando quando registra l'iPhone.
+- Mappa delle piste: piste, impianti e rifugi di una stazione, e il percorso da un punto all'altro (dalla Guida).
+- Foto del profilo, e accesso con Apple.
+- Impostazioni nuove, con temi e icone dell'app (Impostazioni, Aspetto).
+- Widget: la neve in arrivo in una localita a scelta, e un tasto per registrare.
+- Amici in diretta sulla mappa mentre registri, con l'avviso quando uno e vicino; con il Bluetooth anche senza campo.
+Da provare: una registrazione avviata dal Watch, fino a vederla arrivare in Giornate; gli amici in diretta in due.

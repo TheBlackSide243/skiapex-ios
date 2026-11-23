@@ -26,8 +26,9 @@ jobs:
       - name: Tools
         run: brew install xcodegen librsvg
 
-      - name: App icon
-        run: rsvg-convert -w 1024 -h 1024 -b '#08111E' icon.svg -o Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png
+      # The icon of the app and the ones to choose from in Settings, without an alpha channel.
+      - name: App icons
+        run: python3 scripts/icons.py
 
       - name: Xcode project
         run: xcodegen generate
@@ -46,6 +47,9 @@ jobs:
           set -eu
           rm -rf Payload && mkdir Payload
           cp -R build/SkiApex.xcarchive/Products/Applications/SkiApex.app Payload/
+          # The Apple Watch app stays out: sideloading tools sign the iPhone app only, and an
+          # unsigned watch app inside makes the installation fail. It comes with TestFlight.
+          if [ -d Payload/SkiApex.app/Watch ]; then ls Payload/SkiApex.app/Watch; rm -rf Payload/SkiApex.app/Watch; else echo "::warning::No Apple Watch app inside the archive"; fi
           for x in Payload/SkiApex.app/PlugIns/*.appex; do if [ -d "$x" ]; then codesign -f -s - "$x"; fi; done
           codesign -f -s - Payload/SkiApex.app
           VER="$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' Payload/SkiApex.app/Info.plist)"

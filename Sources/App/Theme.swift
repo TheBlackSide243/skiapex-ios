@@ -1,43 +1,168 @@
+import Observation
 import SwiftUI
 import UIKit
 
-/// The look of Ski Apex: a night-blue mountain under glass. Surfaces have round corners and a thin
-/// outline; what floats on the map is glass (the Liquid Glass of iOS 26 and later, a frosted
-/// material before); the things you press are pills. Titles, numbers and labels are set in the
-/// monospaced face, sentences in the plain one (see `prose()`).
-enum Theme {
-    private static func c(_ hex: UInt32) -> Color {
-        Color(red: Double((hex >> 16) & 0xff) / 255, green: Double((hex >> 8) & 0xff) / 255, blue: Double(hex & 0xff) / 255)
+extension Color {
+    init(hex: UInt32) {
+        self.init(red: Double((hex >> 16) & 0xff) / 255, green: Double((hex >> 8) & 0xff) / 255, blue: Double(hex & 0xff) / 255)
+    }
+}
+
+/// The colors of one look of the app.
+struct Palette {
+    /// A dark look, with light words: the bars and the maps of iOS follow it.
+    let dark: Bool
+    let bg: Color
+    let panel: Color
+    let deep: Color
+    let input: Color
+    let line: Color
+    let text: Color
+    let sub: Color
+    /// What you can do, and the runs on the map.
+    let accent: Color
+    let onAccent: Color
+    /// The lifts on the map and in the charts.
+    let lift: Color
+    let good: Color
+    let bad: Color
+    let warn: Color
+    /// The top of the picture to share: the sky over the page.
+    let sky: Color
+}
+
+/// The looks to choose from in Settings. Each has an icon of the app in its colors.
+enum Look: String, CaseIterable, Identifiable {
+    case night, aurora, sunrise, forest, carbon, snow
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .night: "Notte"
+        case .aurora: "Aurora"
+        case .sunrise: "Alba"
+        case .forest: "Bosco"
+        case .carbon: "Carbone"
+        case .snow: "Neve"
+        }
     }
 
-    static let bg = c(0x0b1626)
-    static let panel = c(0x15253c)
-    static let deep = c(0x08111e)
-    static let input = c(0x1a2c47)
-    static let line = Color.white.opacity(0.12)
-    static let text = c(0xf2f6fb)
-    static let sub = c(0x98a9bf)
-    /// Glacier blue: what you can do, and the runs on the map.
-    static let accent = c(0x5ccfff)
-    static let onAccent = c(0x07121f)
-    /// The lifts on the map and in the charts.
-    static let lift = c(0xc4b5fd)
-    static let good = c(0x34d399)
-    static let bad = c(0xff7b8a)
-    static let warn = c(0xfbbf24)
+    /// The icon of the app in these colors, as iOS knows it: nil for the one the app comes with.
+    var iconName: String? {
+        switch self {
+        case .night: nil
+        case .aurora: "AppIcon-Aurora"
+        case .sunrise: "AppIcon-Alba"
+        case .forest: "AppIcon-Bosco"
+        case .carbon: "AppIcon-Carbone"
+        case .snow: "AppIcon-Neve"
+        }
+    }
+
+    /// The look whose icon is on the Home Screen now.
+    static var iconInUse: Look {
+        let name = UIApplication.shared.alternateIconName
+        return allCases.first { $0.iconName == name } ?? .night
+    }
+
+    /// The same icon as a picture, to show it in Settings.
+    var iconPreview: String { "IconPreview-\(rawValue)" }
+
+    var palette: Palette {
+        switch self {
+        case .night: Self.nightColors
+        case .aurora: Self.auroraColors
+        case .sunrise: Self.sunriseColors
+        case .forest: Self.forestColors
+        case .carbon: Self.carbonColors
+        case .snow: Self.snowColors
+        }
+    }
+
+    private static func darkLook(bg: UInt32, panel: UInt32, deep: UInt32, input: UInt32, text: UInt32, sub: UInt32,
+                                 accent: UInt32, onAccent: UInt32, lift: UInt32, sky: UInt32) -> Palette {
+        Palette(dark: true, bg: Color(hex: bg), panel: Color(hex: panel), deep: Color(hex: deep), input: Color(hex: input),
+                line: Color.white.opacity(0.12), text: Color(hex: text), sub: Color(hex: sub), accent: Color(hex: accent),
+                onAccent: Color(hex: onAccent), lift: Color(hex: lift), good: Color(hex: 0x34d399), bad: Color(hex: 0xff7b8a),
+                warn: Color(hex: 0xfbbf24), sky: Color(hex: sky))
+    }
+
+    /// A night-blue mountain, glacier blue for what you can do: the look the app was born with.
+    private static let nightColors = darkLook(bg: 0x0b1626, panel: 0x15253c, deep: 0x08111e, input: 0x1a2c47, text: 0xf2f6fb,
+                                              sub: 0x98a9bf, accent: 0x5ccfff, onAccent: 0x07121f, lift: 0xc4b5fd, sky: 0x1a3054)
+    /// Northern lights: dark teal and mint.
+    private static let auroraColors = darkLook(bg: 0x0a1a1c, panel: 0x12292c, deep: 0x061214, input: 0x183538, text: 0xeffaf8,
+                                               sub: 0x8fb0ad, accent: 0x5eead4, onAccent: 0x04201c, lift: 0xd8b4fe, sky: 0x14403f)
+    /// The first light on the peaks: plum and peach.
+    private static let sunriseColors = darkLook(bg: 0x1c1220, panel: 0x2a1b30, deep: 0x140c18, input: 0x35223c, text: 0xfbf3f1,
+                                                sub: 0xb9a3b3, accent: 0xff9f6b, onAccent: 0x2a1206, lift: 0xf9a8d4, sky: 0x4a2440)
+    /// Among the firs: dark green and lime.
+    private static let forestColors = darkLook(bg: 0x0f1a13, panel: 0x18281d, deep: 0x0a130d, input: 0x203427, text: 0xf1f7f0,
+                                               sub: 0x9bb0a0, accent: 0xa3e635, onAccent: 0x0f1f04, lift: 0x7dd3fc, sky: 0x1e3a26)
+    /// Black, for the screens that turn their pixels off, and the yellow of the piste poles.
+    private static let carbonColors = darkLook(bg: 0x000000, panel: 0x121214, deep: 0x0a0a0b, input: 0x1c1c1f, text: 0xf5f5f7,
+                                               sub: 0x9a9aa2, accent: 0xffd60a, onAccent: 0x1a1500, lift: 0xc4b5fd, sky: 0x1c1c1f)
+    /// A light look, for the sun on the snow.
+    private static let snowColors = Palette(
+        dark: false, bg: Color(hex: 0xf1f5fa), panel: Color(hex: 0xffffff), deep: Color(hex: 0xe3eaf2), input: Color(hex: 0xe8eef6),
+        line: Color.black.opacity(0.10), text: Color(hex: 0x0f1b2d), sub: Color(hex: 0x5b6b80), accent: Color(hex: 0x0a84c6),
+        onAccent: Color(hex: 0xffffff), lift: Color(hex: 0x7c5cd6), good: Color(hex: 0x0e9f6e), bad: Color(hex: 0xd43f52),
+        warn: Color(hex: 0xb7791f), sky: Color(hex: 0xcfe2f4))
+}
+
+/// The look in use: one for the whole app, remembered between launches.
+@Observable final class Looks {
+    static let shared = Looks()
+
+    private(set) var look: Look
+
+    private init() {
+        look = Look(rawValue: UserDefaults.standard.string(forKey: Prefs.theme) ?? "") ?? .night
+    }
+
+    func choose(_ new: Look) {
+        guard new != look else { return }
+        look = new
+        UserDefaults.standard.set(new.rawValue, forKey: Prefs.theme)
+    }
+}
+
+/// The look of Ski Apex: a mountain under glass, in the colors chosen in Settings (see `Look`).
+/// Surfaces have round corners and a thin outline; what floats on the map is glass (the Liquid
+/// Glass of iOS 26 and later, a frosted material before); the things you press are pills. Titles,
+/// numbers and labels are set in the monospaced face, sentences in the plain one (see `prose()`).
+enum Theme {
+    private static var colors: Palette { Looks.shared.look.palette }
+
+    static var dark: Bool { colors.dark }
+    static var bg: Color { colors.bg }
+    static var panel: Color { colors.panel }
+    static var deep: Color { colors.deep }
+    static var input: Color { colors.input }
+    static var line: Color { colors.line }
+    static var text: Color { colors.text }
+    static var sub: Color { colors.sub }
+    static var accent: Color { colors.accent }
+    static var onAccent: Color { colors.onAccent }
+    static var lift: Color { colors.lift }
+    static var good: Color { colors.good }
+    static var bad: Color { colors.bad }
+    static var warn: Color { colors.warn }
+    static var sky: Color { colors.sky }
 
     /// Each run of a day in its own color on the map, in turn.
-    static let runColors: [Color] = [c(0x5ccfff), c(0xff8a4c), c(0x34d399), c(0xf472b6), c(0xfbbf24), c(0xa78bfa), c(0x22d3ee), c(0xfb7185)]
+    static let runColors: [Color] = ([0x5ccfff, 0xff8a4c, 0x34d399, 0xf472b6, 0xfbbf24, 0xa78bfa, 0x22d3ee, 0xfb7185] as [UInt32]).map { Color(hex: $0) }
     static func runColor(_ number: Int) -> Color { runColors[max(0, number - 1) % runColors.count] }
 
     /// The color of a piste on the signs: green, blue, red, black; yellow off piste.
     static func difficultyColor(_ difficulty: String?) -> Color? {
         switch difficulty {
-        case "novice": c(0x34d399)
-        case "easy": c(0x4f9dff)
-        case "intermediate": c(0xf2555a)
-        case "advanced", "expert": c(0x0a0d12)
-        case "freeride", "extreme": c(0xfbbf24)
+        case "novice": Color(hex: 0x34d399)
+        case "easy": Color(hex: 0x4f9dff)
+        case "intermediate": Color(hex: 0xf2555a)
+        case "advanced", "expert": Color(hex: 0x0a0d12)
+        case "freeride", "extreme": Color(hex: 0xfbbf24)
         default: nil
         }
     }
@@ -55,7 +180,7 @@ enum Theme {
     }
 
     /// From slow to fast, for the speed drawn along a run.
-    static let speedColors: [Color] = [c(0x4f9dff), c(0x34d399), c(0xfbbf24), c(0xff8a4c), c(0xf2555a)]
+    static let speedColors: [Color] = ([0x4f9dff, 0x34d399, 0xfbbf24, 0xff8a4c, 0xf2555a] as [UInt32]).map { Color(hex: $0) }
 
     static let round = RoundedRectangle(cornerRadius: 22, style: .continuous)
     static let roundSmall = RoundedRectangle(cornerRadius: 13, style: .continuous)
@@ -117,7 +242,7 @@ struct Dressed: ViewModifier {
         content
             .tint(Theme.accent)
             .fontDesign(.monospaced)
-            .preferredColorScheme(.dark)
+            .preferredColorScheme(Theme.dark ? .dark : .light)
     }
 }
 

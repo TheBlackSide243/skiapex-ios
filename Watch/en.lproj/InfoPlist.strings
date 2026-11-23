@@ -1,0 +1,4 @@
+"NSLocationWhenInUseUsageDescription" = "To record your runs, lifts and speed with the GPS of the Watch.";
+"NSMotionUsageDescription" = "To measure the vertical with the barometer of the Watch, much more precise than GPS.";
+"NSHealthShareUsageDescription" = "To show you your heart rate while you ski.";
+"NSHealthUpdateUsageDescription" = "To save the ski day in Health as a workout, with its route.";

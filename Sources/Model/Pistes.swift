@@ -14,8 +14,18 @@ struct OSMWay {
     let maxLat: Double
     let minLon: Double
     let maxLon: Double
+    /// What kind of lift: chair_lift, gondola, drag_lift... (the aerialway tag).
+    let lift: String?
+    /// Its number in OpenStreetMap.
+    let id: Int64
+    /// How long it is on the ground.
+    let meters: Double
+    /// The altitude of its first and of its last point, when asked for (see `Terrain`).
+    var startAlt: Double?
+    var endAlt: Double?
 
-    init?(kind: Kind, name: String?, ref: String?, difficulty: String?, lats: [Double], lons: [Double]) {
+    init?(kind: Kind, name: String?, ref: String?, difficulty: String?, lats: [Double], lons: [Double],
+          lift: String? = nil, id: Int64 = 0) {
         guard !lats.isEmpty, lats.count == lons.count,
               let minLat = lats.min(), let maxLat = lats.max(), let minLon = lons.min(), let maxLon = lons.max() else { return nil }
         self.kind = kind
@@ -28,6 +38,33 @@ struct OSMWay {
         self.maxLat = maxLat
         self.minLon = minLon
         self.maxLon = maxLon
+        self.lift = lift
+        self.id = id
+        var length = 0.0
+        for i in lats.indices.dropFirst() {
+            length += Geo.distance(lat1: lats[i - 1], lon1: lons[i - 1], lat2: lats[i], lon2: lons[i])
+        }
+        meters = length
+    }
+
+    /// A lift that carries people down as well as up.
+    var bothWays: Bool {
+        kind == .lift && ["gondola", "cable_car", "mixed_lift", "funicular"].contains(lift ?? "")
+    }
+
+    /// Meters between its top and its bottom, when the altitudes are known.
+    var drop: Double? {
+        guard let startAlt, let endAlt else { return nil }
+        return abs(startAlt - endAlt)
+    }
+
+    /// The same line from its other end.
+    func reversed() -> OSMWay {
+        guard var turned = OSMWay(kind: kind, name: name, ref: ref, difficulty: difficulty, lats: lats.reversed(), lons: lons.reversed(),
+                                  lift: lift, id: id) else { return self }
+        turned.startAlt = endAlt
+        turned.endAlt = startAlt
+        return turned
     }
 
     /// What it is called: its name, or its number.
@@ -141,7 +178,8 @@ enum Pistes {
                     kind = .lift
                 }
                 if let kind, let way = OSMWay(kind: kind, name: tags["name"], ref: tags["piste:ref"] ?? tags["ref"],
-                                              difficulty: tags["piste:difficulty"], lats: lats, lons: lons) {
+                                              difficulty: tags["piste:difficulty"], lats: lats, lons: lons,
+                                              lift: tags["aerialway"], id: (element["id"] as? NSNumber)?.int64Value ?? 0) {
                     map.ways.append(way)
                 }
             } else if tags["site"] == "piste" || tags["landuse"] == "winter_sports", let name = tags["name"], !name.isEmpty {
