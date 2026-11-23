@@ -13,6 +13,7 @@ struct GuideView: View {
     @State private var found: [Resort] = []
     @State private var searching = false
     @State private var noResults = false
+    @State private var exploring = Demo.screen == "explore"
 
     var body: some View {
         NavigationStack {
@@ -22,6 +23,7 @@ struct GuideView: View {
                     if !words.trimmingCharacters(in: .whitespaces).isEmpty {
                         results
                     } else {
+                        if let center { exploreCard(center) }
                         Picker("Elenco", selection: $around) {
                             Text("Preferite").tag(false)
                             Text("Vicine").tag(true)
@@ -39,6 +41,10 @@ struct GuideView: View {
             .navigationTitle("Guida")
             .navigationDestination(for: Resort.self) { ResortDetailView(resort: $0) }
             .navigationDestination(for: UUID.self) { DayDetailView(id: $0) }
+            .navigationDestination(isPresented: $exploring) {
+                // For the pictures: a made-up ski area.
+                ExploreView(name: Demo.resorts[0].name, center: Demo.resorts[0].coordinate)
+            }
             .task(id: around) {
                 guard around, !Demo.isOn, let center else { return }
                 await guide.loadNearby(lat: center.latitude, lon: center.longitude)
@@ -49,6 +55,32 @@ struct GuideView: View {
     /// Where "around" is: the iPhone, or the last day recorded.
     private var center: CLLocationCoordinate2D? {
         recorder.here?.coordinate ?? library.days.compactMap(\.coordinate).first
+    }
+
+    /// The pistes and the lifts around you, on a map.
+    private func exploreCard(_ center: CLLocationCoordinate2D) -> some View {
+        NavigationLink {
+            ExploreView(name: String(localized: "Intorno a te"), center: center)
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "map.fill").font(.body.weight(.semibold)).foregroundStyle(Theme.accent)
+                    .frame(width: 42, height: 42)
+                    .iconBox()
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Esplora la zona").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
+                    Text("Piste, impianti e rifugi intorno a te, e il percorso da un punto all'altro.")
+                        .prose().font(.caption).foregroundStyle(Theme.sub)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 6)
+                Image(systemName: "chevron.right").font(.caption.weight(.bold)).foregroundStyle(Theme.sub)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .card()
+        }
+        .buttonStyle(PressStyle())
     }
 
     private var searchField: some View {
@@ -274,6 +306,10 @@ struct ResortDetailView: View {
                     } label: { Label("Viaggio", systemImage: "calendar.badge.plus") }
                         .buttonStyle(SecondaryButtonStyle())
                 }
+                NavigationLink {
+                    ExploreView(name: resort.name, center: resort.coordinate)
+                } label: { Label("Piste e percorsi", systemImage: "point.topleft.down.to.point.bottomright.curvepath") }
+                    .buttonStyle(PrimaryButtonStyle())
 
                 if let days = guide.forecasts[resort.id] {
                     LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {

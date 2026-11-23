@@ -276,6 +276,96 @@ final class FeatureTests: XCTestCase {
         XCTAssertTrue(Nearby.notices(lat: 46.0, lon: 7.0, friends: away, now: now.addingTimeInterval(60), told: told).isEmpty)
     }
 
+    func testTheWayGoesDownThePistesAndUpTheLifts() throws {
+        let terrain = Terrain.demo(lat: 45.93, lon: 7.63)
+        let graph = RouteGraph(ways: terrain.ways)
+        func way(_ name: String) throws -> OSMWay { try XCTUnwrap(terrain.ways.first { $0.name == name }) }
+        let gondola = try way("Cabinovia Cima Bianca")
+        // A lift starts at its bottom, a piste at its top.
+        let village = (gondola.lats[0], gondola.lons[0])
+        let top = (try way("Canalone").lats[0], try way("Canalone").lons[0])
+        let west = (try way("Gran Bosco").lats[0], try way("Gran Bosco").lons[0])
+
+        let up = try XCTUnwrap(graph.route(fromLat: village.0, fromLon: village.1, toLat: top.0, toLon: top.1))
+        XCTAssertEqual(up.steps.map(\.label), ["Cabinovia Cima Bianca"])
+        XCTAssertEqual(up.seconds, gondola.meters / RouteGraph.liftSpeed("gondola") + RouteGraph.boarding, accuracy: 8)
+        XCTAssertEqual(up.meters, gondola.meters, accuracy: 5)
+        XCTAssertGreaterThan(up.lats.count, 10, "the line of the lift is all there to draw")
+
+        // From the top only red and black pistes leave: who wants the blue ones rides the gondola down.
+        let easy = try XCTUnwrap(graph.route(fromLat: top.0, fromLon: top.1, toLat: village.0, toLon: village.1, level: .easy))
+        XCTAssertEqual(easy.steps.map(\.label), ["Cabinovia Cima Bianca"])
+        let medium = try XCTUnwrap(graph.route(fromLat: top.0, fromLon: top.1, toLat: village.0, toLon: village.1, level: .medium))
+        XCTAssertFalse(medium.steps.contains { $0.difficulty == "advanced" })
+        XCTAssertLessThanOrEqual(medium.seconds, easy.seconds + 0.5)
+        let all = try XCTUnwrap(graph.route(fromLat: top.0, fromLon: top.1, toLat: village.0, toLon: village.1, level: .all))
+        XCTAssertLessThanOrEqual(all.seconds, medium.seconds + 0.5)
+        XCTAssertFalse(all.steps.isEmpty)
+
+        // A chairlift does not carry down: from its top the way is the red piste, or none.
+        let red = try XCTUnwrap(graph.route(fromLat: west.0, fromLon: west.1, toLat: village.0, toLon: village.1, level: .medium))
+        XCTAssertEqual(red.steps.map(\.label), ["Gran Bosco"])
+        XCTAssertEqual(red.steps.first?.difficulty, "intermediate")
+        XCTAssertNil(graph.route(fromLat: west.0, fromLon: west.1, toLat: village.0, toLon: village.1, level: .easy))
+        // And there is no skiing up a piste.
+        let back = try XCTUnwrap(graph.route(fromLat: village.0, fromLon: village.1, toLat: west.0, toLon: west.1))
+        XCTAssertEqual(back.steps.map(\.kind), [.lift])
+        // Far from every line: nothing.
+        XCTAssertNil(graph.route(fromLat: 44.0, fromLon: 7.63, toLat: village.0, toLon: village.1))
+
+        XCTAssertTrue(RouteLevel.easy.allows("easy"))
+        XCTAssertTrue(RouteLevel.easy.allows(nil))
+        XCTAssertFalse(RouteLevel.easy.allows("intermediate"))
+        XCTAssertFalse(RouteLevel.medium.allows("expert"))
+        XCTAssertTrue(RouteLevel.all.allows("freeride"))
+    }
+
+    func testALineDrawnAgainstItsWayIsTurnedAround() throws {
+        var ways = [
+            try XCTUnwrap(OSMWay(kind: .piste, name: "Pista", ref: nil, difficulty: "easy", lats: [46.0, 46.01], lons: [7.0, 7.0])),
+            try XCTUnwrap(OSMWay(kind: .lift, name: "Seggiovia", ref: nil, difficulty: nil, lats: [46.0, 46.01], lons: [7.1, 7.1], lift: "chair_lift")),
+            try XCTUnwrap(OSMWay(kind: .lift, name: "Cabinovia", ref: nil, difficulty: nil, lats: [46.0, 46.01], lons: [7.2, 7.2], lift: "gondola")),
+            try XCTUnwrap(OSMWay(kind: .piste, name: "Giusta", ref: nil, difficulty: "easy", lats: [46.0, 46.01], lons: [7.3, 7.3])),
+        ]
+        XCTAssertEqual(ways[0].meters, 1113, accuracy: 3)
+        let altitudes = try Terrain.parseAltitudes(Data(#"{"elevation":[1500.0,2000,2000.0,1500,2000,1500,2100,1700]}"#.utf8))
+        Terrain.apply(altitudes, to: &ways)
+        XCTAssertEqual(ways[0].lats, [46.01, 46.0], "a piste starts at its top")
+        XCTAssertEqual(ways[0].startAlt, 2000)
+        XCTAssertEqual(ways[0].drop, 500)
+        XCTAssertEqual(ways[1].lats, [46.01, 46.0], "a chairlift starts at its bottom")
+        XCTAssertEqual(ways[1].endAlt, 2000)
+        XCTAssertEqual(ways[2].lats, [46.0, 46.01], "a gondola goes both ways: left as drawn")
+        XCTAssertEqual(ways[3].lats, [46.0, 46.01])
+        // Fewer altitudes than ends: nothing is touched.
+        var same = ways
+        Terrain.apply([1, 2], to: &same)
+        XCTAssertEqual(same[0].lats, ways[0].lats)
+    }
+
+    func testTheHutsByThePistes() throws {
+        let piste = try XCTUnwrap(OSMWay(kind: .piste, name: "Pista", ref: nil, difficulty: "easy", lats: [46.0, 46.01], lons: [7.0, 7.0]))
+        let json = """
+        {"elements":[
+          {"type":"way","id":1,"tags":{"piste:type":"downhill"},"geometry":[{"lat":46.0,"lon":7.0},{"lat":46.01,"lon":7.0}]},
+          {"type":"node","id":2,"lat":46.005,"lon":7.0005,"tags":{"tourism":"alpine_hut","name":"Rifugio Alto"}},
+          {"type":"way","id":3,"center":{"lat":46.002,"lon":7.0003},"tags":{"amenity":"restaurant","name":"Baita"}},
+          {"type":"node","id":4,"lat":46.005,"lon":7.05,"tags":{"amenity":"bar","name":"Bar in paese"}},
+          {"type":"node","id":5,"lat":46.006,"lon":7.0002,"tags":{"amenity":"cafe"}}
+        ]}
+        """
+        let huts = Terrain.parseHuts(Data(json.utf8), near: [piste])
+        XCTAssertEqual(huts.map(\.name), ["Rifugio Alto", "Baita"], "the one in the village and the one with no name are left out")
+        XCTAssertEqual(huts[1].id, "way3")
+        let map = try Pistes.parse(Data(json.utf8))
+        XCTAssertEqual(map.ways.count, 1)
+        XCTAssertEqual(map.ways[0].id, 1)
+        let terrain = Terrain(ways: map.ways, huts: huts)
+        XCTAssertEqual(terrain.nearest(lat: 46.005, lon: 7.0004, within: 90), 0)
+        XCTAssertNil(terrain.nearest(lat: 46.005, lon: 7.01, within: 90))
+        XCTAssertTrue(Terrain.query(lat: 46, lon: 7).contains("alpine_hut"))
+    }
+
     func testDaysSavedByTheFirstVersionStillOpen() throws {
         let day = SkiDay(points: SkiSim.day(laps: 1, seed: 17), place: "Vecchia")
         var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(day)) as? [String: Any])

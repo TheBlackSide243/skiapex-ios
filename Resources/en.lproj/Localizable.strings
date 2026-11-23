@@ -346,3 +346,32 @@
 "Alba" = "Sunrise";
 "Bosco" = "Forest";
 "Carbone" = "Carbon";
+
+/* 0.4.0: the map of the pistes and the way from one point to another */
+"Esplora la zona" = "Explore the area";
+"Piste, impianti e rifugi intorno a te, e il percorso da un punto all'altro." = "Pistes, lifts and huts around you, and the way from one point to another.";
+"Intorno a te" = "Around you";
+"Piste e percorsi" = "Pistes and routes";
+"Piste" = "Pistes";
+"Impianti" = "Lifts";
+"Rifugi" = "Huts";
+"Partenza" = "Start";
+"Arrivo" = "Finish";
+"Cerco piste e impianti…" = "Looking for pistes and lifts…";
+"Non riesco a scaricare le piste di questa zona. Controlla la connessione e riprova." = "Can't download the pistes of this area. Check the connection and try again.";
+"Riprova" = "Try again";
+"Qui OpenStreetMap non ha piste o impianti." = "OpenStreetMap has no pistes or lifts here.";
+"%lld piste · %lld impianti · %@" = "%lld pistes · %lld lifts · %@";
+"Ricomincia" = "Start over";
+"Non trovo un percorso tra questi due punti con le piste scelte. Tocca un'altra pista o un altro impianto." = "No way found between these two points with the pistes chosen. Touch another piste or another lift.";
+"Ora tocca la pista o l'impianto dove vuoi arrivare." = "Now touch the piste or the lift you want to get to.";
+"Ora tocca la pista o l'impianto da cui parti." = "Now touch the piste or the lift you leave from.";
+"Tocca una pista o un impianto per vedere cos'è e per calcolare un percorso." = "Touch a piste or a lift to see what it is and to find a way.";
+"Pista senza nome" = "Piste with no name";
+"Impianto senza nome" = "Lift with no name";
+"Parto da qui" = "I leave from here";
+"Arrivo qui" = "I get here";
+"Blu" = "Blue";
+"Rosse" = "Red";
+"Tutte" = "All";
+"Tempi indicativi. Controlla sempre i cartelli e le piste aperte." = "Times are a guess. Always check the signs and which pistes are open.";
