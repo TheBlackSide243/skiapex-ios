@@ -9,7 +9,9 @@
 Premi **Inizia** ai piedi della pista, metti l'iPhone in tasca e scia. Ski Apex registra il GPS anche a schermo spento, misura la quota con il barometro e riconosce da sola **discese** e **risalite**: niente da toccare durante la giornata.
 
 - Velocità massima e media, dislivello, chilometri sciati, quota massima, tempo in pista e in risalita.
-- Mappa della giornata con ogni discesa nel suo colore e le risalite tratteggiate (mappa o satellite).
+- **La mappa dietro a tutto**: le schermate stanno su un pannello che tiri su e giù sopra la mappa; sul suo bordo destro la tua foto, Giornate, Guida, Amici e il pulsante tondo che registra.
+- **Mappa invernale**: neve con le ombre del rilievo e una curva di livello ogni 50 metri, disegnata dall'app a partire da quote libere; da lontano, le montagne di notte. Sopra restano i nomi della mappa di Apple.
+- Mappa della giornata con le discese, e le risalite tratteggiate.
 - Grafico della quota durante la giornata, e per ogni discesa velocità, pendenza, partenza e arrivo.
 - **Nomi delle piste e degli impianti** da OpenStreetMap, con il colore della difficoltà, e il **meteo** della giornata.
 - **Cronologia** della giornata: discese, risalite e soste in ordine.
@@ -34,9 +36,9 @@ Premi **Inizia** ai piedi della pista, metti l'iPhone in tasca e scia. Ski Apex 
 - **Foto della giornata** dalla tua libreria, trovate dall'orario.
 - **Apple Salute**: la giornata come allenamento con il percorso, e il battito se porti un Apple Watch (nella versione TestFlight).
 - **Copia di sicurezza** di tutte le giornate in un file zip, e ripristino.
-- Sci, snowboard, telemark o slittino; unità metriche o imperiali; italiano e inglese.
+- Sci, snowboard, telemark o slittino, scelti prima di iniziare; unità metriche o imperiali; italiano e inglese.
 - Se l'app viene chiusa a metà giornata, la registrazione si ritrova al prossimo avvio.
-- Le giornate restano sull'iPhone (visibili anche nell'app File). Per i nomi delle piste e il meteo viene chiesta solo la zona a OpenStreetMap e Open-Meteo, e si può spegnere. L'account serve solo per gli Amici, e lì arrivano il nome e i totali della stagione: mai le tracce o i posti delle giornate. La posizione in diretta parte solo se la accendi, solo mentre registri, e il server non la salva. Com'era la neve lo dici tu a fine giornata, se vuoi: parte la zona della stazione al chilometro con i numeri della giornata, senza nomi.
+- Le giornate restano sull'iPhone (visibili anche nell'app File). Per i nomi delle piste e il meteo viene chiesta solo la zona a OpenStreetMap e Open-Meteo, e si può spegnere. L'account serve solo per gli Amici, e lì arrivano il nome e i totali della stagione: mai le tracce o i posti delle giornate. La posizione in diretta parte solo se la accendi, solo mentre registri, e il server non la salva. Com'era la neve lo dici tu a fine giornata, se vuoi: parte la zona della stazione al chilometro con i numeri della giornata, senza nomi. Per la mappa invernale vengono chiesti a un archivio pubblico (AWS Open Data) i riquadri della zona che guardi, come quote: si spegne con lo stesso interruttore.
 - Niente neve? In Impostazioni si crea una giornata di prova.
 
 <p>
@@ -73,7 +75,9 @@ Richiede iOS 17 o successivo. Velocità, distanze e quote sono stime del GPS e d
 Tap **Start** at the bottom of the slope, put your iPhone in your pocket and ski. Ski Apex records the GPS with the screen off, measures altitude with the barometer and recognizes **runs** and **lifts** on its own: nothing to touch during the day.
 
 - Top and average speed, vertical, distance skied, top altitude, time on runs and on lifts.
-- Map of the day with each run in its own color and dashed lifts (map or satellite).
+- **The map behind everything**: the screens are on a sheet you pull up and down over the map; on its right edge your picture, Days, Guide, Friends and the round button that records.
+- **Winter map**: snow with the shade of the relief and a contour line every 50 meters, drawn by the app from open heights; from far away, the mountains at night. The names of Apple's map stay over it.
+- Map of the day with its runs, and dashed lifts.
 - Altitude through the day, and for each run its speed, slope, start and finish.
 - **Piste and lift names** from OpenStreetMap, with the color of the difficulty, and the **weather** of the day.
 - **Timeline** of the day: runs, lifts and breaks in order.
@@ -98,9 +102,9 @@ Tap **Start** at the bottom of the slope, put your iPhone in your pocket and ski
 - **Photos of the day** from your library, found by their time.
 - **Apple Health**: the day as a workout with its route, and the heart rate if you wear an Apple Watch (in the TestFlight build).
 - **Backup** of all your days in one zip file, and restore.
-- Ski, snowboard, telemark or sled; metric or imperial units; Italian and English.
+- Skiing, snowboarding, telemark or sled, chosen before you start; metric or imperial units; Italian and English.
 - If the app is closed during the day, the recording comes back at the next launch.
-- Your days stay on the iPhone (also visible in the Files app). For piste names and weather only the area is asked to OpenStreetMap and Open-Meteo, and it can be turned off. An account is needed only for Friends, and your name and the totals of the season go there: never the tracks or the places of your days. Your live position is sent only if you turn it on, only while you record, and the server does not store it. How the snow was is told by you at the end of a day, if you like: the area of the ski area to the kilometer with the numbers of the day, with no names.
+- Your days stay on the iPhone (also visible in the Files app). For piste names and weather only the area is asked to OpenStreetMap and Open-Meteo, and it can be turned off. An account is needed only for Friends, and your name and the totals of the season go there: never the tracks or the places of your days. Your live position is sent only if you turn it on, only while you record, and the server does not store it. How the snow was is told by you at the end of a day, if you like: the area of the ski area to the kilometer with the numbers of the day, with no names. For the winter map the squares of the area you look at are asked for, as heights, to a public archive (AWS Open Data): the same switch turns it off.
 - No snow? Make a sample day in Settings.
 
 ### Install

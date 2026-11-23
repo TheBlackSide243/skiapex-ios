@@ -230,6 +230,11 @@ final class ReliefOverlay: MKTileOverlay {
     }
 
     override func loadTile(at path: MKTileOverlayPath, result: @escaping (Data?, Error?) -> Void) {
+        // With the internet of the app turned off in Settings, Apple's map alone.
+        guard UserDefaults.standard.object(forKey: Prefs.online) as? Bool ?? true else {
+            result(nil, URLError(.dataNotAllowed))
+            return
+        }
         let key = "\(path.z)/\(path.x)/\(path.y)" as NSString
         if let kept = Self.drawn.object(forKey: key) {
             result(kept as Data, nil)
