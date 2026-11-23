@@ -38,25 +38,54 @@ enum Prefs {
     static let mapLook = "mapLook"
 }
 
-/// Launched with `-demo`: made-up days and a day under way, for the screenshots.
+/// Launched with `-demo`: made-up days and a day under way, for the screenshots. `-screen <name>`
+/// opens one screen: ready, live, days, day, run, settings, empty.
 enum Demo {
     static let isOn = ProcessInfo.processInfo.arguments.contains("-demo")
+
+    static let screen: String? = {
+        let args = ProcessInfo.processInfo.arguments
+        guard isOn, let i = args.firstIndex(of: "-screen"), i + 1 < args.count else { return nil }
+        return args[i + 1]
+    }()
+
+    /// The tab the screen asked for is in.
+    static var tab: Int {
+        switch screen {
+        case "days", "day", "run", "empty": 1
+        case "settings": 2
+        default: 0
+        }
+    }
 
     static func library() -> Library {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("skiapex-demo", isDirectory: true)
         try? FileManager.default.removeItem(at: dir)
         let library = Library(directory: dir)
+        if screen == "empty" { return library }
         let places = ["Breuil-Cervinia", "Courmayeur", "Livigno"]
         for (i, place) in places.enumerated() {
-            let start = Calendar.current.date(byAdding: .day, value: -(i * 9 + 2), to: Date())!
+            let morning = Calendar.current.date(bySettingHour: 9, minute: 5, second: 0, of: Date()) ?? Date()
+            let start = Calendar.current.date(byAdding: .day, value: -(i * 9 + 2), to: morning) ?? morning
             let points = SkiSim.day(laps: 7 + i * 2, start: start, seed: UInt64(11 + i))
             try? library.save(SkiDay(points: points, place: place))
         }
         return library
     }
 
+    /// A day under way, stopped in the middle of its last run as if it were now; nothing yet for
+    /// the screen before starting.
     static func recorder() -> Recorder {
-        let points = SkiSim.day(laps: 4, start: Date(timeIntervalSinceNow: -2.5 * 3600), seed: 5)
-        return Recorder.preview(Array(points.dropLast(420)))
+        if screen == "ready" { return Recorder(journal: nil) }
+        let points = Segmenter.clean(SkiSim.day(laps: 4, start: Date(timeIntervalSinceNow: -3 * 3600), seed: 5))
+        let runs = Segmenter.analyze(points).segments.filter { $0.kind == .run }
+        guard let last = runs.last else { return Recorder.preview(points) }
+        let cut = last.start + (last.end - last.start) * 6 / 10
+        let shift = Date().timeIntervalSince(points[cut].t)
+        return Recorder.preview(points[...cut].map { p in
+            var q = p
+            q.t = p.t.addingTimeInterval(shift)
+            return q
+        })
     }
 }

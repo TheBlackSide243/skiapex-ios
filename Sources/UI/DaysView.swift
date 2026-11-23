@@ -4,9 +4,10 @@ import SwiftUI
 struct DaysView: View {
     @Environment(Library.self) private var library
     @State private var season: Season?
+    @State private var path: [UUID] = []
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             ScrollView {
                 VStack(spacing: 14) {
                     if library.days.isEmpty {
@@ -25,7 +26,11 @@ struct DaysView: View {
             .screen()
             .navigationTitle("Giornate")
             .navigationDestination(for: UUID.self) { DayDetailView(id: $0) }
-            .onAppear { if season == nil { season = library.seasons.first } }
+            .onAppear {
+                if season == nil { season = library.seasons.first }
+                // The screenshots of a day and of a run open the newest day.
+                if ["day", "run"].contains(Demo.screen ?? ""), path.isEmpty, let first = library.days.first { path = [first.id] }
+            }
         }
     }
 

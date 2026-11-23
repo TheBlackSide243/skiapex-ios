@@ -80,6 +80,7 @@ struct DayDetailView: View {
         tracks = MapTrack.build(points: loaded.points, segments: loaded.segments)
         profile = ProfilePoint.make(loaded)
         gpx = try? GPX.file(loaded)
+        if Demo.screen == "run", run == nil, loaded.runs.count > 2 { run = loaded.runs[2] }
     }
 
     @ViewBuilder private func content(_ day: SkiDay) -> some View {

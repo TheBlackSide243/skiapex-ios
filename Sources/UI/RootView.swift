@@ -4,7 +4,7 @@ import SwiftUI
 /// Three tabs: the day under way, the days saved, the settings.
 struct RootView: View {
     @AppStorage(Prefs.units) private var units = Units.metric.rawValue
-    @State private var tab = ProcessInfo.processInfo.arguments.contains("-days") ? 1 : 0
+    @State private var tab = Demo.tab
 
     var body: some View {
         TabView(selection: $tab) {

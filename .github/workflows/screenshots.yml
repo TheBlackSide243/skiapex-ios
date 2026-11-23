@@ -1,0 +1,51 @@
+# Screenshots for the README: builds for the iOS Simulator, opens the made-up ski days on an iPhone
+# and saves the pictures as an artifact. Started by hand.
+name: Screenshots
+
+on:
+  workflow_dispatch:
+    inputs:
+      screens:
+        description: Only these demo screens, separated by spaces; empty for all
+        default: ''
+      args:
+        description: More arguments for the app (for example -key value); empty for none
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  shots:
+    runs-on: xcode-27
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Newest Xcode
+        run: |
+          XC=$(ls -d /Applications/Xcode_[0-9]*.app 2>/dev/null | grep -vi 'beta' | sort -V | tail -1)
+          sudo xcode-select -s "$XC"
+          xcodebuild -version
+
+      - name: Tools
+        run: brew install xcodegen librsvg
+
+      - name: App icon
+        run: rsvg-convert -w 1024 -h 1024 -b '#08111E' icon.svg -o Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png
+
+      - name: Xcode project
+        run: xcodegen generate
+
+      - name: Screenshots
+        run: bash scripts/screenshots.sh screenshots
+        env:
+          SCREENS: ${{ inputs.screens }}
+          ARGS: ${{ inputs.args }}
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots
+          path: screenshots
+          retention-days: 14

@@ -187,7 +187,7 @@ struct LiveView: View {
 
     private var currentSpeed: String {
         guard recorder.state == .recording, let p = recorder.lastPoint, p.speed >= 0,
-              Date().timeIntervalSince(p.t) < 10 else { return "0" }
+              Demo.isOn || Date().timeIntervalSince(p.t) < 10 else { return "0" }
         return Fmt.speedValue(p.speed)
     }
 
