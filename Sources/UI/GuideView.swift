@@ -14,6 +14,7 @@ struct GuideView: View {
     @State private var searching = false
     @State private var noResults = false
     @State private var exploring = Demo.screen == "explore"
+    @State private var showingResort = Demo.screen == "resort"
 
     var body: some View {
         NavigationStack {
@@ -45,6 +46,7 @@ struct GuideView: View {
                 // For the pictures: a made-up ski area.
                 ExploreView(name: Demo.resorts[0].name, center: Demo.resorts[0].coordinate)
             }
+            .navigationDestination(isPresented: $showingResort) { ResortDetailView(resort: Demo.resorts[0]) }
             .task(id: around) {
                 guard around, !Demo.isOn, let center else { return }
                 await guide.loadNearby(lat: center.latitude, lon: center.longitude)
@@ -263,6 +265,9 @@ struct ResortDetailView: View {
     @Environment(Guide.self) private var guide
     @AppStorage(Prefs.mapLook) private var mapLook = MapLook.standard.rawValue
     @State private var planning: Trip?
+    /// The pistes and the lifts, for the numbers and to download them; the snow of today.
+    @State private var terrain: Terrain?
+    @State private var now: SnowNow?
 
     private var look: MapLook { MapLook(rawValue: mapLook) ?? .standard }
 
@@ -291,6 +296,9 @@ struct ResortDetailView: View {
                     if let region = resort.region {
                         Text(region).font(.caption).foregroundStyle(Theme.sub)
                     }
+                    if let terrain, !terrain.ways.isEmpty {
+                        ResortFacts(terrain: terrain).padding(.top, 8)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -306,10 +314,8 @@ struct ResortDetailView: View {
                     } label: { Label("Viaggio", systemImage: "calendar.badge.plus") }
                         .buttonStyle(SecondaryButtonStyle())
                 }
-                NavigationLink {
-                    ExploreView(name: resort.name, center: resort.coordinate)
-                } label: { Label("Piste e percorsi", systemImage: "point.topleft.down.to.point.bottomright.curvepath") }
-                    .buttonStyle(PrimaryButtonStyle())
+                ResortMapButtons(resort: resort, terrain: terrain)
+                if let now { TodayPanel(now: now) }
 
                 if let days = guide.forecasts[resort.id] {
                     LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
@@ -337,6 +343,8 @@ struct ResortDetailView: View {
                 } else {
                     ProgressView().padding(30)
                 }
+
+                CommunityPanel(lat: resort.lat, lon: resort.lon)
 
                 if !mine.isEmpty {
                     Panel("Le tue giornate qui") {
@@ -368,6 +376,20 @@ struct ResortDetailView: View {
         .navigationTitle(resort.name)
         .navigationBarTitleDisplayMode(.inline)
         .task { await guide.load(resort) }
+        .task {
+            if Demo.isOn {
+                terrain = Terrain.demo(lat: resort.lat, lon: resort.lon)
+                now = SnowNow(overnight: 8, daytime: 1, lastWeek: 40, gustMax: 53, blocks: [
+                    .init(from: 16, to: 6, snow: 8, tempMin: -12, tempMax: -6, gust: 30, code: 73),
+                    .init(from: 6, to: 10, snow: 1, tempMin: -12, tempMax: -11, gust: 53, code: 3),
+                    .init(from: 10, to: 13, snow: 0, tempMin: -12, tempMax: -10, gust: 45, code: 3),
+                    .init(from: 13, to: 16, snow: 0, tempMin: -11, tempMax: -9, gust: 35, code: 2),
+                ])
+                return
+            }
+            now = try? await SnowNow.fetch(lat: resort.lat, lon: resort.lon)
+            terrain = try? await Terrains.shared.terrain(lat: resort.lat, lon: resort.lon)
+        }
         .sheet(item: $planning) { TripEditor(trip: $0, isNew: true) }
     }
 }

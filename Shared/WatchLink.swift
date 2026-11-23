@@ -67,4 +67,8 @@ enum WatchLink {
     static let kindKey = "kind"
     static let idKey = "id"
     static let healthKey = "health"
+    /// From the iPhone: start recording on the watch, the day goes on there. With when it was
+    /// said, so that an old order found later starts nothing.
+    static let record = "record"
+    static let atKey = "at"
 }

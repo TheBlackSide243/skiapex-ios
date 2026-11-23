@@ -479,6 +479,168 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(WatchState(packed: state.packed)?.heart, "128")
     }
 
+    func testTheSnowOfTodayHourByHour() throws {
+        // Eight days of hours as Open-Meteo sends them, on a clock one hour ahead of GMT.
+        let midnight = 1_799_971_200.0, offset = 3600.0
+        var times: [Double] = [], snow: [Double] = [], temp: [Double] = [], gust: [Double] = [], code: [Double] = []
+        for hour in -168..<24 {
+            times.append(midnight + Double(hour) * 3600 - offset)
+            // A snowfall four days ago, one last night, flakes during the day.
+            snow.append(hour == -100 ? 3 : (-8..<6).contains(hour) ? 1 : (6..<17).contains(hour) ? 0.5 : 0)
+            temp.append(hour < 6 ? -12 : -6 + Double(hour % 3))
+            gust.append(hour == 12 ? 60 : 20)
+            code.append(hour < 6 ? 73 : 3)
+        }
+        let json: [String: Any] = ["utc_offset_seconds": offset,
+                                   "hourly": ["time": times, "snowfall": snow, "temperature_2m": temp, "wind_gusts_10m": gust, "weather_code": code]]
+        let now = try SnowNow.parse(try JSONSerialization.data(withJSONObject: json))
+        XCTAssertEqual(now.overnight, 14, accuracy: 0.001)
+        XCTAssertEqual(now.daytime, 5.5, accuracy: 0.001)
+        XCTAssertEqual(now.today, 19.5, accuracy: 0.001)
+        XCTAssertEqual(now.lastWeek, 11, accuracy: 0.001, "the snowfall of four days ago and the hours before midnight")
+        XCTAssertEqual(now.gustMax, 60)
+        XCTAssertEqual(now.blocks.map(\.label), ["16–6", "6–10", "10–13", "13–16"])
+        XCTAssertEqual(now.blocks[0].snow, 14, accuracy: 0.001)
+        XCTAssertEqual(now.blocks[0].tempMin, -12)
+        XCTAssertEqual(now.blocks[0].code, 73)
+        XCTAssertTrue(now.blocks[2].windy)
+        XCTAssertFalse(now.blocks[1].windy)
+        XCTAssertThrowsError(try SnowNow.parse(Data("{}".utf8)))
+    }
+
+    func testWhatIsKnownOfASkiArea() throws {
+        let json = """
+        {"snow":[{"kind":"powder","count":2},{"kind":"marmo","count":1}],"latest":{"kind":"powder","date":"2026-11-22"},"reports":3,
+         "averages":{"days":2,"vertical":3000,"distance":20000,"runTime":4000,"liftTime":3000,"avgSpeed":9,"runs":8},
+         "friends":[{"id":"a","name":"Alessio","photo":0,"days":1,"last":"2026-11-22"}],"mine":0}
+        """
+        let info = try JSONDecoder().decode(PlaceInfo.self, from: Data(json.utf8))
+        XCTAssertEqual(info.latest?.snow, .powder)
+        XCTAssertEqual(info.snow.map(\.snow), [.powder, nil], "a kind this version does not know is left out")
+        XCTAssertEqual(info.averages?.runs, 8)
+        XCTAssertEqual(info.friends.first?.name, "Alessio")
+        let empty = try JSONDecoder().decode(PlaceInfo.self, from: Data(#"{"snow":[],"latest":null,"reports":0,"averages":null,"friends":[],"mine":0}"#.utf8))
+        XCTAssertNil(empty.latest)
+        XCTAssertNil(empty.averages)
+        // When it was told, in words.
+        let now = try XCTUnwrap(PlaceInfo.dayFormat.date(from: "2026-11-23")).addingTimeInterval(12 * 3600)
+        let today = CommunityPanel.ago("2026-11-23", now: now), yesterday = CommunityPanel.ago("2026-11-22", now: now)
+        XCTAssertNotEqual(today, yesterday)
+        XCTAssertFalse(today.contains("2026"))
+        XCTAssertTrue(CommunityPanel.ago("2026-11-20", now: now).contains("3"))
+        XCTAssertEqual(Set(Snow.allCases.map(\.label)).count, Snow.allCases.count)
+    }
+
+    func testHowTheSnowWasStaysWithTheDay() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("skiapex-snow-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let library = Library(directory: dir)
+        let day = SkiDay(points: SkiSim.day(laps: 2, start: Date(timeIntervalSinceNow: -5 * 3600), seed: 2), sport: .ski)
+        try library.save(day)
+        XCTAssertNil(library.day(day.id)?.snow)
+        library.ask(day.id)
+        XCTAssertEqual(library.asking, day.id)
+        library.setSnow(day.id, to: .powder, told: true)
+        XCTAssertEqual(library.day(day.id)?.snow, .powder)
+        XCTAssertEqual(library.day(day.id)?.told, true)
+        library.setSnow(day.id, to: nil, told: false)
+        XCTAssertNil(library.day(day.id)?.snow)
+        XCTAssertNil(library.day(day.id)?.told)
+        library.ask(nil)
+        XCTAssertNil(library.asking)
+        // A day of the versions before, with no snow in it, still opens.
+        XCTAssertEqual(Library(directory: dir).days.count, 1)
+    }
+
+    func testThePistesOfASkiAreaKeptOnTheiPhone() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("skiapex-maps-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let terrain = Terrain.demo(lat: 45.93, lon: 7.63)
+        // There and back, as it is written to a file.
+        let back = try Terrains.decode(try Terrains.encode(terrain))
+        XCTAssertEqual(back.ways.count, terrain.ways.count)
+        XCTAssertEqual(back.ways.map(\.name), terrain.ways.map(\.name))
+        XCTAssertEqual(back.ways[0].lift, "gondola")
+        XCTAssertEqual(back.ways[0].startAlt, terrain.ways[0].startAlt)
+        XCTAssertEqual(back.huts, terrain.huts)
+        XCTAssertNotNil(RouteGraph(ways: back.ways).route(fromLat: back.ways[0].lats[0], fromLon: back.ways[0].lons[0],
+                                                           toLat: back.ways[5].lats[0], toLon: back.ways[5].lons[0]))
+        // Downloaded: found with no internet from anywhere in the ski area, and gone when taken off.
+        let store = Terrains(directory: dir)
+        XCTAssertNil(store.known(lat: 45.93, lon: 7.63))
+        try store.save(terrain, id: "R123", name: "Cervinia", lat: 45.93, lon: 7.63)
+        XCTAssertTrue(store.isSaved("R123"))
+        XCTAssertEqual(store.saved.first?.pistes, terrain.pistes)
+        XCTAssertEqual(Terrains(directory: dir).known(lat: 45.94, lon: 7.64)?.ways.count, terrain.ways.count, "read again from the file")
+        XCTAssertNil(store.known(lat: 46.5, lon: 10.1), "another valley")
+        store.remove("R123")
+        XCTAssertNil(Terrains(directory: dir).known(lat: 45.93, lon: 7.63))
+        // The numbers of the ski area, from its lines.
+        let range = try XCTUnwrap(ResortFacts.altitudes(terrain))
+        XCTAssertGreaterThan(range.top - range.base, 500)
+    }
+
+    func testThePisteUnderTheSkis() throws {
+        let terrain = Terrain.demo(lat: 45.93, lon: 7.63)
+        func point(on name: String) throws -> TrackPoint {
+            let way = try XCTUnwrap(terrain.ways.first { $0.name == name })
+            let i = way.lats.count / 2
+            return TrackPoint(t: Date(), lat: way.lats[i], lon: way.lons[i], alt: 2500, speed: 10, hAcc: 5, sAcc: 1)
+        }
+        XCTAssertEqual(LiveView.way(at: try point(on: "Gran Bosco"), doing: .run, in: terrain), "Gran Bosco")
+        XCTAssertEqual(LiveView.way(at: try point(on: "Seggiovia Gran Bosco"), doing: .lift, in: terrain), "Seggiovia Gran Bosco")
+        XCTAssertNil(LiveView.way(at: try point(on: "Gran Bosco"), doing: .idle, in: terrain))
+        let far = TrackPoint(t: Date(), lat: 46.5, lon: 10.1, alt: 2000, speed: 10, hAcc: 5, sAcc: 1)
+        XCTAssertNil(LiveView.way(at: far, doing: .run, in: terrain))
+    }
+
+    func testADayPassedToTheWatchIsOneDay() throws {
+        let points = Segmenter.clean(SkiSim.day(laps: 4, start: Date(timeIntervalSinceNow: -6 * 3600), seed: 8))
+        let cut = points.count / 3
+        // The iPhone recorded the first third and a little more; the watch from the cut on.
+        let phone = Array(points[..<(cut + 20)]), watch = Array(points[cut...])
+        let joined = WatchBridge.join(phone, watch)
+        XCTAssertEqual(joined.count, points.count, "where the two overlap, the watch's points are kept once")
+        XCTAssertEqual(joined.map(\.t), points.map(\.t))
+        XCTAssertEqual(WatchBridge.join(phone, []).count, phone.count)
+        XCTAssertEqual(WatchBridge.join([], watch).count, watch.count)
+        // On the iPhone: passed, it waits paused; given up, nothing is left behind.
+        let recorder = Recorder.preview(phone)
+        XCTAssertFalse(recorder.handed)
+        recorder.handOff()
+        XCTAssertTrue(recorder.handed)
+        XCTAssertEqual(recorder.state, .paused)
+        let mine = recorder.surrender()
+        XCTAssertEqual(mine.count, phone.count)
+        XCTAssertFalse(recorder.handed)
+        XCTAssertEqual(recorder.state, .idle)
+        XCTAssertEqual(recorder.pointCount, 0)
+    }
+
+    func testTheNumbersOfASeason() throws {
+        func day(_ place: String, vertical: Double, runs: Int, speed: Double) -> DaySummary {
+            var stats = DayStats()
+            stats.vertical = vertical
+            stats.runs = runs
+            stats.runDistance = vertical * 5
+            stats.maxSpeed = speed
+            stats.totalTime = 3600
+            return DaySummary(id: UUID(), start: Date(), end: Date(), place: place, stats: stats, sport: .ski, resort: nil, lat: nil, lon: nil, manual: nil)
+        }
+        let recap = SeasonRecap(label: "2026/27", days: [day("Cervinia", vertical: 5000, runs: 10, speed: 20),
+                                                        day("cervinia", vertical: 9000, runs: 14, speed: 24),
+                                                        day("Livigno", vertical: 4000, runs: 8, speed: 18)])
+        XCTAssertEqual(recap.days, 3)
+        XCTAssertEqual(recap.runs, 32)
+        XCTAssertEqual(recap.vertical, 18_000)
+        XCTAssertEqual(recap.maxSpeed, 24)
+        XCTAssertEqual(recap.places, 2, "the same place written two ways is one")
+        XCTAssertEqual(recap.best?.stats.vertical, 9000)
+        XCTAssertEqual(recap.everests, 18_000 / 8849, accuracy: 0.001)
+        XCTAssertEqual(SeasonRecap(label: "Sempre", days: []).days, 0)
+        XCTAssertNil(SeasonRecap(label: "Sempre", days: []).best)
+    }
+
     func testDaysSavedByTheFirstVersionStillOpen() throws {
         let day = SkiDay(points: SkiSim.day(laps: 1, seed: 17), place: "Vecchia")
         var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(day)) as? [String: Any])

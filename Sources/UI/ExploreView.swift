@@ -275,7 +275,8 @@ struct ExploreView: View {
             return
         }
         do {
-            show(try await Terrain.load(lat: center.latitude, lon: center.longitude))
+            // The ones downloaded are here with no signal; the others come from OpenStreetMap.
+            show(try await Terrains.shared.terrain(lat: center.latitude, lon: center.longitude))
         } catch {
             failed = true
         }

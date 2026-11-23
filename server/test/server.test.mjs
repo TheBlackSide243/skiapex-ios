@@ -346,3 +346,64 @@ test('signing in with Apple or Google makes one account for each person', async 
   assert.ok(!data.has('ext:google:9988'));
   assert.equal((await call('POST', '/v1/sessions/google', { body: { token: await token(google) } })).status, 201, 'a new account, from nothing');
 });
+
+test('how the snow was is told to everyone, who was there to friends only', async () => {
+  const { call, signUp, befriend, data } = server();
+  const a = await signUp('Alessio');
+  const b = await signUp('Alex');
+  const c = await signUp('Estraneo');
+  await befriend(a, b);
+  const today = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date(Date.now() - 24 * 3600 * 1000).toISOString().slice(0, 10);
+  const long = new Date(Date.now() - 20 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+  const here = { lat: 45.93361, lon: 7.62954 };
+  const stats = { vertical: 4000, distance: 20000, runTime: 4000, liftTime: 3000, avgSpeed: 9, runs: 10 };
+
+  assert.equal((await call('PUT', '/v1/places/visits', { body: { ...here, date: today } })).status, 401);
+  assert.equal((await call('PUT', '/v1/places/visits', { token: a.token, body: { ...here, date: 'oggi' } })).status, 400);
+  assert.equal((await call('PUT', '/v1/places/visits', { token: a.token, body: { ...here, date: today, snow: 'marmo' } })).status, 400);
+  assert.equal((await call('PUT', '/v1/places/visits', { token: a.token, body: { lat: 95, lon: 7, date: today } })).status, 400);
+
+  // Alessio today: powder, his numbers, and friends may see he was there. Told twice: once.
+  for (let i = 0; i < 2; i++) {
+    assert.equal((await call('PUT', '/v1/places/visits', { token: a.token, body: { ...here, date: today, snow: 'powder', friends: true, stats } })).status, 201);
+  }
+  // The stranger, a kilometer away: yesterday icy, today powder, with other numbers, not for friends.
+  const near = { lat: 45.94, lon: 7.64 };
+  await call('PUT', '/v1/places/visits', { token: c.token, body: { ...near, date: yesterday, snow: 'icy' } });
+  await call('PUT', '/v1/places/visits', { token: c.token, body: { ...near, date: today, snow: 'powder', stats: { ...stats, vertical: 2000, runs: 6 } } });
+  // Long ago, and far away: neither counts for the snow of here and now.
+  await call('PUT', '/v1/places/visits', { token: c.token, body: { ...near, date: long, snow: 'wet' } });
+  await call('PUT', '/v1/places/visits', { token: c.token, body: { lat: 46.5, lon: 10.1, date: today, snow: 'crust' } });
+
+  const seen = (await call('GET', `/v1/places?lat=${here.lat}&lon=${here.lon}`, { token: b.token })).body;
+  assert.deepEqual(seen.snow, [{ kind: 'powder', count: 2 }, { kind: 'icy', count: 1 }]);
+  assert.deepEqual(seen.latest, { kind: 'powder', date: today });
+  assert.equal(seen.reports, 3);
+  assert.equal(seen.averages.days, 2);
+  assert.equal(seen.averages.vertical, 3000);
+  assert.equal(seen.averages.runs, 8);
+  assert.deepEqual(seen.friends.map(f => [f.name, f.days, f.last]), [['Alessio', 1, today]], 'the friend who said so, not the stranger');
+  assert.equal(seen.mine, 0);
+  assert.equal((await call('GET', `/v1/places?lat=${here.lat}&lon=${here.lon}`, { token: a.token })).body.mine, 1);
+  // To the stranger: the snow and the averages, no names.
+  const stranger = (await call('GET', `/v1/places?lat=${here.lat}&lon=${here.lon}`, { token: c.token })).body;
+  assert.equal(stranger.reports, 3);
+  assert.deepEqual(stranger.friends, []);
+  // Elsewhere, only what was told there.
+  const far = (await call('GET', '/v1/places?lat=46.5&lon=10.1', { token: b.token })).body;
+  assert.deepEqual(far.snow, [{ kind: 'crust', count: 1 }]);
+  assert.equal(far.averages, null);
+  assert.equal((await call('GET', '/v1/places?lat=x&lon=7', { token: b.token })).status, 400);
+  // Kept to the kilometer, not to the meter.
+  assert.ok(!JSON.stringify([...data.entries()]).includes('45.93361'));
+
+  // A day taken back, and everything gone with the account.
+  assert.equal((await call('DELETE', '/v1/places/visits', { token: c.token, body: { date: yesterday } })).status, 200);
+  assert.deepEqual((await call('GET', `/v1/places?lat=${here.lat}&lon=${here.lon}`, { token: b.token })).body.snow, [{ kind: 'powder', count: 2 }]);
+  await call('DELETE', '/v1/me', { token: a.token, body: { password: 'neve-2026' } });
+  const after = (await call('GET', `/v1/places?lat=${here.lat}&lon=${here.lon}`, { token: b.token })).body;
+  assert.deepEqual(after.snow, [{ kind: 'powder', count: 1 }]);
+  assert.deepEqual(after.friends, []);
+  assert.ok(!JSON.stringify([...data.entries()]).includes(a.id));
+});

@@ -4,6 +4,10 @@
 // give: no email), a small profile picture if one was set and, for each season, the totals of the
 // days an account chose to share. No tracks and no places are ever stored; a position shared live
 // is held in memory only, the last one, and forgotten ten minutes after its last update.
+//
+// For who chooses to tell, it also keeps where a day was skied, to the kilometer, with how the snow
+// was and the numbers of the day: the snow of a ski area as the people there found it, the average
+// day there, and which friends have been.
 
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const USERNAME = /^[A-Za-z0-9_.-]{3,20}$/;
@@ -21,6 +25,14 @@ const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const POSITION_TTL = 10 * 60 * 1000;
 const PHASES = ['run', 'lift', 'idle'];
 const MAX_PHOTO = 100 * 1024;
+// How the snow was, as told at the end of a day.
+const SNOW = ['powder', 'groomed', 'hard', 'icy', 'crust', 'wet', 'wind'];
+// What is told of a ski area counts within this many meters of where it is asked about.
+const PLACE_RADIUS = 10000;
+// How the snow was is news for a few days; the days of a ski area are kept for a season and a bit.
+const SNOW_DAYS = 5;
+const VISIT_DAYS = 400;
+const MAX_VISITS = 600;
 // Who signs the tokens of "Sign in with Apple" and of Google, and what they call themselves.
 const PROVIDERS = {
   apple: { keys: 'https://appleid.apple.com/auth/keys', issuers: ['https://appleid.apple.com'] },
@@ -96,6 +108,7 @@ export class Accounts {
       if (user.invite) await this.state.storage.delete('invite:' + user.invite);
       this.positions.delete(user.id);
       const seasons = (user.seasons || []).map(year => `season:${user.id}:${year}`);
+      await this.forgetVisits(user);
       const own = ['photo:' + user.id, ...(user.ext ? [user.ext] : [])];
       await this.state.storage.delete([...user.tokens.map(t => 'token:' + t), ...seasons, ...own, 'user:' + user.name.toLowerCase(), 'id:' + user.id]);
       return json({ ok: true });
@@ -125,6 +138,11 @@ export class Accounts {
       return json({ ok: true });
     }
     if (path === '/v1/friends/positions' && method === 'GET') return json({ friends: await this.around(user) });
+    if (path === '/v1/places/visits' && method === 'PUT') return this.visit(user, await body(request));
+    if (path === '/v1/places/visits' && method === 'DELETE') return this.unvisit(user, await body(request));
+    if (path === '/v1/places' && method === 'GET') {
+        return this.aboutPlace(user, Number(url.searchParams.get('lat')), Number(url.searchParams.get('lon')));
+    }
     const season = path.match(/^\/v1\/me\/seasons\/(\d{4})$/);
     if (season && method === 'PUT') return this.share(user, Number(season[1]), await body(request));
     if (path === '/v1/board' && method === 'GET') return this.board(user, Number(url.searchParams.get('season')));
@@ -446,6 +464,103 @@ export class Accounts {
     return json({ season: year, rows });
   }
 
+  // Ski areas: how the snow was, the average day, the friends who have been
+
+  /// A day told: where (to the kilometer), when, and what the phone chose to tell of it: how the
+  /// snow was, its numbers for the averages, and whether friends may see you were there. One for
+  /// each day and place: told again, it replaces the one before.
+  async visit(user, b) {
+    if (typeof b?.date !== 'string' || !DATE.test(b.date)) return json({ error: 'bad day' }, 400);
+    if (typeof b.lat !== 'number' || typeof b.lon !== 'number' || !(Math.abs(b.lat) <= 90) || !(Math.abs(b.lon) <= 180)) {
+      return json({ error: 'bad position' }, 400);
+    }
+    if (b.snow != null && !SNOW.includes(b.snow)) return json({ error: 'bad snow' }, 400);
+    const lat = Math.round(b.lat * 100) / 100;
+    const lon = Math.round(b.lon * 100) / 100;
+    const key = cellKey(lat, lon);
+    const entry = { u: user.id, d: b.date, la: lat, lo: lon, s: b.snow || null, f: b.friends === true, at: Date.now() };
+    if (b.stats && typeof b.stats === 'object') {
+      entry.n = {
+        v: number(b.stats.vertical, 0, 60000),
+        di: number(b.stats.distance, 0, 500000),
+        rt: number(b.stats.runTime, 0, 24 * 3600),
+        lt: number(b.stats.liftTime, 0, 24 * 3600),
+        sp: number(b.stats.avgSpeed, 0, 70),
+        r: Math.round(number(b.stats.runs, 0, 300)),
+      };
+    }
+    const old = Date.now() - VISIT_DAYS * 24 * 3600 * 1000;
+    const visits = ((await this.state.storage.get(key)) || []).filter(v => !(v.u === user.id && v.d === b.date) && v.at > old);
+    visits.push(entry);
+    user.places = [...new Set([...(user.places || []), key])];
+    await this.state.storage.put({ [key]: visits.slice(-MAX_VISITS), ['user:' + user.name.toLowerCase()]: user });
+    return json({ ok: true }, 201);
+  }
+
+  /// A day taken back: deleted on the phone, or told by mistake.
+  async unvisit(user, b) {
+    if (typeof b?.date !== 'string' || !DATE.test(b.date)) return json({ error: 'bad day' }, 400);
+    for (const key of user.places || []) {
+      const visits = (await this.state.storage.get(key)) || [];
+      const left = visits.filter(v => !(v.u === user.id && v.d === b.date));
+      if (left.length !== visits.length) await this.state.storage.put(key, left);
+    }
+    return json({ ok: true });
+  }
+
+  async forgetVisits(user) {
+    for (const key of user.places || []) {
+      const visits = (await this.state.storage.get(key)) || [];
+      const left = visits.filter(v => v.u !== user.id);
+      if (left.length) await this.state.storage.put(key, left);
+      else await this.state.storage.delete(key);
+    }
+  }
+
+  /// What is known of a ski area: how the snow was in the last days, the average day of who
+  /// skied there this winter, and which of your friends have been. No names but your friends'.
+  async aboutPlace(user, lat, lon) {
+    if (!(Math.abs(lat) <= 90) || !(Math.abs(lon) <= 180)) return json({ error: 'bad position' }, 400);
+    const around = [];
+    for (const dy of [-1, 0, 1]) {
+      for (const dx of [-1, 0, 1]) {
+        for (const v of (await this.state.storage.get(cellKey(lat + dy * 0.1, lon + dx * 0.1))) || []) {
+          if (meters(lat, lon, v.la, v.lo) <= PLACE_RADIUS) around.push(v);
+        }
+      }
+    }
+    const now = Date.now();
+    const day = 24 * 3600 * 1000;
+    // How the snow was: the kinds told in the last days, the most told first, and the last one.
+    const told = around.filter(v => v.s && now - Date.parse(v.d) < (SNOW_DAYS + 1) * day).sort((a, b) => (a.d < b.d ? 1 : a.d > b.d ? -1 : b.at - a.at));
+    const counts = {};
+    for (const v of told) counts[v.s] = (counts[v.s] || 0) + 1;
+    const snow = Object.entries(counts).map(([kind, count]) => ({ kind, count })).sort((a, b) => b.count - a.count);
+    // The average day, of the days told with their numbers in the last year.
+    const counted = around.filter(v => v.n);
+    const mean = pick => (counted.length ? counted.reduce((sum, v) => sum + pick(v.n), 0) / counted.length : 0);
+    const averages = counted.length
+      ? { days: counted.length, vertical: mean(n => n.v), distance: mean(n => n.di), runTime: mean(n => n.rt), liftTime: mean(n => n.lt),
+          avgSpeed: mean(n => n.sp), runs: mean(n => n.r) }
+      : null;
+    // The friends who said they were here.
+    const friends = [];
+    for (const f of user.friends || []) {
+      const theirs = around.filter(v => v.u === f.id && v.f);
+      if (!theirs.length) continue;
+      const other = await this.byID(f.id);
+      if (other) friends.push({ ...this.card(other), days: theirs.length, last: theirs.map(v => v.d).sort().pop() });
+    }
+    return json({
+      snow,
+      latest: told.length ? { kind: told[0].s, date: told[0].d } : null,
+      reports: told.length,
+      averages,
+      friends: friends.sort((a, b) => (a.last < b.last ? 1 : -1)),
+      mine: around.filter(v => v.u === user.id).length,
+    });
+  }
+
   // Live positions
 
   /// Where you are now, for your friends: the last one only, in memory. The answer has the friends
@@ -626,6 +741,18 @@ async function sha256(s) {
 
 function hex(bytes) {
   return [...bytes].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/// The square of a tenth of a degree a place is in: what is told of it is kept together.
+function cellKey(lat, lon) {
+  return `place:${Math.floor(lat * 10)}:${Math.floor(lon * 10)}`;
+}
+
+/// Meters between two places.
+function meters(lat1, lon1, lat2, lon2) {
+  const rad = Math.PI / 180;
+  const h = Math.sin((lat2 - lat1) * rad / 2) ** 2 + Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin((lon2 - lon1) * rad / 2) ** 2;
+  return 2 * 6371000 * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
 function unbase64url(s) {

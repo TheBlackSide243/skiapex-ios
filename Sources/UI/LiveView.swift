@@ -15,6 +15,9 @@ struct LiveView: View {
     @State private var saving = false
     @State private var saved: DaySummary?
     @State private var error: String?
+    /// The pistes and the lifts around, to say which one is under the skis.
+    @State private var around: Terrain?
+    @State private var passing = false
 
     private var look: MapLook { MapLook(rawValue: mapLook) ?? .standard }
 
@@ -60,6 +63,7 @@ struct LiveView: View {
             .task(id: recorder.state == .recording) {
                 guard recorder.state == .recording else { return }
                 while !Task.isCancelled {
+                    await loadAround()
                     await social.loadLive()
                     try? await Task.sleep(for: .seconds(30))
                 }
@@ -80,6 +84,9 @@ struct LiveView: View {
         HStack(spacing: 8) {
             Circle().fill(statusColor).frame(width: 9, height: 9)
             Text(LocalizedStringKey(statusText)).font(.caption.weight(.semibold)).foregroundStyle(Theme.text)
+            if let name = wayName {
+                Text(name).font(.caption).foregroundStyle(Theme.text).lineLimit(1)
+            }
             if let fix = recorder.lastFix, recorder.state == .recording {
                 Text("±\(Int(fix.horizontalAccuracy.rounded())) m").font(.caption2).foregroundStyle(Theme.sub)
             }
@@ -116,9 +123,40 @@ struct LiveView: View {
         }
     }
 
+    /// The piste or the lift you are on, when the pistes around are known.
+    private var wayName: String? {
+        guard recorder.state == .recording, let around, let point = recorder.lastPoint else { return nil }
+        return Self.way(at: point, doing: recorder.analysis.current, in: around)
+    }
+
+    /// The name of the piste (skiing) or of the lift (going up) closest to a point.
+    static func way(at point: TrackPoint, doing kind: SegmentKind, in terrain: Terrain) -> String? {
+        let wanted: OSMWay.Kind
+        switch kind {
+        case .run: wanted = .piste
+        case .lift: wanted = .lift
+        case .idle: return nil
+        }
+        guard let i = terrain.nearest(lat: point.lat, lon: point.lon, within: wanted == .piste ? 45 : 70, where: { $0.kind == wanted && $0.label != nil }) else { return nil }
+        return terrain.ways[i].label
+    }
+
+    /// The pistes around the day under way: the ones downloaded, or asked once to OpenStreetMap
+    /// when the internet is allowed.
+    private func loadAround() async {
+        guard around == nil, !Demo.isOn, let point = recorder.lastPoint else { return }
+        if let kept = Terrains.shared.known(lat: point.lat, lon: point.lon) {
+            around = kept
+        } else if UserDefaults.standard.object(forKey: Prefs.online) as? Bool ?? true {
+            around = try? await Terrains.shared.terrain(lat: point.lat, lon: point.lon)
+        }
+    }
+
     @ViewBuilder private var panel: some View {
         VStack(spacing: 16) {
-            if recorder.state == .idle {
+            if recorder.handed {
+                handedPanel
+            } else if recorder.state == .idle {
                 startPanel
             } else {
                 livePanel
@@ -149,7 +187,41 @@ struct LiveView: View {
             } label: { Label("Inizia la giornata", systemImage: "play.fill") }
                 .buttonStyle(PrimaryButtonStyle())
                 .sensoryFeedback(.start, trigger: recorder.state == .recording)
+            if WatchBridge.shared.watchReady { watchButton("Registra con l'Apple Watch") }
         }
+    }
+
+    /// The day passes to the watch: the iPhone can be put away.
+    private func watchButton(_ title: String) -> some View {
+        Button {
+            passing = true
+            Task {
+                if let note = await WatchBridge.shared.handOff() { error = note }
+                passing = false
+            }
+        } label: {
+            if passing { ProgressView() } else { Label(LocalizedStringKey(title), systemImage: "applewatch") }
+        }
+        .buttonStyle(SecondaryButtonStyle())
+        .disabled(passing)
+    }
+
+    /// The day went on to the watch: what to do now, and the way back.
+    @ViewBuilder private var handedPanel: some View {
+        HStack(alignment: .top, spacing: 14) {
+            Image(systemName: "applewatch.radiowaves.left.and.right").font(.title2.weight(.semibold)).foregroundStyle(Theme.accent)
+                .frame(width: 52, height: 52)
+                .iconBox()
+            VStack(alignment: .leading, spacing: 5) {
+                Text("La giornata continua sul Watch").font(.display(.headline)).foregroundStyle(Theme.text)
+                Text("Puoi mettere via l'iPhone. A fine giornata premi Fine sul Watch e apri Ski Apex qui: la giornata arriva da sola, con quello che avevi già registrato.")
+                    .prose().font(.subheadline).foregroundStyle(Theme.sub)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        Button { recorder.takeBack() } label: { Label("Torna a registrare con l'iPhone", systemImage: "iphone") }
+            .buttonStyle(SecondaryButtonStyle())
     }
 
     @ViewBuilder private var livePanel: some View {
@@ -196,6 +268,7 @@ struct LiveView: View {
             .buttonStyle(SecondaryButtonStyle(color: Theme.bad))
             .disabled(saving)
         }
+        if WatchBridge.shared.watchReady { watchButton("Continua sul Watch") }
     }
 
     private var currentSpeed: String {

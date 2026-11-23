@@ -35,6 +35,8 @@ All under `/v1`, JSON in and out. Signed-in calls carry `Authorization: Bearer <
 | `POST /v1/sessions/apple` · `POST /v1/sessions/google` `{token, name?}` | in with the token Apple or Google gave the phone; the account is made the first time |
 | `PUT /v1/me/photo` (a JPEG up to 100 KB) · `DELETE /v1/me/photo` | your profile picture · take it off |
 | `GET /v1/photos/<id>` | the picture of an account: yours or a friend's |
+| `PUT /v1/places/visits` `{date, lat, lon, snow?, friends?, stats?}` · `DELETE /v1/places/visits` `{date}` | a day told: where (kept to the kilometer), how the snow was, its numbers · taken back |
+| `GET /v1/places?lat=&lon=` | a ski area: the snow of the last five days as people found it, the average day, the friends who have been |
 
 `/f/<code>` is the page of an invitation link: it opens the app with `skiapex://friend/<code>`.
 

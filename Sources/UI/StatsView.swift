@@ -9,6 +9,7 @@ struct StatsView: View {
     @State private var season: Season?
     @State private var all = false
     @State private var heat = Demo.screen == "heat"
+    @State private var recapping = Demo.screen == "recap"
 
     var body: some View {
         Group {
@@ -20,8 +21,12 @@ struct StatsView: View {
                         scope
                         totals
                         records
-                        Button { heat = true } label: { Label("Mappa di calore", systemImage: "flame") }
-                            .buttonStyle(SecondaryButtonStyle())
+                        HStack(spacing: 10) {
+                            Button { heat = true } label: { Label("Mappa di calore", systemImage: "flame") }
+                                .buttonStyle(SecondaryButtonStyle())
+                            Button { recapping = true } label: { Label("Riepilogo", systemImage: "square.and.arrow.up") }
+                                .buttonStyle(SecondaryButtonStyle())
+                        }
                         if days.count > 1 { charts }
                     }
                 }
@@ -31,6 +36,9 @@ struct StatsView: View {
             .navigationTitle("Statistiche")
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(isPresented: $heat) { HeatmapView() }
+            .sheet(isPresented: $recapping) {
+                SeasonSheet(recap: SeasonRecap(label: current?.label ?? String(localized: "Sempre"), days: days))
+            }
         }
     }
 

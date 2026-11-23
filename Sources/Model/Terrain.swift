@@ -1,7 +1,7 @@
 import Foundation
 
 /// A place to eat or to warm up by the pistes.
-struct Hut: Identifiable, Hashable {
+struct Hut: Identifiable, Hashable, Codable {
     let id: String
     let name: String
     let lat: Double

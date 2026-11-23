@@ -1,5 +1,7 @@
 import Foundation
+import HealthKit
 import UIKit
+import UserNotifications
 import WatchConnectivity
 
 /// The iPhone's side of the Apple Watch app. When the iPhone records, it tells the watch the
@@ -10,6 +12,56 @@ final class WatchBridge: NSObject, WCSessionDelegate {
     static let shared = WatchBridge()
 
     private var last: WatchState?
+
+    /// There is a watch with Ski Apex on it.
+    var watchReady: Bool {
+        guard WCSession.isSupported(), WCSession.default.delegate === self else { return false }
+        let session = WCSession.default
+        return session.activationState == .activated && session.isPaired && session.isWatchAppInstalled
+    }
+
+    /// Passes the day to the watch: the iPhone stops and keeps what it recorded so far, the
+    /// watch starts and goes on by itself. A few words when the watch has to be opened by hand.
+    @MainActor func handOff() async -> String? {
+        guard watchReady else { return String(localized: "Non trovo Ski Apex sull'Apple Watch. Installalo dall'app Watch dell'iPhone.") }
+        Shared.recorder.handOff()
+        let session = WCSession.default
+        let order: [String: Any] = [WatchLink.commandKey: WatchLink.record, WatchLink.atKey: Date()]
+        // Health can open the watch app for a workout: then the order reaches it right away.
+        let woken = await Self.wake()
+        if session.isReachable {
+            session.sendMessage(order, replyHandler: nil, errorHandler: nil)
+            return nil
+        }
+        // Not on screen: the order waits for the watch app to open.
+        session.transferUserInfo(order)
+        return woken ? nil : String(localized: "Apri Ski Apex sull'Apple Watch: la registrazione parte da sola.")
+    }
+
+    /// Opens the watch app for a ski workout, where Health allows it (the TestFlight build).
+    private static func wake() async -> Bool {
+        guard HKHealthStore.isHealthDataAvailable() else { return false }
+        let configuration = HKWorkoutConfiguration()
+        configuration.activityType = .downhillSkiing
+        configuration.locationType = .outdoor
+        do {
+            try await HKHealthStore().startWatchApp(toHandle: configuration)
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    /// A day from the watch arrived with the app not on screen: said with a notification, if
+    /// they are allowed.
+    private static func announce() {
+        guard UIApplication.shared.applicationState != .active else { return }
+        let content = UNMutableNotificationContent()
+        content.title = String(localized: "La giornata dal Watch è arrivata")
+        content.body = String(localized: "Apri Ski Apex per vederla e dire com'era la neve.")
+        content.sound = .default
+        UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: "watch-day", content: content, trigger: nil))
+    }
 
     /// Called once, at launch.
     func start() {
@@ -107,6 +159,13 @@ final class WatchBridge: NSObject, WCSessionDelegate {
         }
     }
 
+    /// The points of the iPhone and of the watch as one day, in order of time: where the two
+    /// overlap, the watch's are kept.
+    static func join(_ phone: [TrackPoint], _ watch: [TrackPoint]) -> [TrackPoint] {
+        guard let first = watch.first?.t else { return phone }
+        return phone.filter { $0.t < first } + watch
+    }
+
     /// The points of a file written by the watch: one JSON a line.
     static func points(in data: Data) -> [TrackPoint] {
         let decoder = JSONDecoder()
@@ -122,7 +181,12 @@ final class WatchBridge: NSObject, WCSessionDelegate {
         let id = (file.metadata?[WatchLink.idKey] as? String).flatMap { UUID(uuidString: $0) } ?? UUID()
         let inHealth = file.metadata?[WatchLink.healthKey] as? Bool ?? false
         DispatchQueue.main.async {
-            guard Self.keep(points, id: id, inHealth: inHealth, in: Shared.library), let start = points.first?.t else { return }
+            // A day begun on the iPhone and passed to the watch: the two parts make one day.
+            let all = Shared.recorder.handed ? Self.join(Shared.recorder.surrender(), points) : points
+            guard Self.keep(all, id: id, inHealth: inHealth, in: Shared.library), let start = all.first?.t else { return }
+            // Asked as soon as the app is looked at: how was the snow?
+            Shared.library.ask(id)
+            Self.announce()
             // The friends' leaderboard hears about the new day.
             Task { await Shared.social.refresh(season: Season(start), days: Shared.library.days) }
         }
