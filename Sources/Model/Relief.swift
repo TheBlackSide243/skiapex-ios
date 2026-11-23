@@ -21,7 +21,7 @@ enum Relief {
     static func heights(png: Data) -> Heights? {
         guard let image = UIImage(data: png)?.cgImage else { return nil }
         let w = image.width, h = image.height
-        guard w == h, w > 1 else { return nil }
+        guard w == h, w > 2 else { return nil }
         // In the picture's own colors, so that no number is changed on the way.
         let space = image.colorSpace.flatMap { $0.model == .rgb ? $0 : nil } ?? CGColorSpaceCreateDeviceRGB()
         guard let context = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w * 4, space: space,
@@ -110,8 +110,10 @@ enum Relief {
                 for j in 0..<side {
                     for i in 0..<side {
                         let a = j * side + i
-                        let left = i > 0 ? a - 1 : a, right = i < side - 1 ? a + 1 : a
-                        let up = j > 0 ? a - side : a, down = j < side - 1 ? a + side : a
+                        // On the edge the slope is the one of the point beside it, so that two
+                        // squares meet with no seam.
+                        let c = min(side - 2, max(1, j)) * side + min(side - 2, max(1, i))
+                        let left = c - 1, right = c + 1, up = c - side, down = c + side
                         let gx = (h[right] - h[left]) / (Float(right - left) * mpp) * exaggeration
                         let gy = (h[down] - h[up]) / (Float((down - up) / side) * mpp) * exaggeration
                         let light = (gx * 0.55 + gy * 0.55 + 0.63) / (gx * gx + gy * gy + 1).squareRoot()
@@ -140,9 +142,10 @@ enum Relief {
                 for j in 0..<side {
                     for i in 0..<side {
                         let a = j * side + i
-                        let left = i > 0 ? a - 1 : a, right = i < side - 1 ? a + 1 : a
-                        let up = j > 0 ? a - side : a, down = j < side - 1 ? a + side : a
-                        // At the edges the slope is measured over one point, not two.
+                        // On the edge the slope is the one of the point beside it, so that two
+                        // squares meet with no seam.
+                        let c = min(side - 2, max(1, j)) * side + min(side - 2, max(1, i))
+                        let left = c - 1, right = c + 1, up = c - side, down = c + side
                         let gx = (h[right] - h[left]) / (Float(right - left) * mpp)
                         let gy = (h[down] - h[up]) / (Float((down - up) / side) * mpp)
                         let slope = (gx * gx + gy * gy).squareRoot()
@@ -222,7 +225,7 @@ final class ReliefOverlay: MKTileOverlay {
         super.init(urlTemplate: nil)
         canReplaceMapContent = false
         minimumZ = 4
-        maximumZ = 14
+        maximumZ = 15
         tileSize = CGSize(width: 256, height: 256)
     }
 

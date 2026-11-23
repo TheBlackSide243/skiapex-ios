@@ -73,6 +73,31 @@ final class LookTests: XCTestCase {
         XCTAssertEqual(Relief.metersPerPixel(z: 14, y: 5833, side: 256), 6.65, accuracy: 0.2)
     }
 
+    /// The day over the pistes, and over the day what a screen draws of its own; a line of one
+    /// point is not a line.
+    func testTheLinesOfTheMap() {
+        func track(_ kind: SegmentKind, _ n: Int) -> MapTrack {
+            MapTrack(id: n, kind: kind, number: n, coordinates: (0..<4).map { CLLocationCoordinate2D(latitude: 45.9 + Double($0) * 0.001, longitude: 7.6) })
+        }
+        let more = [MapLine(coordinates: [CLLocationCoordinate2D(latitude: 45.9, longitude: 7.6), CLLocationCoordinate2D(latitude: 45.91, longitude: 7.61)],
+                            color: .red, width: 6),
+                    MapLine(coordinates: [CLLocationCoordinate2D(latitude: 45.9, longitude: 7.6)], color: .red, width: 6)]
+        let lines = SnowMap.Coordinator.lines(terrain: nil, tracks: [track(.run, 1), track(.lift, 2)], more: more)
+        XCTAssertEqual(lines.count, 3)
+        XCTAssertEqual(lines[0].width, 5)
+        XCTAssertNil(lines[0].dash)
+        XCTAssertEqual(lines[1].dash, [6, 6])
+        XCTAssertEqual(lines[2].color, .red)
+        XCTAssertEqual(lines[2].pointCount, 2)
+        let faint = SnowMap.Coordinator.lines(terrain: nil, tracks: [track(.run, 1)], dimmed: true)
+        XCTAssertEqual(faint[0].width, 3.5)
+        // Some points with room around them, and none.
+        let fit = SnowMap.fit([CLLocationCoordinate2D(latitude: 45, longitude: 7), CLLocationCoordinate2D(latitude: 46, longitude: 9)], room: 2)
+        XCTAssertEqual(fit?.center.longitude ?? 0, 8, accuracy: 0.001)
+        XCTAssertEqual(fit?.span.latitudeDelta ?? 0, 2, accuracy: 0.001)
+        XCTAssertNil(SnowMap.fit([]))
+    }
+
     func testThePlacesBehindTheSheet() {
         func day(_ place: String, _ lat: Double?, _ lon: Double?, daysAgo: Double) -> DaySummary {
             DaySummary(id: UUID(), start: Date(timeIntervalSinceNow: -daysAgo * 86_400), end: Date(), place: place, stats: DayStats(),

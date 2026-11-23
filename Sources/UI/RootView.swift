@@ -73,7 +73,9 @@ private struct SheetRoot: View {
         .environment(\.railInset, Rail.width)
         // Every number again in the new units, every color again in the new look.
         .id("\(tab)" + units + Looks.shared.look.rawValue)
-        .overlay(alignment: .bottomTrailing) { Rail(tab: $tab) }
+        .overlay(alignment: .bottomTrailing) {
+            if Chrome.shared.hidden == 0 { Rail(tab: $tab) }
+        }
         .modifier(Dressed())
         .sensoryFeedback(.selection, trigger: tab)
         // A day ended, here or on the watch: how was the snow?

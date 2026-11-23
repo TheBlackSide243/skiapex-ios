@@ -19,17 +19,10 @@ struct RunDetailView: View {
         ScrollView {
             VStack(spacing: 14) {
                 VStack(spacing: 10) {
-                    Map(initialPosition: region) {
-                        TrackMapContent(tracks: tracks, dimmed: true)
-                        ForEach(chunks) { chunk in
-                            MapPolyline(coordinates: chunk.coordinates)
-                                .stroke(Theme.speedColors[chunk.bucket], style: StrokeStyle(lineWidth: 6, lineCap: .round, lineJoin: .round))
-                        }
-                    }
-                    .mapStyle(look.style)
-                    .frame(height: 300)
-                    .clipShape(Theme.round)
-                    .overlay(Theme.round.strokeBorder(Theme.line, lineWidth: 1))
+                    PlaceMap(tracks: tracks, dimmed: true,
+                             lines: chunks.map { MapLine(coordinates: $0.coordinates, color: UIColor(Theme.speedColors[$0.bucket]), width: 6) })
+                        .frame(height: 300)
+                        .id(chunks.count)
                     HStack(spacing: 8) {
                         Text("Lento").font(.caption2).foregroundStyle(Theme.sub)
                         LinearGradient(colors: Theme.speedColors, startPoint: .leading, endPoint: .trailing)

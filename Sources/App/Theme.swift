@@ -93,16 +93,16 @@ enum Look: String, CaseIterable, Identifiable {
     private static let nightColors = darkLook(bg: 0x1a1b21, panel: 0x2a2b30, deep: 0x202126, input: 0x35373e, text: 0xffffff,
                                               sub: 0xa2a5b1, accent: 0x5aa2ff, onAccent: 0xffffff, lift: 0xc4b5fd, sky: 0x3b4567)
     /// Northern lights: dark teal and mint.
-    private static let auroraColors = darkLook(bg: 0x0a1a1c, panel: 0x12292c, deep: 0x061214, input: 0x183538, text: 0xeffaf8,
-                                               sub: 0x8fb0ad, accent: 0x5eead4, onAccent: 0x04201c, lift: 0xd8b4fe, sky: 0x14403f)
+    private static let auroraColors = darkLook(bg: 0x171c1d, panel: 0x272d2e, deep: 0x1d2324, input: 0x343c3d, text: 0xffffff,
+                                               sub: 0xa0abab, accent: 0x4fdcc6, onAccent: 0x04201c, lift: 0xd8b4fe, sky: 0x2c4f52)
     /// The first light on the peaks: plum and peach.
-    private static let sunriseColors = darkLook(bg: 0x1c1220, panel: 0x2a1b30, deep: 0x140c18, input: 0x35223c, text: 0xfbf3f1,
-                                                sub: 0xb9a3b3, accent: 0xff9f6b, onAccent: 0x2a1206, lift: 0xf9a8d4, sky: 0x4a2440)
+    private static let sunriseColors = darkLook(bg: 0x1d1a1e, panel: 0x2e2a30, deep: 0x242026, input: 0x3c363e, text: 0xffffff,
+                                                sub: 0xaea4ac, accent: 0xff9f6b, onAccent: 0x2a1206, lift: 0xf9a8d4, sky: 0x5a3950)
     /// Among the firs: dark green and lime.
-    private static let forestColors = darkLook(bg: 0x0f1a13, panel: 0x18281d, deep: 0x0a130d, input: 0x203427, text: 0xf1f7f0,
-                                               sub: 0x9bb0a0, accent: 0xa3e635, onAccent: 0x0f1f04, lift: 0x7dd3fc, sky: 0x1e3a26)
+    private static let forestColors = darkLook(bg: 0x191c19, panel: 0x292d29, deep: 0x1f231f, input: 0x363b36, text: 0xffffff,
+                                               sub: 0xa3aba3, accent: 0xa3e635, onAccent: 0x0f1f04, lift: 0x7dd3fc, sky: 0x33503a)
     /// Black, for the screens that turn their pixels off, and the yellow of the piste poles.
-    private static let carbonColors = darkLook(bg: 0x000000, panel: 0x121214, deep: 0x0a0a0b, input: 0x1c1c1f, text: 0xf5f5f7,
+    private static let carbonColors = darkLook(bg: 0x000000, panel: 0x1c1c1e, deep: 0x111113, input: 0x2c2c2e, text: 0xffffff,
                                                sub: 0x9a9aa2, accent: 0xffd60a, onAccent: 0x1a1500, lift: 0xc4b5fd, sky: 0x1c1c1f)
     /// A light look, for the sun on the snow.
     private static let snowColors = Palette(
