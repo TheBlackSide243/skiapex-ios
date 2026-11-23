@@ -45,9 +45,12 @@ Premi **Inizia** ai piedi della pista, metti l'iPhone in tasca e scia. Ski Apex 
   <img src="docs/screenshots/iphone-replay.jpg" width="190" alt="Rivivi la giornata">
   <img src="docs/screenshots/iphone-stats.jpg" width="190" alt="Statistiche e record">
   <img src="docs/screenshots/iphone-guide.jpg" width="190" alt="La guida delle stazioni con la neve prevista">
+  <img src="docs/screenshots/iphone-explore.jpg" width="190" alt="La mappa delle piste con il percorso da un punto all'altro">
   <img src="docs/screenshots/iphone-heat.jpg" width="190" alt="La mappa di calore">
   <img src="docs/screenshots/iphone-friends.jpg" width="190" alt="La classifica con gli amici">
   <img src="docs/screenshots/iphone-share.jpg" width="190" alt="L'immagine da condividere">
+  <img src="docs/screenshots/iphone-looks.jpg" width="190" alt="I temi e le icone dell'app">
+  <img src="docs/screenshots/iphone-light.jpg" width="190" alt="Una giornata con il tema chiaro">
 </p>
 
 ### Installazione

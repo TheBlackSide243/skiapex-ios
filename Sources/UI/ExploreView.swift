@@ -242,7 +242,8 @@ struct ExploreView: View {
                     }
                 }
             }
-            .frame(maxHeight: 132)
+            // As tall as its steps, up to five of them: then it scrolls.
+            .frame(height: min(140, CGFloat(route.steps.count) * 28))
             Text("Tempi indicativi. Controlla sempre i cartelli e le piste aperte.")
                 .prose().font(.caption2).foregroundStyle(Theme.sub)
         }
