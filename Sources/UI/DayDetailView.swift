@@ -216,7 +216,7 @@ struct DayDetailView: View {
             }
 
             let s = day.stats
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+            StatGrid {
                 StatTile(value: "\(s.runs)", label: "Discese", symbol: "figure.skiing.downhill")
                 StatTile(value: Fmt.height(s.vertical), label: "Dislivello", symbol: "arrow.down.right")
                 StatTile(value: Fmt.speed(s.maxSpeed), label: "Velocità max", symbol: "speedometer")

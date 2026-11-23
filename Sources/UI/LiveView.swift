@@ -2,15 +2,15 @@ import MapKit
 import SwiftUI
 import UIKit
 
-/// The day under way: the map with the tracks so far, and on glass the speed, the numbers and the
-/// buttons. Before starting: where you are and the button to begin.
+/// The day under way, on the sheet over the map: the speed, the numbers and the buttons. Before
+/// starting: what you ride today and the button to begin. The map with the track is behind (see
+/// `Backdrop`).
 struct LiveView: View {
     @Environment(Recorder.self) private var recorder
     @Environment(Library.self) private var library
     @Environment(Social.self) private var social
     @Environment(\.openURL) private var openURL
-    @AppStorage(Prefs.mapLook) private var mapLook = MapLook.standard.rawValue
-    @State private var camera: MapCameraPosition = .userLocation(fallback: .automatic)
+    @AppStorage(Prefs.sport) private var sport = Sport.ski.rawValue
     @State private var confirmStop = false
     @State private var saving = false
     @State private var saved: DaySummary?
@@ -19,44 +19,24 @@ struct LiveView: View {
     @State private var around: Terrain?
     @State private var passing = false
 
-    private var look: MapLook { MapLook(rawValue: mapLook) ?? .standard }
-
     var body: some View {
         NavigationStack {
-            ZStack {
-                Map(position: $camera) {
-                    UserAnnotation()
-                    TrackMapContent(tracks: recorder.tracks, colorful: false)
-                    // The friends skiing now who share where they are.
-                    ForEach(social.live) { friend in
-                        Annotation(friend.name, coordinate: friend.coordinate) { FriendMarker(friend: friend) }
-                    }
-                }
-                .mapStyle(look.style)
-                .mapControls { MapCompass() }
-                .ignoresSafeArea(edges: .top)
-
-                VStack(spacing: 12) {
-                    HStack(alignment: .top) {
-                        statusPill
-                        Spacer()
-                        VStack(spacing: 10) {
-                            MapButton(symbol: look == .standard ? "globe.europe.africa" : "map",
-                                      label: look == .standard ? "Satellite" : "Mappa") {
-                                mapLook = (look == .standard ? MapLook.satellite : MapLook.standard).rawValue
-                            }
-                            MapButton(symbol: "location.fill", label: "Dove sono") {
-                                withAnimation { camera = .userLocation(fallback: .automatic) }
-                            }
-                        }
-                    }
-                    Spacer()
+            ScrollView {
+                VStack(spacing: 18) {
                     ErrorBanner(error: $error)
-                    panel
+                    if recorder.handed {
+                        handedPanel
+                    } else if recorder.state == .idle {
+                        startPanel
+                    } else {
+                        livePanel
+                    }
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 12)
+                .padding(.horizontal, 20)
+                .padding(.top, 26)
+                .padding(.bottom, 20)
             }
+            .screen()
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(item: $saved) { DayDetailView(id: $0.id) }
             // While a day is recorded, the friends on the map are asked for every half minute.
@@ -80,20 +60,19 @@ struct LiveView: View {
 
     // MARK: Pieces
 
-    private var statusPill: some View {
+    /// What is happening now, the piste under the skis and how good the position is.
+    private var status: some View {
         HStack(spacing: 8) {
-            Circle().fill(statusColor).frame(width: 9, height: 9)
-            Text(LocalizedStringKey(statusText)).font(.caption.weight(.semibold)).foregroundStyle(Theme.text)
+            Circle().fill(statusColor).frame(width: 10, height: 10)
+            Text(LocalizedStringKey(statusText)).font(.headline).foregroundStyle(Theme.text).lineLimit(1)
             if let name = wayName {
-                Text(name).font(.caption).foregroundStyle(Theme.text).lineLimit(1)
+                Text(name).font(.headline.weight(.regular)).foregroundStyle(Theme.sub).lineLimit(1)
             }
-            if let fix = recorder.lastFix, recorder.state == .recording {
-                Text("±\(Int(fix.horizontalAccuracy.rounded())) m").font(.caption2).foregroundStyle(Theme.sub)
+            Spacer(minLength: 6)
+            if let alt = recorder.lastPoint?.alt {
+                Label(Fmt.height(alt), systemImage: "mountain.2").font(.subheadline).foregroundStyle(Theme.sub).lineLimit(1)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .glass(in: Capsule())
         .accessibilityElement(children: .combine)
     }
 
@@ -152,27 +131,13 @@ struct LiveView: View {
         }
     }
 
-    @ViewBuilder private var panel: some View {
-        VStack(spacing: 16) {
-            if recorder.handed {
-                handedPanel
-            } else if recorder.state == .idle {
-                startPanel
-            } else {
-                livePanel
-            }
-        }
-        .padding(18)
-        .glass()
-    }
-
     @ViewBuilder private var startPanel: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("SKI APEX").font(.display(.largeTitle)).tracking(-0.5).foregroundStyle(Theme.accent)
+            Text("Registra").font(.largeTitle.weight(.heavy)).foregroundStyle(Theme.text)
             Text(recorder.denied
                  ? LocalizedStringKey("Per registrare serve la posizione: permettila in Impostazioni → Ski Apex → Posizione.")
                  : LocalizedStringKey("Premi Inizia ai piedi della pista, metti l'iPhone in tasca e scia: discese e risalite le riconosce da sola."))
-                .prose().font(.subheadline).foregroundStyle(Theme.sub)
+                .font(.subheadline).foregroundStyle(Theme.sub)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -182,6 +147,7 @@ struct LiveView: View {
             } label: { Label("Apri Impostazioni", systemImage: "gear") }
                 .buttonStyle(PrimaryButtonStyle())
         } else {
+            sportPicker
             Button {
                 recorder.start()
             } label: { Label("Inizia la giornata", systemImage: "play.fill") }
@@ -189,6 +155,25 @@ struct LiveView: View {
                 .sensoryFeedback(.start, trigger: recorder.state == .recording)
             if WatchBridge.shared.watchReady { watchButton("Registra con l'Apple Watch") }
         }
+    }
+
+    /// What is on the feet today: the day is saved as this.
+    private var sportPicker: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Cosa fai oggi?").font(.headline).foregroundStyle(Theme.text)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(Sport.allCases) { one in
+                        Button { sport = one.rawValue } label: {
+                            ChoicePill(title: one.label, symbol: one.symbol, on: sport == one.rawValue)
+                        }
+                        .buttonStyle(PressStyle())
+                    }
+                }
+            }
+            .sensoryFeedback(.selection, trigger: sport)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     /// The day passes to the watch: the iPhone can be put away.
@@ -213,9 +198,9 @@ struct LiveView: View {
                 .frame(width: 52, height: 52)
                 .iconBox()
             VStack(alignment: .leading, spacing: 5) {
-                Text("La giornata continua sul Watch").font(.display(.headline)).foregroundStyle(Theme.text)
+                Text("La giornata continua sul Watch").font(.title3.weight(.heavy)).foregroundStyle(Theme.text)
                 Text("Puoi mettere via l'iPhone. A fine giornata premi Fine sul Watch e apri Ski Apex qui: la giornata arriva da sola, con quello che avevi già registrato.")
-                    .prose().font(.subheadline).foregroundStyle(Theme.sub)
+                    .font(.subheadline).foregroundStyle(Theme.sub)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -225,47 +210,43 @@ struct LiveView: View {
     }
 
     @ViewBuilder private var livePanel: some View {
+        status
         HStack(alignment: .lastTextBaseline) {
-            VStack(alignment: .leading, spacing: 0) {
-                Text(currentSpeed)
-                    .font(.system(size: 64, weight: .bold, design: .monospaced))
-                    .monospacedDigit()
-                    .foregroundStyle(Theme.text)
-                    .contentTransition(.numericText())
-                    .animation(.snappy, value: currentSpeed)
-                Text(Fmt.speedUnit).font(.caption.weight(.semibold)).foregroundStyle(Theme.sub)
-            }
+            FigureText("\(currentSpeed) \(Fmt.speedUnit)", big: .system(size: 84, weight: .heavy), small: .system(size: 18, weight: .bold))
+                .foregroundStyle(Theme.text)
+                .contentTransition(.numericText())
+                .animation(.snappy, value: currentSpeed)
+                .lineLimit(1).minimumScaleFactor(0.6)
             Spacer()
             VStack(alignment: .trailing, spacing: 4) {
                 TimelineView(.periodic(from: .now, by: 1)) { _ in
-                    Text(Fmt.clock(elapsed)).font(.display(.title3)).monospacedDigit().foregroundStyle(Theme.text)
+                    Text(Fmt.clock(elapsed)).font(.title2.weight(.bold)).monospacedDigit().foregroundStyle(Theme.text)
                 }
-                if let alt = recorder.lastPoint?.alt {
-                    Label(Fmt.height(alt), systemImage: "mountain.2").font(.caption).foregroundStyle(Theme.sub)
-                }
+                Text("dall'inizio").font(.subheadline).foregroundStyle(Theme.sub)
             }
         }
         let s = recorder.analysis.stats
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 10) {
-            LiveCell(value: "\(s.runs)", label: "Discese")
-            LiveCell(value: Fmt.height(s.vertical), label: "Dislivello")
-            LiveCell(value: Fmt.speedValue(s.maxSpeed), label: "Max \(Fmt.speedUnit)")
-            LiveCell(value: Fmt.distance(s.runDistance), label: "Sciati")
-            LiveCell(value: "\(s.lifts)", label: "Risalite")
-            LiveCell(value: Fmt.height(s.topAlt), label: "Quota max")
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), alignment: .leading, spacing: 18) {
+            LiveCell(value: "\(s.runs)", label: "discese", symbol: "arrow.triangle.2.circlepath")
+            LiveCell(value: Fmt.height(s.vertical), label: "dislivello", symbol: "arrow.down")
+            LiveCell(value: Fmt.speed(s.maxSpeed), label: "vel. max", symbol: "speedometer")
+            LiveCell(value: Fmt.distance(s.runDistance), label: "sciati", symbol: "arrow.right")
+            LiveCell(value: "\(s.lifts)", label: "risalite", symbol: "cablecar")
+            LiveCell(value: Fmt.height(s.topAlt), label: "quota max", symbol: "mountain.2")
         }
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
             if recorder.state == .recording {
                 Button { recorder.pause() } label: { Label("Pausa", systemImage: "pause.fill") }
-                    .buttonStyle(SecondaryButtonStyle())
+                    .buttonStyle(PrimaryButtonStyle())
             } else {
                 Button { recorder.resume() } label: { Label("Riprendi", systemImage: "play.fill") }
                     .buttonStyle(PrimaryButtonStyle())
             }
             Button { confirmStop = true } label: {
-                if saving { ProgressView() } else { Label("Fine", systemImage: "flag.checkered") }
+                if saving { ProgressView() } else { Text("Fine") }
             }
             .buttonStyle(SecondaryButtonStyle(color: Theme.bad))
+            .frame(maxWidth: 120)
             .disabled(saving)
         }
         if WatchBridge.shared.watchReady { watchButton("Continua sul Watch") }
@@ -300,21 +281,25 @@ struct LiveView: View {
     }
 }
 
+/// One of the six numbers of the day under way.
 private struct LiveCell: View {
     let value: String
     let label: String
+    let symbol: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(value).font(.display(.headline)).monospacedDigit().foregroundStyle(Theme.text)
+        VStack(alignment: .leading, spacing: 4) {
+            FigureText(value, big: .system(.title3, design: .default, weight: .bold), small: .system(.caption, design: .default, weight: .bold))
+                .foregroundStyle(Theme.text)
                 .lineLimit(1).minimumScaleFactor(0.6)
                 .contentTransition(.numericText())
-            Text(LocalizedStringKey(label)).font(.caption2).foregroundStyle(Theme.sub).lineLimit(1).minimumScaleFactor(0.7)
+            HStack(spacing: 4) {
+                Image(systemName: symbol).font(.caption2.weight(.bold)).accessibilityHidden(true)
+                Text(LocalizedStringKey(label)).font(.footnote)
+            }
+            .foregroundStyle(Theme.sub).lineLimit(1).minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 10)
-        .padding(.horizontal, 12)
-        .background(Theme.deep.opacity(0.55), in: Theme.roundSmall)
         .accessibilityElement(children: .combine)
     }
 }

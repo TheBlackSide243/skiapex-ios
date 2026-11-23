@@ -16,18 +16,18 @@ struct ShareCard: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(day.title ?? String(localized: "Giornata sulla neve"))
-                        .font(.system(size: 24, weight: .bold, design: .monospaced))
+                        .font(.system(size: 24, weight: .bold))
                         .foregroundStyle(Theme.text)
                         .lineLimit(2).minimumScaleFactor(0.6)
                     Text(Fmt.day(day.start).capitalized + " " + day.start.formatted(.dateTime.year()))
-                        .font(.system(size: 12, weight: .medium, design: .monospaced))
+                        .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(Theme.sub)
                 }
                 Spacer(minLength: 8)
                 if let weather = day.weather {
                     VStack(alignment: .trailing, spacing: 3) {
                         Image(systemName: weather.symbol).font(.system(size: 18, weight: .semibold)).foregroundStyle(Theme.accent)
-                        Text(Fmt.temperature(weather.tempMax)).font(.system(size: 12, weight: .medium, design: .monospaced)).foregroundStyle(Theme.sub)
+                        Text(Fmt.temperature(weather.tempMax)).font(.system(size: 12, weight: .medium)).foregroundStyle(Theme.sub)
                     }
                 }
             }
@@ -49,7 +49,7 @@ struct ShareCard: View {
             }
 
             HStack {
-                Text("SKI APEX").font(.system(size: 13, weight: .bold, design: .monospaced)).tracking(1.5).foregroundStyle(Theme.accent)
+                Text("SKI APEX").font(.system(size: 13, weight: .bold)).tracking(1.5).foregroundStyle(Theme.accent)
                 Spacer()
                 Image(systemName: (day.sport ?? .ski).symbol).font(.system(size: 14, weight: .semibold)).foregroundStyle(Theme.accent)
             }
@@ -65,9 +65,9 @@ struct ShareCard: View {
 
     private func figure(_ value: String, _ label: String) -> some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text(value).font(.system(size: 17, weight: .semibold, design: .monospaced)).foregroundStyle(Theme.text)
+            Text(value).font(.system(size: 17, weight: .semibold)).foregroundStyle(Theme.text)
                 .lineLimit(1).minimumScaleFactor(0.6)
-            Text(LocalizedStringKey(label)).font(.system(size: 10, weight: .medium, design: .monospaced)).foregroundStyle(Theme.sub)
+            Text(LocalizedStringKey(label)).font(.system(size: 10, weight: .medium)).foregroundStyle(Theme.sub)
                 .lineLimit(1).minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

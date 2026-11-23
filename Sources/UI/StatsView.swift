@@ -78,7 +78,7 @@ struct StatsView: View {
         let vertical = s.reduce(0) { $0 + $1.vertical }
         let runs = s.reduce(0) { $0 + $1.runs }
         return VStack(spacing: 10) {
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+            StatGrid {
                 StatTile(value: "\(days.count)", label: "Giornate", symbol: "calendar")
                 StatTile(value: "\(runs)", label: "Discese", symbol: "figure.skiing.downhill")
                 StatTile(value: Fmt.height(vertical), label: "Dislivello", symbol: "arrow.down.right")

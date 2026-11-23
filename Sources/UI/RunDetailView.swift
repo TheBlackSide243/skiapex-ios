@@ -55,7 +55,7 @@ struct RunDetailView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+                StatGrid {
                     StatTile(value: Fmt.speed(run.maxSpeed), label: "Velocità max", symbol: "speedometer")
                     StatTile(value: Fmt.speed(run.avgSpeed), label: "Velocità media", symbol: "gauge.with.dots.needle.50percent")
                     StatTile(value: Fmt.height(run.drop), label: "Dislivello", symbol: "arrow.down.right")

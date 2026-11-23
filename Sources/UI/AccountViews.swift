@@ -22,7 +22,7 @@ struct Avatar: View {
             } else {
                 Theme.deep
                 Text(Avatars.initials(of: name))
-                    .font(.system(size: size * 0.36, weight: .bold, design: .monospaced))
+                    .font(.system(size: size * 0.36, weight: .bold))
                     .foregroundStyle(Theme.text)
             }
         }

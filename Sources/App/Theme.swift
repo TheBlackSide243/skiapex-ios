@@ -83,14 +83,15 @@ enum Look: String, CaseIterable, Identifiable {
     private static func darkLook(bg: UInt32, panel: UInt32, deep: UInt32, input: UInt32, text: UInt32, sub: UInt32,
                                  accent: UInt32, onAccent: UInt32, lift: UInt32, sky: UInt32) -> Palette {
         Palette(dark: true, bg: Color(hex: bg), panel: Color(hex: panel), deep: Color(hex: deep), input: Color(hex: input),
-                line: Color.white.opacity(0.12), text: Color(hex: text), sub: Color(hex: sub), accent: Color(hex: accent),
+                line: Color.white.opacity(0.09), text: Color(hex: text), sub: Color(hex: sub), accent: Color(hex: accent),
                 onAccent: Color(hex: onAccent), lift: Color(hex: lift), good: Color(hex: 0x34d399), bad: Color(hex: 0xff7b8a),
                 warn: Color(hex: 0xfbbf24), sky: Color(hex: sky))
     }
 
-    /// A night-blue mountain, glacier blue for what you can do: the look the app was born with.
-    private static let nightColors = darkLook(bg: 0x0b1626, panel: 0x15253c, deep: 0x08111e, input: 0x1a2c47, text: 0xf2f6fb,
-                                              sub: 0x98a9bf, accent: 0x5ccfff, onAccent: 0x07121f, lift: 0xc4b5fd, sky: 0x1a3054)
+    /// The night over the mountain: grey panels on a sheet that fades from night blue, and the blue
+    /// of the sky for what you can do.
+    private static let nightColors = darkLook(bg: 0x1a1b21, panel: 0x2a2b30, deep: 0x202126, input: 0x35373e, text: 0xffffff,
+                                              sub: 0xa2a5b1, accent: 0x5aa2ff, onAccent: 0xffffff, lift: 0xc4b5fd, sky: 0x3b4567)
     /// Northern lights: dark teal and mint.
     private static let auroraColors = darkLook(bg: 0x0a1a1c, panel: 0x12292c, deep: 0x061214, input: 0x183538, text: 0xeffaf8,
                                                sub: 0x8fb0ad, accent: 0x5eead4, onAccent: 0x04201c, lift: 0xd8b4fe, sky: 0x14403f)
@@ -128,10 +129,10 @@ enum Look: String, CaseIterable, Identifiable {
     }
 }
 
-/// The look of Ski Apex: a mountain under glass, in the colors chosen in Settings (see `Look`).
-/// Surfaces have round corners and a thin outline; what floats on the map is glass (the Liquid
-/// Glass of iOS 26 and later, a frosted material before); the things you press are pills. Titles,
-/// numbers and labels are set in the monospaced face, sentences in the plain one (see `prose()`).
+/// The look of Ski Apex: the map behind everything and a sheet over it, in the colors chosen in
+/// Settings (see `Look`). Cards are grey with very round corners and no outline; what floats on
+/// the map is glass (the Liquid Glass of iOS 26 and later, a frosted material before); the things
+/// you press are pills. Titles are heavy, numbers bold with their unit small beside them.
 enum Theme {
     private static var colors: Palette { Looks.shared.look.palette }
 
@@ -182,26 +183,29 @@ enum Theme {
     /// From slow to fast, for the speed drawn along a run.
     static let speedColors: [Color] = ([0x4f9dff, 0x34d399, 0xfbbf24, 0xff8a4c, 0xf2555a] as [UInt32]).map { Color(hex: $0) }
 
-    static let round = RoundedRectangle(cornerRadius: 22, style: .continuous)
-    static let roundSmall = RoundedRectangle(cornerRadius: 13, style: .continuous)
+    static let round = RoundedRectangle(cornerRadius: 28, style: .continuous)
+    static let roundSmall = RoundedRectangle(cornerRadius: 16, style: .continuous)
 
-    /// The monospaced face in the segmented pickers too. Called once, before the first screen.
+    /// The line of a day on the map: a color no piste has.
+    static let track = Color(hex: 0xa23bf0)
+
+    /// The words of the segmented pickers a little heavier. Called once, before the first screen.
     @MainActor static func dressBars() {
-        UISegmentedControl.appearance().setTitleTextAttributes([.font: UIFont.monospacedSystemFont(ofSize: 13, weight: .medium)], for: .normal)
+        UISegmentedControl.appearance().setTitleTextAttributes([.font: UIFont.systemFont(ofSize: 13, weight: .semibold)], for: .normal)
     }
 }
 
 extension Font {
     /// The big words and numbers of a screen.
     static func display(_ style: Font.TextStyle) -> Font {
-        .system(style, design: .monospaced, weight: .semibold)
+        .system(style, design: .default, weight: .bold)
     }
 }
 
 extension View {
-    /// A card: the raised surface with its thin outline.
+    /// A card: the grey surface, very round.
     func card(_ fill: Color = Theme.panel) -> some View {
-        background(fill, in: Theme.round).overlay(Theme.round.strokeBorder(Theme.line, lineWidth: 1))
+        background(fill, in: Theme.round)
     }
 
     /// Glass, for what floats over the map.
@@ -221,18 +225,18 @@ extension View {
 
     func glass() -> some View { glass(in: Theme.round) }
 
-    /// The box around a symbol: dark, outlined in the accent.
+    /// The disc around a symbol, in a faint tint of its color.
     func iconBox(_ color: Color = Theme.accent) -> some View {
-        background(Theme.deep, in: Theme.roundSmall).overlay(Theme.roundSmall.strokeBorder(color.opacity(0.55), lineWidth: 1))
+        background(color.opacity(0.16), in: Circle())
     }
 
-    /// Sentences: in the plain face, which reads better than the monospaced one.
-    func prose() -> some View { fontDesign(nil) }
+    /// Sentences. They were once set in another face than the numbers; now everything is in one.
+    func prose() -> some View { self }
 
-    /// The page behind every scrolling screen.
+    /// The page behind every scrolling screen: the sheet, night blue at the top.
     func screen() -> some View {
         scrollContentBackground(.hidden)
-            .background(Theme.bg.ignoresSafeArea())
+            .background(Ground())
     }
 }
 
@@ -241,7 +245,6 @@ struct Dressed: ViewModifier {
     func body(content: Content) -> some View {
         content
             .tint(Theme.accent)
-            .fontDesign(.monospaced)
             .preferredColorScheme(Theme.dark ? .dark : .light)
     }
 }
@@ -259,12 +262,12 @@ struct Panel<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             if let title {
-                Text(LocalizedStringKey(title)).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
+                Text(LocalizedStringKey(title)).font(.title3.weight(.heavy)).foregroundStyle(Theme.text)
                     .accessibilityAddTraits(.isHeader)
             }
             VStack(alignment: .leading, spacing: 12) { content }
         }
-        .padding(16)
+        .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
         .card()
     }
@@ -290,7 +293,8 @@ struct InfoRow: View {
     }
 }
 
-/// One number, big, with what it counts under it.
+/// One number, bold, its unit small beside it and what it counts under it. No box of its own:
+/// several stand together in a `StatGrid`.
 struct StatTile: View {
     let value: String
     let label: String
@@ -298,28 +302,25 @@ struct StatTile: View {
     var color: Color = Theme.text
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if let symbol {
-                Image(systemName: symbol).font(.footnote.weight(.semibold)).foregroundStyle(Theme.accent)
-                    .frame(width: 30, height: 30)
-                    .iconBox()
-                    .padding(.bottom, 4)
-                    .accessibilityHidden(true)
-            }
-            Text(value).font(.display(.title3)).monospacedDigit().foregroundStyle(color)
+        VStack(alignment: .leading, spacing: 5) {
+            FigureText(value).foregroundStyle(color)
                 .contentTransition(.numericText())
                 .lineLimit(1).minimumScaleFactor(0.5)
-            Text(LocalizedStringKey(label)).font(.caption).foregroundStyle(Theme.sub)
-                .lineLimit(1).minimumScaleFactor(0.65)
+            HStack(spacing: 5) {
+                if let symbol {
+                    Image(systemName: symbol).font(.caption2.weight(.bold)).accessibilityHidden(true)
+                }
+                Text(LocalizedStringKey(label)).font(.subheadline)
+            }
+            .foregroundStyle(Theme.sub)
+            .lineLimit(1).minimumScaleFactor(0.65)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .card()
         .accessibilityElement(children: .combine)
     }
 }
 
-/// The main action: the glacier pill.
+/// The main action: the pill in the accent.
 struct PrimaryButtonStyle: ButtonStyle {
     var color: Color = Theme.accent
 
@@ -331,14 +332,14 @@ struct PrimaryButtonStyle: ButtonStyle {
             .padding(.horizontal, 18)
             .background(color, in: Capsule())
             .foregroundStyle(Theme.onAccent)
-            .shadow(color: color.opacity(0.3), radius: 12, x: 0, y: 6)
             .opacity(configuration.isPressed ? 0.85 : 1)
             .scaleEffect(configuration.isPressed ? 0.98 : 1)
             .animation(.snappy(duration: 0.15), value: configuration.isPressed)
     }
 }
 
-/// The other actions: a quiet glass pill. In another color (red for what ends) the words take it.
+/// The other actions: a pill in a faint tint of the accent, with its words in the accent. In
+/// another color (red for what ends) the pill is grey and the words take the color.
 struct SecondaryButtonStyle: ButtonStyle {
     var color: Color = Theme.text
 
@@ -348,9 +349,9 @@ struct SecondaryButtonStyle: ButtonStyle {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 15)
             .padding(.horizontal, 16)
-            .foregroundStyle(color)
-            .background(Theme.input.opacity(configuration.isPressed ? 0.9 : 0.6), in: Capsule())
-            .overlay(Capsule().strokeBorder(Theme.line, lineWidth: 1))
+            .foregroundStyle(color == Theme.text ? Theme.accent : color)
+            .background(color == Theme.text ? Theme.accent.opacity(0.18) : Theme.input, in: Capsule())
+            .opacity(configuration.isPressed ? 0.8 : 1)
             .scaleEffect(configuration.isPressed ? 0.98 : 1)
             .animation(.snappy(duration: 0.15), value: configuration.isPressed)
     }
@@ -381,7 +382,6 @@ struct ErrorBanner: View {
             }
             .padding(14)
             .background(Theme.bad.opacity(0.16), in: Theme.round)
-            .overlay(Theme.round.strokeBorder(Theme.bad.opacity(0.5), lineWidth: 1))
         }
     }
 }

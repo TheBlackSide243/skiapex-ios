@@ -318,7 +318,7 @@ struct ResortDetailView: View {
                 if let now { TodayPanel(now: now) }
 
                 if let days = guide.forecasts[resort.id] {
-                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+                    StatGrid {
                         StatTile(value: Fmt.snow(days.prefix(3).reduce(0) { $0 + $1.snow }), label: "Neve in 3 giorni", symbol: "snowflake")
                         StatTile(value: Fmt.snow(days.reduce(0) { $0 + $1.snow }), label: "Neve in 8 giorni", symbol: "cloud.snow")
                     }
