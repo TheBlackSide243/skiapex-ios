@@ -49,6 +49,8 @@ Premi **Inizia** ai piedi della pista, metti l'iPhone in tasca e scia. Ski Apex 
   <img src="docs/screenshots/iphone-heat.jpg" width="190" alt="La mappa di calore">
   <img src="docs/screenshots/iphone-friends.jpg" width="190" alt="La classifica con gli amici">
   <img src="docs/screenshots/iphone-share.jpg" width="190" alt="L'immagine da condividere">
+  <img src="docs/screenshots/iphone-settings.jpg" width="190" alt="Le impostazioni">
+  <img src="docs/screenshots/iphone-profile.jpg" width="190" alt="Il profilo, con la foto che vedono gli amici">
   <img src="docs/screenshots/iphone-looks.jpg" width="190" alt="I temi e le icone dell'app">
   <img src="docs/screenshots/iphone-light.jpg" width="190" alt="Una giornata con il tema chiaro">
 </p>

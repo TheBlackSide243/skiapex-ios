@@ -171,24 +171,27 @@ struct MenuRow: View {
 
     var body: some View {
         NavigationLink(value: page) {
-            VStack(spacing: 0) {
-                HStack(spacing: 14) {
-                    Image(systemName: symbol)
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 34, height: 34)
-                        .background(color.gradient, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-                        .accessibilityHidden(true)
-                    Text(LocalizedStringKey(title)).font(.body).foregroundStyle(Theme.text).lineLimit(1).minimumScaleFactor(0.8)
-                    Spacer(minLength: 6)
-                    if let detail {
-                        Text(detail).font(.subheadline).foregroundStyle(Theme.sub).lineLimit(1)
-                    }
-                    Image(systemName: "chevron.right").font(.caption.weight(.bold)).foregroundStyle(Theme.sub)
+            HStack(spacing: 14) {
+                Image(systemName: symbol)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 34, height: 34)
+                    .background(color.gradient, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                    .accessibilityHidden(true)
+                Text(LocalizedStringKey(title)).font(.body).foregroundStyle(Theme.text).lineLimit(1)
+                    .layoutPriority(1)
+                Spacer(minLength: 6)
+                if let detail {
+                    Text(detail).font(.subheadline).foregroundStyle(Theme.sub).lineLimit(1)
                 }
-                .padding(.vertical, 12)
+                Image(systemName: "chevron.right").font(.caption.weight(.bold)).foregroundStyle(Theme.sub)
+            }
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            // The line under it starts where the words do.
+            .overlay(alignment: .bottom) {
                 if !last {
-                    Divider().overlay(Theme.line).padding(.leading, 48)
+                    Rectangle().fill(Theme.line).frame(height: 1).padding(.leading, 48)
                 }
             }
             .contentShape(Rectangle())
