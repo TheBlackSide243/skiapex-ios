@@ -1,4 +1,7 @@
-Ski Apex 0.6.0
+Ski Apex 0.6.1
+- On the iPhones with the clock and the battery on the right edge of the screen the buttons go in that band: no more empty space on the right.
+- At the bottom of every screen there is room to scroll clear of the round button.
+- Skiing, snowboarding, telemark and sled are all in sight, with no scrolling.
 - A new look: the map is always behind, and the screens are on a sheet you pull up and down. On the right your picture (Settings), Days, Guide, Friends and the round button that records.
 - Winter map: snow, shade and contour lines, with the mountains at night from far away.
 - What are you riding today? Skiing, snowboarding, telemark or sled: you choose before you start.

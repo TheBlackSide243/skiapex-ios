@@ -165,9 +165,7 @@ struct LiveView: View {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 8, alignment: .leading)], alignment: .leading, spacing: 8) {
                 ForEach(Sport.allCases) { one in
                     Button { sport = one.rawValue } label: {
-                        ChoicePill(title: one.label, symbol: one.symbol, on: sport == one.rawValue)
-                            .frame(maxWidth: .infinity)
-                            .background(sport == one.rawValue ? Theme.accent : Theme.accent.opacity(0.18), in: Capsule())
+                        ChoicePill(title: one.label, symbol: one.symbol, on: sport == one.rawValue, wide: true)
                     }
                     .buttonStyle(PressStyle())
                 }
