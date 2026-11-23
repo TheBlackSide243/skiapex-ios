@@ -355,8 +355,6 @@
 "Piste" = "Pistes";
 "Impianti" = "Lifts";
 "Rifugi" = "Huts";
-"Partenza" = "Start";
-"Arrivo" = "Finish";
 "Cerco piste e impianti…" = "Looking for pistes and lifts…";
 "Non riesco a scaricare le piste di questa zona. Controlla la connessione e riprova." = "Can't download the pistes of this area. Check the connection and try again.";
 "Riprova" = "Try again";
@@ -488,7 +486,6 @@
 "Giornata media qui" = "The average day here";
 "Distanza" = "Distance";
 "In discesa" = "On runs";
-"In risalita" = "On lifts";
 "Vel. media" = "Avg speed";
 "Media di %lld giornate di chi ha scelto di dirlo, senza nomi." = "The average of %lld days of who chose to tell, with no names.";
 "oggi" = "today";
