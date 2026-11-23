@@ -2,7 +2,7 @@ import Combine
 import MapKit
 import SwiftUI
 
-/// The day played again: a dot goes along the track on the map seen from above and behind, with
+/// The day played again: a dot goes along the track on the map, which turns to where it is going, with
 /// the time, the speed and the altitude of that moment. Breaks go by faster.
 struct ReplayView: View {
     let day: SkiDay
@@ -187,6 +187,7 @@ struct ReplayView: View {
             let turn = (target - heading + 540).truncatingRemainder(dividingBy: 360) - 180
             heading = (heading + turn * (smooth ? 0.06 : 1) + 360).truncatingRemainder(dividingBy: 360)
         }
-        camera = MKMapCamera(lookingAtCenter: here.coordinate, fromDistance: 1700, pitch: 58, heading: heading)
+        // From straight above: the winter map is not drawn on a map seen at an angle.
+        camera = MKMapCamera(lookingAtCenter: here.coordinate, fromDistance: 2600, pitch: 0, heading: heading)
     }
 }

@@ -135,6 +135,7 @@ struct SnowMap: UIViewRepresentable {
         map.delegate = context.coordinator
         map.showsUserLocation = showsUser
         map.showsCompass = false
+        map.isPitchEnabled = false
         map.overrideUserInterfaceStyle = .dark
         map.addOverlay(ReliefOverlay(), level: .aboveRoads)
         let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.tapped(_:)))
