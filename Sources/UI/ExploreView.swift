@@ -283,6 +283,18 @@ struct ExploreView: View {
     private func show(_ loaded: Terrain) {
         terrain = loaded
         graph = RouteGraph(ways: loaded.ways)
+        frame(loaded.ways.flatMap(\.lats), loaded.ways.flatMap(\.lons))
+    }
+
+    /// Brings some points in view above the panel, which covers the lower part of the map.
+    private func frame(_ lats: [Double], _ lons: [Double]) {
+        guard let south = lats.min(), let north = lats.max(), let west = lons.min(), let east = lons.max() else { return }
+        // The points take less than half the height, under the buttons at the top.
+        let height = max(0.006, north - south) / 0.42
+        let top = north + height * 0.17
+        let center = CLLocationCoordinate2D(latitude: top - height / 2, longitude: (west + east) / 2)
+        let span = MKCoordinateSpan(latitudeDelta: height, longitudeDelta: max(0.006, (east - west) * 1.25))
+        withAnimation { camera = .region(MKCoordinateRegion(center: center, span: span)) }
     }
 
     /// A touch on the map: the piste or the lift under the finger, if it is shown.
@@ -319,6 +331,7 @@ struct ExploreView: View {
             return
         }
         route = graph.route(fromLat: from.latitude, fromLon: from.longitude, toLat: to.latitude, toLon: to.longitude, level: level)
+        if let route { frame(route.lats, route.lons) }
         if route == nil {
             noRoute = true
             // To choose again where to get.

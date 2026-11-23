@@ -189,7 +189,7 @@ struct Terrain {
         add(.piste, "Campetto", "novice", nil, [middle, (150, -500), village], wiggle: 30)
         add(.piste, "Variante", "easy", nil, [east, (1000, 500), middle], wiggle: 50)
         let huts = [
-            Hut(id: "demo1", name: "Rifugio Cima Bianca", lat: lat + (top.1 - 60) / ky, lon: lon + (top.0 + 80) / kx),
+            Hut(id: "demo1", name: "Rifugio Cima Bianca", lat: lat + (top.1 - 170) / ky, lon: lon + (top.0 + 260) / kx),
             Hut(id: "demo2", name: "Baita del Sole", lat: lat + (east.1 - 80) / ky, lon: lon + (east.0 - 60) / kx),
             Hut(id: "demo3", name: "Bar Gran Bosco", lat: lat + (west.1 - 70) / ky, lon: lon + (west.0 + 70) / kx),
         ]
