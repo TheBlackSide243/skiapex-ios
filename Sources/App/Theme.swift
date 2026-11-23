@@ -60,14 +60,8 @@ enum Look: String, CaseIterable, Identifiable {
         }
     }
 
-    /// The look whose icon is on the Home Screen now.
-    static var iconInUse: Look {
-        let name = UIApplication.shared.alternateIconName
-        return allCases.first { $0.iconName == name } ?? .night
-    }
-
-    /// The same icon as a picture, to show it in Settings.
-    var iconPreview: String { "IconPreview-\(rawValue)" }
+    /// Its part of the name of an icon: none for the look the app comes with.
+    var iconPart: String? { iconName.map { String($0.dropFirst("AppIcon-".count)) } }
 
     var palette: Palette {
         switch self {
@@ -111,6 +105,59 @@ enum Look: String, CaseIterable, Identifiable {
         line: Color.black.opacity(0.10), text: Color(hex: 0x0f1b2d), sub: Color(hex: 0x5b6b80), accent: Color(hex: 0x0a84c6),
         onAccent: Color(hex: 0xffffff), lift: Color(hex: 0x7c5cd6), good: Color(hex: 0x0e9f6e), bad: Color(hex: 0xd43f52),
         warn: Color(hex: 0xb7791f), sky: Color(hex: 0xcfe2f4))
+}
+
+/// The drawings of the icon of the app (see scripts/icon_art.py). Each comes in the colors of
+/// every look: the icon on the Home Screen is one drawing in one set of colors.
+enum IconArt: String, CaseIterable, Identifiable {
+    case close, classic, mirror, snow
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .close: "Primo piano"
+        case .classic: "Classica"
+        case .mirror: "Specchio"
+        case .snow: "Sulla neve"
+        }
+    }
+
+    /// Its part of the name of an icon: none for the drawing the app comes with.
+    private var part: String? {
+        switch self {
+        case .close: nil
+        case .classic: "Classica"
+        case .mirror: "Specchio"
+        case .snow: "SullaNeve"
+        }
+    }
+
+    /// The icon of this drawing in the colors of a look, as iOS knows it: nil for the one the
+    /// app comes with.
+    func iconName(_ look: Look) -> String? {
+        let parts = [part, look.iconPart].compactMap { $0 }
+        return parts.isEmpty ? nil : "AppIcon-" + parts.joined(separator: "-")
+    }
+
+    /// The same icon as a small picture, to show it in Settings.
+    func preview(_ look: Look) -> String {
+        self == .close ? "IconPreview-\(look.rawValue)" : "IconPreview-\(rawValue)-\(look.rawValue)"
+    }
+
+    /// The drawing and the colors of an icon, from its name: the first of each for a name not known.
+    static func parse(_ name: String?) -> (art: IconArt, look: Look) {
+        for art in allCases {
+            for look in Look.allCases where art.iconName(look) == name { return (art, look) }
+        }
+        return (.close, .night)
+    }
+
+    /// The icon on the Home Screen now, as a small picture.
+    static var previewInUse: String {
+        let now = parse(UIApplication.shared.alternateIconName)
+        return now.art.preview(now.look)
+    }
 }
 
 /// The look in use: one for the whole app, remembered between launches.

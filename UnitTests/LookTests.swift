@@ -1,4 +1,5 @@
 import MapKit
+import UIKit
 import XCTest
 @testable import SkiApex
 
@@ -104,6 +105,30 @@ final class LookTests: XCTestCase {
         XCTAssertEqual(Rail.reserved(band: 0), Rail.width)
         XCTAssertEqual(Rail.reserved(band: 20), Rail.width - 20)
         XCTAssertEqual(Rail.reserved(band: 73), 0)
+    }
+
+    /// Every drawing of the icon in the colors of every look has a name of its own, and from the
+    /// name the two are found again; the one the app comes with has none.
+    func testTheIconsToChooseFrom() {
+        XCTAssertNil(IconArt.close.iconName(.night))
+        XCTAssertEqual(IconArt.close.iconName(.aurora), "AppIcon-Aurora")
+        XCTAssertEqual(IconArt.classic.iconName(.night), "AppIcon-Classica")
+        XCTAssertEqual(IconArt.snow.iconName(.snow), "AppIcon-SullaNeve-Neve")
+        XCTAssertEqual(IconArt.close.preview(.night), "IconPreview-night")
+        XCTAssertEqual(IconArt.mirror.preview(.forest), "IconPreview-mirror-forest")
+        var names = Set<String>()
+        for art in IconArt.allCases {
+            for look in Look.allCases {
+                let name = art.iconName(look)
+                XCTAssertTrue(names.insert(name ?? "").inserted)
+                let back = IconArt.parse(name)
+                XCTAssertEqual(back.art, art)
+                XCTAssertEqual(back.look, look)
+                XCTAssertNotNil(UIImage(named: art.preview(look)), art.preview(look))
+            }
+        }
+        XCTAssertEqual(names.count, 24)
+        XCTAssertEqual(IconArt.parse("AppIcon-Other").art, .close)
     }
 
     func testThePlacesBehindTheSheet() {

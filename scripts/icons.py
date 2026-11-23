@@ -1,31 +1,34 @@
 #!/usr/bin/env python3
-"""Draws the icons of Ski Apex from icon.svg: the one the app comes with and the ones to choose
-from in Settings, each in the colors of a look of the app.
+"""Draws the icons of Ski Apex: the one the app comes with and the ones to choose from in Settings,
+each drawing of scripts/icon_art.py in the colors of each look of the app.
 
 For each icon: the 1024 px picture of its set in the asset catalog (without an alpha channel, as
-the App Store wants it) and a small picture to show it in Settings. The icon of the Apple Watch
-app is the first one.
+the App Store wants it) and a small picture to show it in Settings. The sets are made when they
+are missing. The icon of the Apple Watch app is the first one.
 
 Needs rsvg-convert (brew install librsvg). Usage: scripts/icons.py [--svg <dir>]
 With --svg it only writes the recolored drawings there, to look at them.
 """
+import json
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
 
+from icon_art import DESIGNS, drawing
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ASSETS = os.path.join(ROOT, 'Resources', 'Assets.xcassets')
 WATCH_ICON = os.path.join(ROOT, 'Watch', 'Assets.xcassets', 'AppIcon.appiconset')
 
-# The colors of icon.svg, in the order of the lists below.
+# The colors of the drawings, in the order of the lists below.
 BASE = ['#1D3A5F', '#0E1D33', '#08111E',   # the sky, from the middle out
         '#3A6EA5', '#16304F',              # the peak
         '#22436B', '#0F2038',              # the mountain behind
         '#EAF6FF', '#C9E3F7',              # the snow cap and its shade
         '#5CCFFF',                         # the ski track
-        '#0B1626',                         # the dot at the top
+        '#0B1626',                         # the frame of the goggles, and what is dark
         '#F2F6FB']                         # the stars
 
 # set in the asset catalog, look of the app (`Look.rawValue`), colors
@@ -40,8 +43,37 @@ ICONS = [
     ('AppIcon-Carbone', 'carbon', ['#2E2E33', '#111113', '#000000', '#5A5A62', '#1E1E22', '#34343A', '#0C0C0E',
                                    '#FFFFFF', '#CFCFD6', '#FFD60A', '#000000', '#F5F5F7']),
     ('AppIcon-Neve', 'snow', ['#FFFFFF', '#E3EFFA', '#C3DAEE', '#7FB2E0', '#3F7FBF', '#A9CBE8', '#7AA7D0',
-                              '#FFFFFF', '#DDEEFB', '#0A84C6', '#FFFFFF', '#FFFFFF']),
+                              '#FFFFFF', '#DDEEFB', '#0A84C6', '#16324F', '#FFFFFF']),
 ]
+
+# The part of the name of an icon that says its drawing: none for the one the app comes with.
+PARTS = {'close': '', 'classic': 'Classica', 'mirror': 'Specchio', 'snow': 'SullaNeve'}
+
+
+def icon_set(design, name):
+    """AppIcon, AppIcon-Aurora, AppIcon-Classica, AppIcon-Classica-Aurora..."""
+    part = PARTS[design]
+    return 'AppIcon' + ('-' + part if part else '') + name[len('AppIcon'):]
+
+
+def preview_set(design, look):
+    return 'IconPreview-%s' % look if design == 'close' else 'IconPreview-%s-%s' % (design, look)
+
+
+def ensure(folder, filename, icon):
+    """The set of the asset catalog a picture goes in, with what Xcode wants to know of it."""
+    os.makedirs(folder, exist_ok=True)
+    image = {'filename': filename, 'idiom': 'universal'}
+    if icon:
+        image.update(platform='ios', size='1024x1024')
+    with open(os.path.join(folder, 'Contents.json'), 'w', encoding='utf-8') as f:
+        json.dump({'images': [image], 'info': {'author': 'xcode', 'version': 1}}, f, indent=2)
+        f.write('\n')
+
+
+def alternates():
+    """The names of every icon but the first, for ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES."""
+    return [icon_set(design, name) for design in DESIGNS for name, _, _ in ICONS][1:]
 
 
 def recolor(svg, colors):
@@ -71,24 +103,33 @@ def flatten(png):
 
 
 def main():
-    svg = open(os.path.join(ROOT, 'icon.svg'), encoding='utf-8').read()
+    if len(sys.argv) > 1 and sys.argv[1] == '--names':
+        print(' '.join(alternates()))
+        return
     only_svg = sys.argv[2] if len(sys.argv) > 2 and sys.argv[1] == '--svg' else None
     work = only_svg or tempfile.mkdtemp()
     os.makedirs(work, exist_ok=True)
-    for name, look, colors in ICONS:
-        assert len(colors) == len(BASE), name
-        drawing = os.path.join(work, name + '.svg')
-        with open(drawing, 'w', encoding='utf-8') as f:
-            f.write(recolor(svg, colors))
-        if only_svg:
-            continue
-        icon = os.path.join(ASSETS, name + '.appiconset', 'icon-1024.png')
-        render(drawing, 1024, colors[2], icon)
-        flatten(icon)
-        render(drawing, 240, colors[2], os.path.join(ASSETS, 'IconPreview-%s.imageset' % look, 'icon.png'))
-        if name == 'AppIcon' and os.path.isdir(WATCH_ICON):
-            shutil.copyfile(icon, os.path.join(WATCH_ICON, 'icon-1024.png'))
-        print('  ' + name)
+    for design in DESIGNS:
+        svg = drawing(design)
+        for name, look, colors in ICONS:
+            assert len(colors) == len(BASE), name
+            name = icon_set(design, name)
+            file = os.path.join(work, name + '.svg')
+            with open(file, 'w', encoding='utf-8') as f:
+                f.write(recolor(svg, colors))
+            if only_svg:
+                continue
+            folder = os.path.join(ASSETS, name + '.appiconset')
+            ensure(folder, 'icon-1024.png', icon=True)
+            icon = os.path.join(folder, 'icon-1024.png')
+            render(file, 1024, colors[2], icon)
+            flatten(icon)
+            small = os.path.join(ASSETS, preview_set(design, look) + '.imageset')
+            ensure(small, 'icon.png', icon=False)
+            render(file, 240, colors[2], os.path.join(small, 'icon.png'))
+            if name == 'AppIcon' and os.path.isdir(WATCH_ICON):
+                shutil.copyfile(icon, os.path.join(WATCH_ICON, 'icon-1024.png'))
+            print('  ' + name)
 
 
 if __name__ == '__main__':

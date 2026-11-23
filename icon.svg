@@ -1,34 +1,110 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-  <!-- Ski Apex: a snowy peak at night with a glacier-blue ski track winding down from the top. iOS rounds the corners itself. -->
+  <!-- Ski Apex: ski goggles from close, turned, the peak and its run in the lens. iOS rounds the corners itself. -->
   <defs>
-    <radialGradient id="sky" cx="0.5" cy="0.22" r="0.95">
+    <radialGradient id="sky" cx="0.6" cy="0.2" r="1.0">
       <stop offset="0" stop-color="#1D3A5F"/>
-      <stop offset="0.55" stop-color="#0E1D33"/>
+      <stop offset="0.5" stop-color="#0E1D33"/>
       <stop offset="1" stop-color="#08111E"/>
     </radialGradient>
-    <linearGradient id="peak" x1="0" y1="0" x2="1" y2="1">
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#3A6EA5" stop-opacity="0.8"/>
+      <stop offset="1" stop-color="#3A6EA5" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="lit" x1="0.6" y1="0" x2="0.2" y2="1">
       <stop offset="0" stop-color="#3A6EA5"/>
       <stop offset="1" stop-color="#16304F"/>
+    </linearGradient>
+    <linearGradient id="dim" x1="0" y1="0" x2="0.6" y2="1">
+      <stop offset="0" stop-color="#16304F"/>
+      <stop offset="1" stop-color="#0F2038"/>
     </linearGradient>
     <linearGradient id="back" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#22436B"/>
       <stop offset="1" stop-color="#0F2038"/>
     </linearGradient>
+    <linearGradient id="slope" x1="0.1" y1="0" x2="0.75" y2="1">
+      <stop offset="0" stop-color="#EAF6FF"/>
+      <stop offset="1" stop-color="#C9E3F7"/>
+    </linearGradient>
+    <radialGradient id="edge" cx="0.5" cy="0.45" r="0.75">
+      <stop offset="0.62" stop-color="black" stop-opacity="0"/>
+      <stop offset="1" stop-color="black" stop-opacity="0.45"/>
+    </radialGradient>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="16"/></filter>
+    <filter id="softer" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="34"/></filter>
+    <filter id="fine" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="5"/></filter>
+    <filter id="dust" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2"/></filter>
+    <clipPath id="lens"><path d="M 150 430 C 150 330 220 300 330 300 L 694 300 C 804 300 874 330 874 430 L 874 560 C 874 664 800 724 700 724 C 620 724 580 664 512 664 C 444 664 404 724 324 724 C 224 724 150 664 150 560 Z"/></clipPath>
+    <linearGradient id="night" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#08111E"/>
+      <stop offset="0.55" stop-color="#1D3A5F"/>
+      <stop offset="1" stop-color="#0E1D33"/>
+    </linearGradient>
+    <linearGradient id="mirror" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5CCFFF" stop-opacity="0.34"/>
+      <stop offset="0.55" stop-color="#5CCFFF" stop-opacity="0.04"/>
+      <stop offset="1" stop-color="#3A6EA5" stop-opacity="0.18"/>
+    </linearGradient>
+    <linearGradient id="ground" x1="0.1" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#EAF6FF"/>
+      <stop offset="1" stop-color="#C9E3F7"/>
+    </linearGradient>
   </defs>
   <rect width="1024" height="1024" fill="url(#sky)"/>
-  <circle cx="770" cy="230" r="9" fill="#F2F6FB" opacity="0.8"/>
-  <circle cx="250" cy="300" r="6" fill="#F2F6FB" opacity="0.55"/>
-  <circle cx="860" cy="390" r="5" fill="#F2F6FB" opacity="0.45"/>
-  <!-- The mountain behind. -->
-  <path d="M 40 900 L 300 520 L 420 640 L 520 560 L 1024 900 L 1024 1024 L 0 1024 Z" fill="url(#back)"/>
-  <!-- The peak. -->
-  <path d="M 120 1024 L 512 230 L 920 1024 Z" fill="url(#peak)"/>
-  <!-- Its snow cap, with a ragged edge. -->
-  <path d="M 512 230 L 640 488 L 596 456 L 560 508 L 516 462 L 470 520 L 436 470 L 392 498 Z" fill="#EAF6FF"/>
-  <path d="M 512 230 L 640 488 L 596 456 L 560 508 Z" fill="#C9E3F7"/>
-  <!-- The ski track: from the top, turning down to the bottom. -->
-  <path d="M 512 262 C 600 380 420 470 520 590 C 610 700 380 770 470 900 C 500 945 540 980 560 1024"
-        fill="none" stroke="#5CCFFF" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="512" cy="262" r="30" fill="#5CCFFF"/>
-  <circle cx="512" cy="262" r="13" fill="#0B1626"/>
+  <ellipse cx="512" cy="500" rx="560" ry="420" fill="url(#glow)"/>
+  <circle cx="232" cy="150" r="20" fill="#F2F6FB" opacity="0.25" filter="url(#fine)"/>
+  <circle cx="232" cy="150" r="8" fill="#F2F6FB" opacity="0.95"/>
+  <circle cx="420" cy="92" r="5" fill="#F2F6FB" opacity="0.6"/>
+  <circle cx="120" cy="290" r="5" fill="#F2F6FB" opacity="0.5"/>
+  <circle cx="930" cy="130" r="6" fill="#F2F6FB" opacity="0.7"/>
+  <circle cx="860" cy="300" r="4" fill="#F2F6FB" opacity="0.45"/>
+  <circle cx="330" cy="290" r="3.5" fill="#F2F6FB" opacity="0.4"/>
+  <g transform="translate(512 520) rotate(-11) scale(1.48) translate(-512 -512)">
+    <!-- The strap, going off to both sides. -->
+    <path d="M -600 300 L 190 404 L 190 618 L -600 730 Z" fill="#5CCFFF"/>
+    <path d="M 1624 300 L 834 404 L 834 618 L 1624 730 Z" fill="#5CCFFF"/>
+    <path d="M -600 300 L 190 404 L 190 452 L -600 366 Z" fill="white" opacity="0.3"/>
+    <path d="M 1624 300 L 834 404 L 834 452 L 1624 366 Z" fill="white" opacity="0.3"/>
+    <path d="M -600 484 L 190 498 L 190 534 L -600 552 Z" fill="#0B1626" opacity="0.85"/>
+    <path d="M 1624 484 L 834 498 L 834 534 L 1624 552 Z" fill="#0B1626" opacity="0.85"/>
+    <path d="M -600 660 L 190 580 L 190 618 L -600 730 Z" fill="black" opacity="0.25"/>
+    <path d="M 1624 660 L 834 580 L 834 618 L 1624 730 Z" fill="black" opacity="0.25"/>
+    <!-- The frame, with its shade under it. -->
+    <path d="M 150 430 C 150 330 220 300 330 300 L 694 300 C 804 300 874 330 874 430 L 874 560 C 874 664 800 724 700 724 C 620 724 580 664 512 664 C 444 664 404 724 324 724 C 224 724 150 664 150 560 Z" fill="black" opacity="0.55" filter="url(#softer)" transform="translate(512 512) scale(1.12) translate(-512 -474)"/>
+    <path d="M 150 430 C 150 330 220 300 330 300 L 694 300 C 804 300 874 330 874 430 L 874 560 C 874 664 800 724 700 724 C 620 724 580 664 512 664 C 444 664 404 724 324 724 C 224 724 150 664 150 560 Z" fill="#0B1626" transform="translate(512 512) scale(1.13) translate(-512 -512)"/>
+    <path d="M 150 430 C 150 330 220 300 330 300 L 694 300 C 804 300 874 330 874 430 L 874 560 C 874 664 800 724 700 724 C 620 724 580 664 512 664 C 444 664 404 724 324 724 C 224 724 150 664 150 560 Z" fill="#16304F" transform="translate(512 512) scale(1.13) translate(-512 -518)" opacity="0.9"/>
+    <path d="M 150 430 C 150 330 220 300 330 300 L 694 300 C 804 300 874 330 874 430 L 874 560 C 874 664 800 724 700 724 C 620 724 580 664 512 664 C 444 664 404 724 324 724 C 224 724 150 664 150 560 Z" fill="#0B1626" transform="translate(512 512) scale(1.07) translate(-512 -512)"/>
+    <!-- The lens, and what is seen in it. -->
+    <g clip-path="url(#lens)">
+      <rect x="-200" y="-200" width="1424" height="1424" fill="url(#night)"/>
+      <ellipse cx="512" cy="450" rx="340" ry="250" fill="url(#glow)"/>
+      <circle cx="250" cy="372" r="6" fill="#F2F6FB" opacity="0.9"/>
+      <circle cx="350" cy="336" r="4" fill="#F2F6FB" opacity="0.6"/>
+      <circle cx="770" cy="360" r="5" fill="#F2F6FB" opacity="0.7"/>
+      <circle cx="690" cy="330" r="3.5" fill="#F2F6FB" opacity="0.5"/>
+      <path d="M 120 720 L 300 470 L 372 560 L 430 510 L 560 720 Z" fill="url(#back)" opacity="0.85"/>
+      <path d="M 520 720 L 720 480 L 790 560 L 920 720 Z" fill="url(#back)"/>
+      <path d="M 512 324 L 250 760 L 512 760 Z" fill="url(#lit)"/>
+      <path d="M 512 324 L 512 760 L 780 760 Z" fill="url(#dim)"/>
+      <path d="M 512 324 L 400 620 L 512 760 Z" fill="black" opacity="0.1"/>
+      <path d="M 512 324 L 414 488 L 446 474 L 464 512 L 492 482 L 512 524 Z" fill="#EAF6FF"/>
+      <path d="M 512 324 L 512 524 L 534 488 L 560 520 L 582 490 L 612 508 Z" fill="#C9E3F7"/>
+      <path d="M 512 324 L 512 524 L 534 488 L 560 520 L 582 490 L 612 508 Z" fill="#3A6EA5" opacity="0.3"/>
+      <path d="M 512 352 C 566 420 462 470 520 540 C 578 610 440 650 500 740" fill="none" stroke="#5CCFFF" stroke-width="46" stroke-linecap="round" opacity="0.45" filter="url(#fine)"/>
+      <path d="M 512 352 C 566 420 462 470 520 540 C 578 610 440 650 500 740" fill="none" stroke="#5CCFFF" stroke-width="20" stroke-linecap="round"/>
+      <path d="M 512 352 C 566 420 462 470 520 540 C 578 610 440 650 500 740" fill="none" stroke="white" stroke-width="5" stroke-linecap="round" opacity="0.6" transform="translate(-4 -3)"/>
+      <circle cx="512" cy="350" r="19" fill="#5CCFFF"/>
+      <circle cx="512" cy="350" r="7" fill="#0B1626"/>
+      <path d="M 100 690 C 300 660 420 716 512 716 C 620 716 740 664 920 692 L 920 800 L 100 800 Z" fill="url(#slope)" opacity="0.95"/>
+      <path d="M 100 690 C 300 660 420 716 512 716 C 620 716 740 664 920 692" fill="none" stroke="white" stroke-width="5" opacity="0.9"/>
+      <path d="M 150 430 C 150 330 220 300 330 300 L 694 300 C 804 300 874 330 874 430 L 874 560 C 874 664 800 724 700 724 C 620 724 580 664 512 664 C 444 664 404 724 324 724 C 224 724 150 664 150 560 Z" fill="url(#mirror)"/>
+      <path d="M 150 300 L 874 300 L 874 430 C 640 380 380 400 150 500 Z" fill="white" opacity="0.13"/>
+      <path d="M 250 280 L 360 280 L 250 740 L 140 740 Z" fill="white" opacity="0.16"/>
+      <path d="M 396 280 L 430 280 L 320 740 L 286 740 Z" fill="white" opacity="0.12"/>
+      <path d="M 150 430 C 150 330 220 300 330 300 L 694 300 C 804 300 874 330 874 430 L 874 560 C 874 664 800 724 700 724 C 620 724 580 664 512 664 C 444 664 404 724 324 724 C 224 724 150 664 150 560 Z" fill="none" stroke="black" stroke-width="40" opacity="0.35" filter="url(#fine)"/>
+    </g>
+    <path d="M 150 430 C 150 330 220 300 330 300 L 694 300 C 804 300 874 330 874 430 L 874 560 C 874 664 800 724 700 724 C 620 724 580 664 512 664 C 444 664 404 724 324 724 C 224 724 150 664 150 560 Z" fill="none" stroke="white" stroke-width="5" opacity="0.35"/>
+    <path d="M 196 366 C 232 326 280 316 340 314" fill="none" stroke="white" stroke-width="12" stroke-linecap="round" opacity="0.6"/>
+  </g>
+  <rect width="1024" height="1024" fill="url(#edge)"/>
 </svg>

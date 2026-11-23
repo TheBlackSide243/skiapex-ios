@@ -7,8 +7,8 @@ options:
   developmentLanguage: it
 settings:
   base:
-    MARKETING_VERSION: "0.6.1"
-    CURRENT_PROJECT_VERSION: "7"
+    MARKETING_VERSION: "0.6.2"
+    CURRENT_PROJECT_VERSION: "8"
     SWIFT_VERSION: "5.0"
     TARGETED_DEVICE_FAMILY: "1"
     CODE_SIGN_STYLE: Manual
@@ -41,7 +41,7 @@ targets:
         GENERATE_INFOPLIST_FILE: NO
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         # The icons to choose from in Settings, drawn by scripts/icons.py.
-        ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES: "AppIcon-Aurora AppIcon-Alba AppIcon-Bosco AppIcon-Carbone AppIcon-Neve"
+        ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES: "AppIcon-Aurora AppIcon-Alba AppIcon-Bosco AppIcon-Carbone AppIcon-Neve AppIcon-Classica AppIcon-Classica-Aurora AppIcon-Classica-Alba AppIcon-Classica-Bosco AppIcon-Classica-Carbone AppIcon-Classica-Neve AppIcon-Specchio AppIcon-Specchio-Aurora AppIcon-Specchio-Alba AppIcon-Specchio-Bosco AppIcon-Specchio-Carbone AppIcon-Specchio-Neve AppIcon-SullaNeve AppIcon-SullaNeve-Aurora AppIcon-SullaNeve-Alba AppIcon-SullaNeve-Bosco AppIcon-SullaNeve-Carbone AppIcon-SullaNeve-Neve"
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
     scheme:
       testTargets:
