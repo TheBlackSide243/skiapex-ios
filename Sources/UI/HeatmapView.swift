@@ -8,7 +8,6 @@ struct HeatmapView: View {
     @State private var lines: [HeatLine] = []
     @State private var loading = true
     @State private var chosen: String?
-    @State private var camera: MapCameraPosition = .automatic
 
     struct HeatLine: Identifiable {
         let id: Int
@@ -31,14 +30,11 @@ struct HeatmapView: View {
         let all = places
         let current = all.first { $0.name == chosen } ?? all.first
         ZStack(alignment: .bottom) {
-            Map(position: $camera) {
-                ForEach(lines) { line in
-                    MapPolyline(coordinates: line.coordinates)
-                        .stroke(Theme.runColors[1].opacity(0.34), style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
-                }
-            }
-            .mapStyle(.imagery(elevation: .realistic))
-            .ignoresSafeArea(edges: .bottom)
+            SnowMap(lines: lines.map { MapLine(coordinates: $0.coordinates, color: UIColor(Theme.runColors[1]).withAlphaComponent(0.42), width: 4) },
+                    linesKey: "\(lines.count)|\(current?.name ?? "")",
+                    region: SnowMap.fit(lines.flatMap(\.coordinates)) ?? PlacePin.region(PlacePin.of(current?.days ?? [])),
+                    regionKey: "\(lines.count)|\(current?.name ?? "")", bottomInset: 110, showsUser: false)
+                .ignoresSafeArea(edges: .bottom)
 
             VStack(alignment: .leading, spacing: 10) {
                 if all.isEmpty {
@@ -77,7 +73,7 @@ struct HeatmapView: View {
         }
         .navigationTitle("Mappa di calore")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.hidden, for: .tabBar)
+        .hidesRail()
         .task(id: current?.name) {
             await load(current?.days ?? [])
         }
@@ -102,6 +98,5 @@ struct HeatmapView: View {
         }.value
         lines = made
         loading = false
-        withAnimation { camera = .automatic }
     }
 }

@@ -72,15 +72,8 @@ struct LiveFriendsPanel: View {
             if friends.isEmpty {
                 Text("Nessun amico sta sciando in questo momento.").font(.caption.weight(.semibold)).foregroundStyle(Theme.sub)
             } else {
-                Map(initialPosition: region(friends)) {
-                    ForEach(friends) { friend in
-                        Annotation(friend.name, coordinate: friend.coordinate) { FriendMarker(friend: friend) }
-                    }
-                }
-                .mapStyle(look.style)
-                .frame(height: 240)
-                .clipShape(Theme.roundSmall)
-                .overlay(Theme.roundSmall.strokeBorder(Theme.line, lineWidth: 1))
+                PlaceMap(friends: friends)
+                    .frame(height: 240)
                 // Drawn again when someone starts or stops, to keep everyone in view.
                 .id(friends.map(\.id).joined(separator: ","))
                 ForEach(friends) { friend in

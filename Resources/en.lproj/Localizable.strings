@@ -532,3 +532,21 @@
 "Riepilogo della stagione" = "Season recap";
 "I numeri della stagione in un'immagine da condividere. Da Statistiche." = "The numbers of the season in a picture to share. From Stats.";
 "Com'era la neve: solo se lo dici a fine giornata. Parte la zona della stazione al chilometro, com'era la neve e i numeri della giornata, senza nomi; agli amici il tuo nome solo se lo lasci acceso." = "How the snow was: only if you say it at the end of a day. The area of the ski area to the kilometer, how the snow was and the numbers of the day are sent, with no names; your name to friends only if you leave it on.";
+
+/* 0.6.0: the map behind, the sheet over it */
+"Cosa fai oggi?" = "What are you riding today?";
+"dall'inizio" = "since the start";
+"vel. max" = "top speed";
+"risalite" = "lifts";
+"quota max" = "top altitude";
+"registrati" = "recorded";
+"Stagione %@" = "Season %@";
+"Prossimamente" = "Coming up";
+"%lld discese · %@" = "%lld runs · %@";
+"Registra una giornata con il pulsante tondo qui a destra. Con il + in alto puoi scriverne una a mano o importare un file GPX. Per vedere com'è, in Impostazioni puoi crearne una di prova." = "Record a day with the round button here on the right. With the + at the top you can write one by hand or import a GPX file. To see what it looks like, you can create a sample one in Settings.";
+"La mappa dietro a tutto" = "The map behind everything";
+"Le schermate stanno su un pannello che tiri su e giù sopra la mappa; a destra la tua foto, Giornate, Guida, Amici e il pulsante per registrare." = "The screens are on a sheet you pull up and down over the map; on its right your picture, Days, Guide, Friends and the button that records.";
+"Mappa invernale" = "Winter map";
+"Neve, ombre e curve di livello disegnate dall'app, con le montagne di notte da lontano. Anche in giornata, discesa, Rivivi ed Esplora." = "Snow, shade and contour lines drawn by the app, with the mountains at night from far away. In a day, a run, the replay and Explore too.";
+"Sci, snowboard, telemark o slittino: lo scegli prima di iniziare a registrare." = "Skiing, snowboarding, telemark or sled: you choose it before you start recording.";
+"Mappa invernale: i riquadri della zona che guardi, chiesti come quote a un archivio pubblico (AWS Open Data), senza il tuo nome. Si spegne con lo stesso interruttore, e resta la mappa di Apple." = "Winter map: the squares of the area you look at, asked for as heights to a public archive (AWS Open Data), without your name. The same switch turns it off, and Apple's map stays.";

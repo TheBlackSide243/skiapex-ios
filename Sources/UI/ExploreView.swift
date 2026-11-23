@@ -10,7 +10,9 @@ struct ExploreView: View {
 
     @Environment(Recorder.self) private var recorder
     @AppStorage(Prefs.mapLook) private var mapLook = MapLook.standard.rawValue
-    @State private var camera: MapCameraPosition
+    @State private var region: MKCoordinateRegion
+    /// Counts the times the map was asked to go somewhere.
+    @State private var moves = 0
     @State private var terrain: Terrain?
     @State private var graph: RouteGraph?
     @State private var loading = false
@@ -30,7 +32,7 @@ struct ExploreView: View {
     init(name: String, center: CLLocationCoordinate2D) {
         self.name = name
         self.center = center
-        _camera = State(initialValue: .region(MKCoordinateRegion(center: center, latitudinalMeters: 6500, longitudinalMeters: 6500)))
+        _region = State(initialValue: MKCoordinateRegion(center: center, latitudinalMeters: 6500, longitudinalMeters: 6500))
     }
 
     private var look: MapLook { MapLook(rawValue: mapLook) ?? .standard }
@@ -46,36 +48,14 @@ struct ExploreView: View {
     var body: some View {
         let drawn = lines()
         ZStack(alignment: .bottom) {
-            MapReader { proxy in
-                Map(position: $camera) {
-                    ForEach(drawn) { line in
-                        MapPolyline(coordinates: line.coordinates).stroke(line.color, style: line.style)
-                    }
-                    if showHuts, let terrain {
-                        ForEach(terrain.huts) { hut in
-                            Annotation(hut.name, coordinate: CLLocationCoordinate2D(latitude: hut.lat, longitude: hut.lon)) {
-                                Image(systemName: "fork.knife")
-                                    .font(.system(size: 10, weight: .bold))
-                                    .foregroundStyle(Theme.onAccent)
-                                    .frame(width: 22, height: 22)
-                                    .background(Theme.warn, in: Circle())
-                            }
-                        }
-                    }
-                    if let from {
-                        Annotation("Partenza", coordinate: from) { EndDot(symbol: "figure.skiing.downhill", color: Theme.good) }
-                    }
-                    if let to {
-                        Annotation("Arrivo", coordinate: to) { EndDot(symbol: "flag.checkered", color: Theme.accent) }
-                    }
-                    UserAnnotation()
-                }
-                .mapStyle(look.style)
-                .onTapGesture { point in
-                    if let place = proxy.convert(point, from: .local) { touch(place) }
-                }
-            }
-            .ignoresSafeArea(edges: .bottom)
+            SnowMap(marks: marks,
+                    lines: drawn.map {
+                        MapLine(coordinates: $0.coordinates, color: UIColor($0.color), width: $0.style.lineWidth,
+                                dash: $0.style.dash.isEmpty ? nil : $0.style.dash.map { NSNumber(value: Double($0)) })
+                    },
+                    linesKey: "\(picked ?? -1)|\(showPistes)|\(showLifts)|\(route?.lats.count ?? 0)|\(terrain?.ways.count ?? 0)",
+                    region: region, regionKey: "\(moves)", onTap: { touch($0) })
+                .ignoresSafeArea(edges: .bottom)
 
             panel
                 .padding(.horizontal, 12)
@@ -84,12 +64,29 @@ struct ExploreView: View {
         .overlay(alignment: .top) { layers.padding(.top, 8) }
         .navigationTitle(name)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.hidden, for: .tabBar)
+        .hidesRail()
         .task { await load() }
         .onChange(of: level) { _, _ in findRoute() }
     }
 
     // MARK: The map
+
+    /// The huts, and where the way starts and ends.
+    private var marks: [MapMark] {
+        var out: [MapMark] = []
+        if showHuts, let terrain {
+            out += terrain.huts.map { MapMark(id: "hut\($0.id)", lat: $0.lat, lon: $0.lon, title: $0.name, symbol: "fork.knife", color: UIColor(Theme.warn)) }
+        }
+        if let from {
+            out.append(MapMark(id: "from", lat: from.latitude, lon: from.longitude, title: String(localized: "Partenza"),
+                               symbol: "figure.skiing.downhill", color: UIColor(Theme.good)))
+        }
+        if let to {
+            out.append(MapMark(id: "to", lat: to.latitude, lon: to.longitude, title: String(localized: "Arrivo"),
+                               symbol: "flag.checkered", color: UIColor(Theme.accent)))
+        }
+        return out
+    }
 
     private func lines() -> [Line] {
         guard let terrain else { return [] }
@@ -102,25 +99,23 @@ struct ExploreView: View {
             case .piste:
                 guard showPistes else { continue }
                 let color = Theme.difficultyColor(way.difficulty) ?? Theme.sub
-                // A black piste on a dark map is seen by its light edge.
-                if ["advanced", "expert"].contains(way.difficulty ?? "") {
-                    out.append(Line(id: -i - 1, coordinates: coordinates, color: Color.white.opacity(0.8),
-                                    style: StrokeStyle(lineWidth: chosen ? 8 : 5.5, lineCap: .round, lineJoin: .round)))
-                }
+                // Every piste has a white edge, to stand out on the snow and on the rock.
+                out.append(Line(id: -i - 1, coordinates: coordinates, color: Color.white.opacity(0.9),
+                                style: StrokeStyle(lineWidth: chosen ? 9 : 5.5, lineCap: .round, lineJoin: .round)))
                 out.append(Line(id: i, coordinates: coordinates, color: color,
                                 style: chosen ? StrokeStyle(lineWidth: 6.5, lineCap: .round, lineJoin: .round) : round))
             case .lift:
                 guard showLifts else { continue }
-                out.append(Line(id: i, coordinates: coordinates, color: Theme.lift,
-                                style: StrokeStyle(lineWidth: chosen ? 5 : 2.5, lineCap: .round, lineJoin: .round, dash: [7, 6])))
+                out.append(Line(id: i, coordinates: coordinates, color: Color(hex: 0x232a3a),
+                                style: StrokeStyle(lineWidth: chosen ? 4.5 : 2, lineCap: .round, lineJoin: .round)))
             }
         }
         if let route, route.lats.count >= 2 {
             let coordinates = zip(route.lats, route.lons).map { CLLocationCoordinate2D(latitude: $0, longitude: $1) }
-            out.append(Line(id: 1_000_000, coordinates: coordinates, color: Theme.deep.opacity(0.85),
-                            style: StrokeStyle(lineWidth: 10, lineCap: .round, lineJoin: .round)))
-            out.append(Line(id: 1_000_001, coordinates: coordinates, color: Theme.accent,
-                            style: StrokeStyle(lineWidth: 5.5, lineCap: .round, lineJoin: .round)))
+            out.append(Line(id: 1_000_000, coordinates: coordinates, color: Color.white,
+                            style: StrokeStyle(lineWidth: 11, lineCap: .round, lineJoin: .round)))
+            out.append(Line(id: 1_000_001, coordinates: coordinates, color: Theme.track,
+                            style: StrokeStyle(lineWidth: 6.5, lineCap: .round, lineJoin: .round)))
         }
         return out
     }
@@ -296,7 +291,8 @@ struct ExploreView: View {
         let top = north + height * 0.17
         let center = CLLocationCoordinate2D(latitude: top - height / 2, longitude: (west + east) / 2)
         let span = MKCoordinateSpan(latitudeDelta: height, longitudeDelta: max(0.006, (east - west) * 1.25))
-        withAnimation { camera = .region(MKCoordinateRegion(center: center, span: span)) }
+        region = MKCoordinateRegion(center: center, span: span)
+        moves += 1
     }
 
     /// A touch on the map: the piste or the lift under the finger, if it is shown.

@@ -2,8 +2,8 @@ import MapKit
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// The diary: the map of the places skied, the totals of always, the trips to come and the days
-/// saved, season by season.
+/// The diary: the totals of always, the trips to come and the days saved, season by season. The
+/// map of the places skied is behind the sheet (see `Backdrop`).
 struct DaysView: View {
     @Environment(Library.self) private var library
     @State private var season: Season?
@@ -20,7 +20,6 @@ struct DaysView: View {
             ScrollView {
                 VStack(spacing: 14) {
                     ErrorBanner(error: $error)
-                    if !pins.isEmpty { places }
                     if !library.days.isEmpty { lifetime }
                     upcoming
                     if library.days.isEmpty {
@@ -91,82 +90,36 @@ struct DaysView: View {
     private var current: Season? { season ?? library.seasons.first }
     private var shown: [DaySummary] { library.days(in: current) }
 
-    // MARK: The map of the places
-
-    /// One pin for each place: the days less than about five kilometers apart share one.
-    private struct Pin: Identifiable {
-        let id: String
-        let name: String
-        let coordinate: CLLocationCoordinate2D
-        let days: Int
-    }
-
-    private var pins: [Pin] {
-        var cells: [String: (name: String, coordinate: CLLocationCoordinate2D, days: Int)] = [:]
-        // Oldest first, so that the name and the place of the newest day stay.
-        for day in library.days.reversed() {
-            guard let coordinate = day.coordinate else { continue }
-            let key = "\((coordinate.latitude * 20).rounded()),\((coordinate.longitude * 20).rounded())"
-            cells[key] = (day.title ?? cells[key]?.name ?? "", coordinate, (cells[key]?.days ?? 0) + 1)
-        }
-        return cells.map { Pin(id: $0.key, name: $0.value.name, coordinate: $0.value.coordinate, days: $0.value.days) }
-            .sorted { $0.id < $1.id }
-    }
-
-    /// All the pins with room around them: never closer than a region, so that one place alone
-    /// still shows where in the Alps it is.
-    private var placesRegion: MapCameraPosition {
-        let lats = pins.map(\.coordinate.latitude), lons = pins.map(\.coordinate.longitude)
-        guard let south = lats.min(), let north = lats.max(), let west = lons.min(), let east = lons.max() else { return .automatic }
-        let center = CLLocationCoordinate2D(latitude: (south + north) / 2, longitude: (west + east) / 2)
-        let span = MKCoordinateSpan(latitudeDelta: max(1.4, (north - south) * 1.7), longitudeDelta: max(2.2, (east - west) * 1.7))
-        return .region(MKCoordinateRegion(center: center, span: span))
-    }
-
-    private var places: some View {
-        Map(initialPosition: placesRegion, interactionModes: [.pan, .zoom]) {
-            ForEach(pins) { pin in
-                Marker(pin.name, monogram: Text("\(pin.days)"), coordinate: pin.coordinate).tint(Theme.accent)
-            }
-        }
-        .mapStyle(.standard(elevation: .flat, pointsOfInterest: .excludingAll))
-        .frame(height: 190)
-        .clipShape(Theme.round)
-        .overlay(Theme.round.strokeBorder(Theme.line, lineWidth: 1))
-        // Drawn again when a place is added, to make room for it.
-        .id(pins.count)
-        .accessibilityLabel(Text("Mappa dei posti dove hai sciato"))
-    }
+    // MARK: The numbers of always
 
     private var lifetime: some View {
         let s = library.days.map(\.stats)
         return Button { numbers = true } label: {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 0) {
-                    lifetimeFigure("\(Set(library.days.map { Calendar.current.startOfDay(for: $0.start) }).count)", "giorni", "calendar")
-                    lifetimeFigure(Fmt.height(s.reduce(0) { $0 + $1.vertical }), "dislivello", "arrow.down")
-                    lifetimeFigure("\(pins.count)", "posti", "mappin.and.ellipse")
-                }
-                HStack {
-                    Label("Statistiche, record e mappa di calore", systemImage: "chart.bar.xaxis")
-                        .font(.caption.weight(.semibold)).foregroundStyle(Theme.accent)
-                    Spacer()
-                    Image(systemName: "chevron.right").font(.caption.weight(.bold)).foregroundStyle(Theme.sub)
-                }
+            HStack(spacing: 14) {
+                lifetimeFigure("\(Set(library.days.map { Calendar.current.startOfDay(for: $0.start) }).count) \(String(localized: "giorni"))", "registrati", "calendar")
+                Rectangle().fill(Theme.line).frame(width: 1, height: 36)
+                lifetimeFigure(Fmt.height(s.reduce(0) { $0 + $1.vertical }), "dislivello", "arrow.down")
+                Spacer(minLength: 4)
+                Image(systemName: "chart.bar.xaxis").font(.body.weight(.semibold)).foregroundStyle(Theme.sub)
+                Image(systemName: "chevron.right").font(.subheadline.weight(.bold)).foregroundStyle(Theme.sub)
             }
-            .padding(16)
-            .card()
+            .padding(.vertical, 4)
             .contentShape(Rectangle())
+            .accessibilityHint(Text("Statistiche, record e mappa di calore"))
         }
         .buttonStyle(PressStyle())
     }
 
     private func lifetimeFigure(_ value: String, _ label: String, _ symbol: String) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(value).font(.display(.title3)).monospacedDigit().foregroundStyle(Theme.text).lineLimit(1).minimumScaleFactor(0.6)
-            Label(LocalizedStringKey(label), systemImage: symbol).font(.caption2).foregroundStyle(Theme.sub).lineLimit(1)
+        VStack(alignment: .leading, spacing: 4) {
+            FigureText(value).foregroundStyle(Theme.text).lineLimit(1).minimumScaleFactor(0.6)
+            HStack(spacing: 5) {
+                Image(systemName: symbol).font(.caption2.weight(.bold))
+                Text(LocalizedStringKey(label)).font(.subheadline)
+            }
+            .foregroundStyle(Theme.sub).lineLimit(1)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .fixedSize()
         .accessibilityElement(children: .combine)
     }
 
@@ -175,7 +128,7 @@ struct DaysView: View {
     @ViewBuilder private var upcoming: some View {
         let trips = library.upcomingTrips
         VStack(alignment: .leading, spacing: 12) {
-            Text("PROSSIMAMENTE").font(.caption.weight(.bold)).foregroundStyle(Theme.sub)
+            SectionTitle("Prossimamente")
             ForEach(trips) { item in
                 Button { trip = item } label: { TripCard(trip: item) }
                     .buttonStyle(PressStyle())
@@ -183,13 +136,14 @@ struct DaysView: View {
             if trips.isEmpty {
                 Button { newTrip = blankTrip } label: {
                     HStack(spacing: 12) {
-                        Image(systemName: "plus").font(.footnote.weight(.bold)).foregroundStyle(Theme.accent)
-                            .frame(width: 34, height: 34)
+                        Image(systemName: "plus").font(.subheadline.weight(.bold)).foregroundStyle(Theme.accent)
+                            .frame(width: 40, height: 40)
                             .iconBox()
-                        Text("Aggiungi il tuo prossimo viaggio").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.accent)
+                        Text("Aggiungi il tuo prossimo viaggio").font(.headline).foregroundStyle(Theme.accent)
+                            .lineLimit(2).multilineTextAlignment(.leading)
                         Spacer()
                     }
-                    .padding(16)
+                    .padding(20)
                     .card()
                     .contentShape(Rectangle())
                 }
@@ -206,10 +160,7 @@ struct DaysView: View {
                 ForEach(library.seasons) { s in
                     let on = s == current
                     Button { withAnimation(.snappy) { season = s } } label: {
-                        Text(s.label).font(.subheadline.weight(.semibold))
-                            .padding(.horizontal, 16).padding(.vertical, 9)
-                            .foregroundStyle(on ? Theme.onAccent : Theme.text)
-                            .background(on ? Theme.accent : Theme.input, in: Capsule())
+                        ChoicePill(title: s.label, on: on)
                     }
                     .buttonStyle(PressStyle())
                 }
@@ -222,8 +173,8 @@ struct DaysView: View {
         let s = days.map(\.stats)
         let label = current?.label ?? ""
         return VStack(alignment: .leading, spacing: 12) {
-            Text("STAGIONE \(label)").font(.caption.weight(.bold)).foregroundStyle(Theme.sub)
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+            SectionTitle(String(localized: "Stagione \(label)"))
+            StatGrid {
                 StatTile(value: "\(days.count)", label: "Giornate", symbol: "calendar")
                 StatTile(value: "\(s.reduce(0) { $0 + $1.runs })", label: "Discese", symbol: "figure.skiing.downhill")
                 StatTile(value: Fmt.height(s.reduce(0) { $0 + $1.vertical }), label: "Dislivello", symbol: "arrow.down.right")
@@ -239,8 +190,8 @@ struct DaysView: View {
                 .foregroundStyle(Theme.accent)
                 .frame(width: 84, height: 84)
                 .iconBox()
-            Text("Ancora nessuna giornata").font(.display(.headline)).foregroundStyle(Theme.text)
-            Text("Registra una giornata dalla scheda Registra. Con il + in alto puoi scriverne una a mano o importare un file GPX. Per vedere com'è, in Impostazioni puoi crearne una di prova.")
+            Text("Ancora nessuna giornata").font(.title3.weight(.heavy)).foregroundStyle(Theme.text)
+            Text("Registra una giornata con il pulsante tondo qui a destra. Con il + in alto puoi scriverne una a mano o importare un file GPX. Per vedere com'è, in Impostazioni puoi crearne una di prova.")
                 .prose().font(.subheadline).foregroundStyle(Theme.sub).multilineTextAlignment(.center)
         }
         .padding(28)
@@ -249,47 +200,45 @@ struct DaysView: View {
     }
 }
 
-/// One day in the list.
+/// One day in the list: the date, the place, and how much was skied.
 struct DayCard: View {
     let day: DaySummary
 
+    private static let month: DateFormatter = {
+        let f = DateFormatter()
+        f.setLocalizedDateFormatFromTemplate("MMM")
+        return f
+    }()
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(day.title ?? String(localized: "Giornata sulla neve"))
-                        .font(.display(.headline)).foregroundStyle(Theme.text).lineLimit(1)
-                    HStack(spacing: 6) {
-                        Image(systemName: (day.sport ?? .ski).symbol).font(.caption2).foregroundStyle(Theme.accent)
-                            .accessibilityLabel(Text(LocalizedStringKey((day.sport ?? .ski).label)))
-                        Text(Fmt.day(day.start).capitalized).font(.caption).foregroundStyle(Theme.sub)
-                        if day.manual == true {
-                            Image(systemName: "square.and.pencil").font(.caption2).foregroundStyle(Theme.sub)
-                                .accessibilityLabel(Text("Scritta a mano"))
-                        }
+        HStack(spacing: 14) {
+            VStack(spacing: 2) {
+                Text("\(Calendar.current.component(.day, from: day.start))").font(.title3.weight(.bold)).monospacedDigit().foregroundStyle(Theme.text)
+                Text(Self.month.string(from: day.start).replacingOccurrences(of: ".", with: "")).font(.footnote).foregroundStyle(Theme.sub)
+            }
+            .frame(width: 42)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(Fmt.day(day.start)))
+            VStack(alignment: .leading, spacing: 4) {
+                Text(day.title ?? String(localized: "Giornata sulla neve"))
+                    .font(.headline).foregroundStyle(Theme.text).lineLimit(1)
+                HStack(spacing: 6) {
+                    Image(systemName: (day.sport ?? .ski).symbol).font(.caption.weight(.semibold))
+                        .accessibilityLabel(Text(LocalizedStringKey((day.sport ?? .ski).label)))
+                    Text("\(day.stats.runs) discese · \(Fmt.height(day.stats.vertical))").font(.subheadline).lineLimit(1).minimumScaleFactor(0.8)
+                    if day.manual == true {
+                        Image(systemName: "square.and.pencil").font(.caption2)
+                            .accessibilityLabel(Text("Scritta a mano"))
                     }
                 }
-                Spacer()
-                Image(systemName: "chevron.right").font(.caption.weight(.bold)).foregroundStyle(Theme.sub)
+                .foregroundStyle(Theme.sub)
             }
-            HStack(spacing: 0) {
-                figure("\(day.stats.runs)", "discese")
-                figure(Fmt.height(day.stats.vertical), "dislivello")
-                figure(day.stats.maxSpeed > 0 ? Fmt.speedValue(day.stats.maxSpeed) : "–", "max \(Fmt.speedUnit)")
-                figure(Fmt.distance(day.stats.runDistance), "sciati")
-            }
+            Spacer(minLength: 4)
+            Image(systemName: "chevron.right").font(.subheadline.weight(.bold)).foregroundStyle(Theme.sub)
         }
-        .padding(16)
+        .padding(.vertical, 16)
+        .padding(.horizontal, 18)
         .card()
         .contentShape(Rectangle())
-    }
-
-    private func figure(_ value: String, _ label: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(value).font(.subheadline.weight(.semibold)).monospacedDigit().foregroundStyle(Theme.accent)
-                .lineLimit(1).minimumScaleFactor(0.6)
-            Text(LocalizedStringKey(label)).font(.caption2).foregroundStyle(Theme.sub).lineLimit(1)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

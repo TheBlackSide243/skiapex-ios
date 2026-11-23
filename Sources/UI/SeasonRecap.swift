@@ -41,17 +41,17 @@ struct SeasonCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("LA MIA STAGIONE").font(.system(size: 12, weight: .bold, design: .monospaced)).tracking(1.5).foregroundStyle(Theme.accent)
-            Text(recap.label).font(.system(size: 44, weight: .bold, design: .monospaced)).foregroundStyle(Theme.text)
+            Text("LA MIA STAGIONE").font(.system(size: 12, weight: .bold)).tracking(1.5).foregroundStyle(Theme.accent)
+            Text(recap.label).font(.system(size: 44, weight: .bold)).foregroundStyle(Theme.text)
                 .lineLimit(1).minimumScaleFactor(0.6)
             Spacer(minLength: 14)
             VStack(alignment: .leading, spacing: 0) {
-                Text(Fmt.height(recap.vertical)).font(.system(size: 46, weight: .bold, design: .monospaced)).foregroundStyle(Theme.accent)
+                Text(Fmt.height(recap.vertical)).font(.system(size: 46, weight: .bold)).foregroundStyle(Theme.accent)
                     .lineLimit(1).minimumScaleFactor(0.5)
-                Text("di dislivello sciato").font(.system(size: 13, weight: .medium, design: .monospaced)).foregroundStyle(Theme.sub)
+                Text("di dislivello sciato").font(.system(size: 13, weight: .medium)).foregroundStyle(Theme.sub)
                 if recap.everests >= 0.5 {
                     Text("\(recap.everests.formatted(.number.precision(.fractionLength(1)))) volte l'Everest")
-                        .font(.system(size: 13, weight: .semibold, design: .monospaced)).foregroundStyle(Theme.text)
+                        .font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.text)
                         .padding(.top, 4)
                 }
             }
@@ -66,14 +66,14 @@ struct SeasonCard: View {
             }
             if let best = recap.best, best.stats.vertical > 0 {
                 Spacer(minLength: 14)
-                Text("LA GIORNATA MIGLIORE").font(.system(size: 10, weight: .bold, design: .monospaced)).tracking(1).foregroundStyle(Theme.sub)
+                Text("LA GIORNATA MIGLIORE").font(.system(size: 10, weight: .bold)).tracking(1).foregroundStyle(Theme.sub)
                 Text("\(best.title ?? Fmt.dayShort(best.start)) · \(Fmt.height(best.stats.vertical))")
-                    .font(.system(size: 15, weight: .semibold, design: .monospaced)).foregroundStyle(Theme.text)
+                    .font(.system(size: 15, weight: .semibold)).foregroundStyle(Theme.text)
                     .lineLimit(1).minimumScaleFactor(0.6)
             }
             Spacer(minLength: 14)
             HStack {
-                Text("SKI APEX").font(.system(size: 13, weight: .bold, design: .monospaced)).tracking(1.5).foregroundStyle(Theme.accent)
+                Text("SKI APEX").font(.system(size: 13, weight: .bold)).tracking(1.5).foregroundStyle(Theme.accent)
                 Spacer()
                 Image(systemName: "figure.skiing.downhill").font(.system(size: 14, weight: .semibold)).foregroundStyle(Theme.accent)
             }
@@ -85,9 +85,9 @@ struct SeasonCard: View {
 
     private func figure(_ value: String, _ label: String) -> some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text(value).font(.system(size: 20, weight: .semibold, design: .monospaced)).foregroundStyle(Theme.text)
+            Text(value).font(.system(size: 20, weight: .semibold)).foregroundStyle(Theme.text)
                 .lineLimit(1).minimumScaleFactor(0.6)
-            Text(LocalizedStringKey(label)).font(.system(size: 10, weight: .medium, design: .monospaced)).foregroundStyle(Theme.sub)
+            Text(LocalizedStringKey(label)).font(.system(size: 10, weight: .medium)).foregroundStyle(Theme.sub)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

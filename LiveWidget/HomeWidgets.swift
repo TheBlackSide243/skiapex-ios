@@ -57,7 +57,7 @@ struct RecordWidgetView: View {
                     .frame(width: 46, height: 46)
                     .background(Ink.accent, in: Circle())
                 Spacer(minLength: 0)
-                Text("Registra").font(.system(.headline, design: .monospaced)).foregroundStyle(Ink.text)
+                Text("Registra").font(.system(.headline)).foregroundStyle(Ink.text)
                 Text("Tocca per iniziare la giornata").font(.caption2).foregroundStyle(Ink.sub)
                     .lineLimit(2)
             }
@@ -355,7 +355,7 @@ struct SnowWidgetView: View {
                 Spacer(minLength: 0)
                 if let today = entry.days.first {
                     Text(WidgetUnits.snow(threeDays))
-                        .font(.system(.title, design: .monospaced, weight: .semibold))
+                        .font(.system(.title, weight: .semibold))
                         .foregroundStyle(threeDays >= 0.5 ? Ink.accent : Ink.text)
                         .lineLimit(1).minimumScaleFactor(0.6)
                     Text("di neve in 3 giorni").font(.caption2).foregroundStyle(Ink.sub).lineLimit(1)
@@ -373,7 +373,7 @@ struct SnowWidgetView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Image(systemName: "snowflake").font(.title3.weight(.semibold)).foregroundStyle(Ink.accent)
                 Spacer(minLength: 0)
-                Text("Neve in arrivo").font(.system(.headline, design: .monospaced)).foregroundStyle(Ink.text)
+                Text("Neve in arrivo").font(.system(.headline)).foregroundStyle(Ink.text)
                 Text("Tieni premuto e scegli una località").font(.caption2).foregroundStyle(Ink.sub).lineLimit(3)
             }
         }

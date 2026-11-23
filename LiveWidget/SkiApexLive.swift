@@ -14,12 +14,12 @@ struct SkiApexLiveBundle: WidgetBundle {
 }
 
 enum Ink {
-    static let bg = Color(red: 0.043, green: 0.086, blue: 0.149)
-    static let panel = Color(red: 0.082, green: 0.145, blue: 0.235)
-    static let text = Color(red: 0.949, green: 0.965, blue: 0.984)
-    static let accent = Color(red: 0.361, green: 0.812, blue: 1.0)
+    static let bg = Color(red: 0.102, green: 0.106, blue: 0.129)
+    static let panel = Color(red: 0.165, green: 0.169, blue: 0.188)
+    static let text = Color.white
+    static let accent = Color(red: 0.353, green: 0.635, blue: 1.0)
     static let lift = Color(red: 0.769, green: 0.710, blue: 0.992)
-    static let sub = Color(red: 0.596, green: 0.663, blue: 0.749)
+    static let sub = Color(red: 0.635, green: 0.647, blue: 0.694)
 
     static func tint(_ phase: String) -> Color {
         switch phase {

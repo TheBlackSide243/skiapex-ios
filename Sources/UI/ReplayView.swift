@@ -2,7 +2,7 @@ import Combine
 import MapKit
 import SwiftUI
 
-/// The day played again: a dot goes along the track on the map seen from above and behind, with
+/// The day played again: a dot goes along the track on the map, which follows it, with
 /// the time, the speed and the altitude of that moment. Breaks go by faster.
 struct ReplayView: View {
     let day: SkiDay
@@ -16,8 +16,8 @@ struct ReplayView: View {
     /// Seconds of the day for each second of replay.
     @State private var rate: Double = 60
     @State private var follow = true
-    @State private var heading: Double = 0
-    @State private var camera: MapCameraPosition = .automatic
+    /// Counts the times the map went back to showing the whole day.
+    @State private var overview = 0
 
     private let frames = 20.0
     private let clock = Timer.publish(every: 1.0 / 20.0, on: .main, in: .common).autoconnect()
@@ -28,29 +28,18 @@ struct ReplayView: View {
         let index = pointIndex(at: now)
         let here = position(at: now, index: index)
         ZStack(alignment: .bottom) {
-            Map(position: $camera) {
-                TrackMapContent(tracks: tracks)
-                Annotation("", coordinate: here.coordinate, anchor: .center) {
-                    Circle().fill(Theme.text)
-                        .frame(width: 18, height: 18)
-                        .overlay(Circle().strokeBorder(Theme.accent, lineWidth: 5))
-                        .shadow(color: .black.opacity(0.5), radius: 4, y: 2)
-                }
-            }
-            .mapStyle(look.style)
-            .ignoresSafeArea(edges: .bottom)
+            SnowMap(tracks: tracks, dot: here.coordinate,
+                    region: SnowMap.fit(tracks.flatMap(\.coordinates)) ?? MKCoordinateRegion(center: here.coordinate, latitudinalMeters: 4000, longitudinalMeters: 4000),
+                    regionKey: "\(tracks.count)|\(overview)", center: follow ? here.coordinate : nil, bottomInset: 170, showsUser: false)
+                .ignoresSafeArea(edges: .bottom)
 
             VStack(spacing: 12) {
                 HStack {
                     Spacer()
                     VStack(spacing: 10) {
-                        MapButton(symbol: look == .standard ? "globe.europe.africa" : "map",
-                                  label: look == .standard ? "Satellite" : "Mappa") {
-                            mapLook = (look == .standard ? MapLook.satellite : MapLook.standard).rawValue
-                        }
                         MapButton(symbol: follow ? "video.fill" : "map.fill", label: follow ? "Vista dall'alto" : "Segui") {
                             follow.toggle()
-                            if follow { aim(here, index: index, smooth: false) } else { withAnimation { camera = .automatic } }
+                            if !follow { overview += 1 }
                         }
                     }
                 }
@@ -62,7 +51,7 @@ struct ReplayView: View {
         }
         .navigationTitle("Rivivi la giornata")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.hidden, for: .tabBar)
+        .hidesRail()
         .onAppear { prepare() }
         .onDisappear { playing = false }
         .onReceive(clock) { _ in tick() }
@@ -85,7 +74,7 @@ struct ReplayView: View {
                 }
             }
             Slider(value: $now, in: 0...total) { editing in
-                if editing { playing = false } else { aim(position(at: now, index: pointIndex(at: now)), index: pointIndex(at: now), smooth: false) }
+                if editing { playing = false }
             }
             .tint(Theme.accent)
             .accessibilityLabel(Text("Momento della giornata"))
@@ -105,8 +94,7 @@ struct ReplayView: View {
                     Text("\(Int(rate))×").font(.headline.weight(.semibold)).foregroundStyle(Theme.text)
                         .frame(width: 84)
                         .padding(.vertical, 15)
-                        .background(Theme.input.opacity(0.6), in: Capsule())
-                        .overlay(Capsule().strokeBorder(Theme.line, lineWidth: 1))
+                        .background(Theme.input, in: Capsule())
                 }
                 .accessibilityLabel(Text("Velocità del replay"))
             }
@@ -146,9 +134,6 @@ struct ReplayView: View {
             // Not the minutes spent putting the boots on.
             now = max(0, first.startTime.timeIntervalSince(day.start) - 5)
         }
-        let i = pointIndex(at: now)
-        if i + 1 < day.points.count { heading = Geo.bearing(from: day.points[i], to: day.points[min(day.points.count - 1, i + 20)]) }
-        aim(position(at: now, index: i), index: i, smooth: false)
     }
 
     private func tick() {
@@ -157,8 +142,6 @@ struct ReplayView: View {
         let idle = day.segments.last { $0.start <= index }?.kind == .idle
         now = min(total, now + rate / frames * (idle ? 6 : 1))
         if now >= total { playing = false }
-        let i = pointIndex(at: now)
-        aim(position(at: now, index: i), index: i, smooth: true)
     }
 
     /// The last point at or before a moment.
@@ -186,17 +169,5 @@ struct ReplayView: View {
                           lat: a.lat + (b.lat - a.lat) * f, lon: a.lon + (b.lon - a.lon) * f,
                           alt: a.alt + (b.alt - a.alt) * f, speed: a.speed + (b.speed - a.speed) * f,
                           hAcc: a.hAcc, sAcc: a.sAcc)
-    }
-
-    /// The camera behind the dot, turning slowly toward where it is going.
-    private func aim(_ here: TrackPoint, index i: Int, smooth: Bool) {
-        guard follow, !day.points.isEmpty else { return }
-        let ahead = day.points[min(day.points.count - 1, i + 20)]
-        if Geo.distance(here, ahead) > 15 {
-            let target = Geo.bearing(from: here, to: ahead)
-            let turn = (target - heading + 540).truncatingRemainder(dividingBy: 360) - 180
-            heading = (heading + turn * (smooth ? 0.06 : 1) + 360).truncatingRemainder(dividingBy: 360)
-        }
-        camera = .camera(MapCamera(centerCoordinate: here.coordinate, distance: 1700, heading: heading, pitch: 58))
     }
 }

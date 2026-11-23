@@ -1,7 +1,5 @@
-Ski Apex 0.5.0
-- How was the snow? At the end of a day you say (powder, groomed, icy...) and who opens the ski area sees it, with the average day of who skied there.
-- Go on on the Watch: start on the iPhone, pass the day to the Watch and put the phone away. At the end of the day it all arrives on the iPhone.
-- The page of a ski area: pistes, lifts, altitudes, today's snow hour by hour and the snow of the last week.
-- Downloaded maps for when there is no signal, and the name of the piste while you ski.
-- Season recap to share (from Stats).
-To test: "Go on on the Watch" during a recording, then Finish on the Watch and open the app on the iPhone again.
+Ski Apex 0.6.0
+- A new look: the map is always behind, and the screens are on a sheet you pull up and down. On the right your picture (Settings), Days, Guide, Friends and the round button that records.
+- Winter map: snow, shade and contour lines, with the mountains at night from far away.
+- What are you riding today? Skiing, snowboarding, telemark or sled: you choose before you start.
+To test: move between the screens from the right edge, pull the sheet up and down, open a day and its replay, the map of a ski area in Explore.

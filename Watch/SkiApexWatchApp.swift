@@ -35,9 +35,9 @@ final class WatchDelegate: NSObject, WKApplicationDelegate {
 
 /// The colors of the app, on the black of the watch.
 enum Ink {
-    static let accent = Color(red: 0.361, green: 0.812, blue: 1.0)
+    static let accent = Color(red: 0.353, green: 0.635, blue: 1.0)
     static let lift = Color(red: 0.769, green: 0.710, blue: 0.992)
-    static let sub = Color(red: 0.596, green: 0.663, blue: 0.749)
+    static let sub = Color(red: 0.635, green: 0.647, blue: 0.694)
     static let good = Color(red: 0.204, green: 0.827, blue: 0.600)
     static let bad = Color(red: 1.0, green: 0.482, blue: 0.541)
 

@@ -1,7 +1,5 @@
-Ski Apex 0.5.0
-- Com'era la neve? A fine giornata lo dici tu (farinosa, battuta, ghiacciata...) e chi apre la stazione lo vede, con la giornata media di chi ha sciato li.
-- Continua sul Watch: inizi dall'iPhone, passi la giornata al Watch e metti via il telefono. A fine giornata arriva tutto sull'iPhone.
-- Pagina della stazione: piste, impianti, quote, la neve di oggi ora per ora e quella dell'ultima settimana.
-- Mappe scaricate per quando non c'e campo, e il nome della pista mentre scii.
-- Riepilogo della stagione da condividere (da Statistiche).
-Da provare: "Continua sul Watch" durante una registrazione, poi Fine sul Watch e riaprire l'app sull'iPhone.
+Ski Apex 0.6.0
+- Interfaccia nuova: la mappa e' sempre dietro, e le schermate stanno su un pannello che tiri su e giu'. A destra la tua foto (Impostazioni), Giornate, Guida, Amici e il pulsante tondo per registrare.
+- Mappa invernale: neve, ombre e curve di livello, con le montagne di notte da lontano.
+- Cosa fai oggi? Sci, snowboard, telemark o slittino: lo scegli prima di iniziare.
+Da provare: muoversi tra le schermate dal bordo destro, tirare il pannello su e giu', aprire una giornata e Rivivi, la mappa di una stazione in Esplora.

@@ -418,6 +418,9 @@ private struct HelpPage: View {
 /// What came with this version.
 private struct NewsPage: View {
     private static let news: [(symbol: String, title: String, text: String)] = [
+        ("map", "La mappa dietro a tutto", "Le schermate stanno su un pannello che tiri su e giù sopra la mappa; a destra la tua foto, Giornate, Guida, Amici e il pulsante per registrare."),
+        ("mountain.2.fill", "Mappa invernale", "Neve, ombre e curve di livello disegnate dall'app, con le montagne di notte da lontano. Anche in giornata, discesa, Rivivi ed Esplora."),
+        ("figure.snowboarding", "Cosa fai oggi?", "Sci, snowboard, telemark o slittino: lo scegli prima di iniziare a registrare."),
         ("snowflake", "Com'era la neve?", "A fine giornata dici com'era la neve: chi apre la stazione lo vede, insieme alla giornata media di chi ha sciato lì."),
         ("applewatch.radiowaves.left.and.right", "Continua sul Watch", "Inizi dall'iPhone, passi la giornata al Watch e metti via il telefono: a fine giornata arriva tutto qui."),
         ("mountain.2", "La pagina della stazione", "Piste, impianti, quote, la neve di oggi ora per ora e quella dell'ultima settimana."),
@@ -462,6 +465,7 @@ private struct PrivacyPage: View {
             }
             Panel("Quello che esce") {
                 Words("Nomi delle piste e meteo: la zona della giornata, a OpenStreetMap e Open-Meteo, senza il tuo nome. Si spegne da Integrazioni.")
+                Words("Mappa invernale: i riquadri della zona che guardi, chiesti come quote a un archivio pubblico (AWS Open Data), senza il tuo nome. Si spegne con lo stesso interruttore, e resta la mappa di Apple.")
                 Words("Amici: il nome, la foto se la metti e i totali della stagione. Se accedi con Apple o Google, al server arriva solo un identificativo: niente email.")
                 Words("Posizione in diretta: solo se la accendi e solo mentre registri. Il server tiene l'ultima, non la salva e la dimentica dopo dieci minuti.")
                 Words("Bluetooth: solo se lo accendi. Passa un codice che cambia ogni giorno, non la posizione.")

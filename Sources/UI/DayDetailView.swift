@@ -158,20 +158,9 @@ struct DayDetailView: View {
         VStack(spacing: 14) {
             ErrorBanner(error: $error)
             if !day.points.isEmpty {
-                ZStack(alignment: .topTrailing) {
-                    Map(initialPosition: .automatic) {
-                        TrackMapContent(tracks: tracks)
-                    }
-                    .mapStyle(look.style)
-                    .frame(height: 320)
-                    .clipShape(Theme.round)
-                    .overlay(Theme.round.strokeBorder(Theme.line, lineWidth: 1))
-                    MapButton(symbol: look == .standard ? "globe.europe.africa" : "map",
-                              label: look == .standard ? "Satellite" : "Mappa") {
-                        mapLook = (look == .standard ? MapLook.satellite : MapLook.standard).rawValue
-                    }
-                    .padding(10)
-                }
+                PlaceMap(tracks: tracks)
+                    .frame(height: 300)
+                    .id(tracks.count)
             }
 
             VStack(alignment: .leading, spacing: 8) {
@@ -216,7 +205,7 @@ struct DayDetailView: View {
             }
 
             let s = day.stats
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+            StatGrid {
                 StatTile(value: "\(s.runs)", label: "Discese", symbol: "figure.skiing.downhill")
                 StatTile(value: Fmt.height(s.vertical), label: "Dislivello", symbol: "arrow.down.right")
                 StatTile(value: Fmt.speed(s.maxSpeed), label: "Velocità max", symbol: "speedometer")

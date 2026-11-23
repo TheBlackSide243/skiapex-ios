@@ -100,6 +100,15 @@ enum Demo {
         }
     }
 
+    /// How high the sheet stands for the screen asked for: all the way up for the ones with much
+    /// to show, in the middle for the others, so that the map is seen behind.
+    static var detent: PresentationDetent {
+        switch screen {
+        case nil, "ready", "live", "days", "guide", "friends", "empty": RootView.middle
+        default: .large
+        }
+    }
+
     static func library() -> Library {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("skiapex-demo", isDirectory: true)
         try? FileManager.default.removeItem(at: dir)

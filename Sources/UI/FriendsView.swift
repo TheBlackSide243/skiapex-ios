@@ -87,7 +87,7 @@ struct FriendsView: View {
                     }
                 }
             } else {
-                Text("STAGIONE \(current.label)").font(.caption.weight(.bold)).foregroundStyle(Theme.sub)
+                Text("Stagione \(current.label)").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.sub)
             }
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {

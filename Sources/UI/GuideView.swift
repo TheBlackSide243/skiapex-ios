@@ -283,13 +283,8 @@ struct ResortDetailView: View {
         let mine = library.days(near: resort)
         ScrollView {
             VStack(spacing: 14) {
-                Map(initialPosition: .region(MKCoordinateRegion(center: resort.coordinate, latitudinalMeters: 9000, longitudinalMeters: 9000))) {
-                    Marker(resort.name, systemImage: "mountain.2.fill", coordinate: resort.coordinate).tint(Theme.accent)
-                }
-                .mapStyle(look.style)
-                .frame(height: 240)
-                .clipShape(Theme.round)
-                .overlay(Theme.round.strokeBorder(Theme.line, lineWidth: 1))
+                PlaceMap(place: PlacePin(id: resort.id, name: resort.name, lat: resort.lat, lon: resort.lon, days: mine.count))
+                    .frame(height: 240)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(resort.name).font(.display(.title3)).foregroundStyle(Theme.text)
@@ -318,7 +313,7 @@ struct ResortDetailView: View {
                 if let now { TodayPanel(now: now) }
 
                 if let days = guide.forecasts[resort.id] {
-                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+                    StatGrid {
                         StatTile(value: Fmt.snow(days.prefix(3).reduce(0) { $0 + $1.snow }), label: "Neve in 3 giorni", symbol: "snowflake")
                         StatTile(value: Fmt.snow(days.reduce(0) { $0 + $1.snow }), label: "Neve in 8 giorni", symbol: "cloud.snow")
                     }

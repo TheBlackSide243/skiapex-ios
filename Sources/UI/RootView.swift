@@ -1,37 +1,37 @@
 import MapKit
 import SwiftUI
 
-/// Five tabs: the day under way, the diary (with the numbers), the guide to the ski areas, the
-/// friends, the settings.
+/// The map behind everything and, over it, a sheet with the screen chosen: the day under way,
+/// the diary (with the numbers), the guide to the ski areas, the friends, the settings. The sheet
+/// is pulled up and down; on its right edge are the picture that opens the settings, the three
+/// screens to move between and the button that records.
 struct RootView: View {
     @Environment(Social.self) private var social
-    @Environment(Library.self) private var library
-    @AppStorage(Prefs.units) private var units = Units.metric.rawValue
     @State private var tab = Demo.tab
-    /// The day just ended, to ask how the snow was.
-    @State private var asked: AskedDay?
+    @State private var detent = Demo.detent
+    @State private var recenter = 0
+
+    /// How high the sheet can stand: low, to look at the map, in the middle, and all the way up.
+    static let low = PresentationDetent.fraction(0.42)
+    static let middle = PresentationDetent.fraction(0.68)
 
     var body: some View {
-        TabView(selection: $tab) {
-            LiveView()
-                .tabItem { Label("Registra", systemImage: "figure.skiing.downhill") }
-                .tag(0)
-            DaysView()
-                .tabItem { Label("Giornate", systemImage: "book") }
-                .tag(1)
-            GuideView()
-                .tabItem { Label("Guida", systemImage: "map") }
-                .tag(2)
-            FriendsView()
-                .tabItem { Label("Amici", systemImage: "person.2") }
-                .tag(3)
-            SettingsView()
-                .tabItem { Label("Impostazioni", systemImage: "gearshape") }
-                .tag(4)
+        ZStack(alignment: .topTrailing) {
+            Backdrop(tab: tab, covered: detent == Self.low ? 0.42 : 0.68, recenter: recenter)
+                .ignoresSafeArea()
+            MapButton(symbol: "location.fill", label: "Dove sono") { recenter += 1 }
+                .padding(.trailing, 16)
+                .padding(.top, 8)
         }
-        // Every number again in the new units, every color again in the new look.
-        .id(units + Looks.shared.look.rawValue)
-        .sensoryFeedback(.selection, trigger: tab)
+        .sheet(isPresented: .constant(true)) {
+            SheetRoot(tab: $tab)
+                .presentationDetents([Self.low, Self.middle, .large], selection: $detent)
+                .presentationBackgroundInteraction(.enabled(upThrough: Self.middle))
+                .presentationDragIndicator(.visible)
+                .presentationCornerRadius(36)
+                .presentationBackground(Theme.bg)
+                .interactiveDismissDisabled()
+        }
         .onOpenURL { url in
             guard url.scheme == "skiapex" else { return }
             switch url.host {
@@ -47,6 +47,37 @@ struct RootView: View {
                 break
             }
         }
+    }
+}
+
+/// What is on the sheet: the screen chosen, and on its right edge the way to the others.
+private struct SheetRoot: View {
+    @Binding var tab: Int
+    @Environment(Social.self) private var social
+    @Environment(Library.self) private var library
+    @AppStorage(Prefs.units) private var units = Units.metric.rawValue
+    /// The day just ended, to ask how the snow was.
+    @State private var asked: AskedDay?
+
+    var body: some View {
+        Group {
+            switch tab {
+            case 0: LiveView()
+            case 2: GuideView()
+            case 3: FriendsView()
+            case 4: SettingsView()
+            default: DaysView()
+            }
+        }
+        // The right edge is kept free for the buttons.
+        .environment(\.railInset, Rail.width)
+        // Every number again in the new units, every color again in the new look.
+        .id("\(tab)" + units + Looks.shared.look.rawValue)
+        .overlay(alignment: .bottomTrailing) {
+            if Chrome.shared.hidden == 0 { Rail(tab: $tab) }
+        }
+        .modifier(Dressed())
+        .sensoryFeedback(.selection, trigger: tab)
         // A day ended, here or on the watch: how was the snow?
         .onChange(of: library.asking, initial: true) { _, id in
             if let id { asked = AskedDay(id: id) }
@@ -56,6 +87,79 @@ struct RootView: View {
         .onChange(of: social.pendingCode) { _, code in
             if code != nil { tab = 3 }
         }
+    }
+}
+
+/// On the right edge of the sheet, at the bottom: your picture, which opens the settings, the
+/// three screens one over the other, and beside them the round button that records.
+struct Rail: View {
+    @Binding var tab: Int
+    @Environment(Recorder.self) private var recorder
+    @Environment(Social.self) private var social
+
+    /// The width kept free for it on every screen.
+    static let width: CGFloat = 64
+
+    var body: some View {
+        HStack(alignment: .bottom, spacing: 10) {
+            Button { tab = 0 } label: {
+                Image(systemName: recorder.state == .idle ? "record.circle" : "figure.skiing.downhill")
+                    .font(.system(size: 28, weight: .semibold))
+                    .foregroundStyle(Theme.onAccent)
+                    .frame(width: 66, height: 66)
+                    .background(Theme.accent, in: Circle())
+                    .overlay(Circle().strokeBorder(Color.white.opacity(tab == 0 ? 0.9 : 0), lineWidth: 3))
+                    .shadow(color: .black.opacity(0.35), radius: 10, y: 4)
+            }
+            .buttonStyle(PressStyle())
+            .accessibilityLabel(Text("Registra"))
+            VStack(spacing: 10) {
+                profile
+                VStack(spacing: 4) {
+                    item(1, "book.closed.fill", "Giornate")
+                    item(2, "map.fill", "Guida")
+                    item(3, "person.2.fill", "Amici")
+                }
+                .padding(5)
+                .background(Theme.input, in: Capsule())
+                .overlay(Capsule().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
+                .shadow(color: .black.opacity(0.3), radius: 10, y: 4)
+            }
+        }
+        .padding(.trailing, (Self.width - 58) / 2)
+        .padding(.bottom, 6)
+    }
+
+    /// Your picture: it opens the settings, with the profile at the top.
+    private var profile: some View {
+        Button { tab = 4 } label: {
+            Group {
+                if let me = social.account {
+                    Avatar(id: me.id, name: me.name, photo: me.photo, size: 46)
+                } else {
+                    Image(systemName: "person.fill").font(.body.weight(.semibold)).foregroundStyle(Theme.text)
+                        .frame(width: 46, height: 46)
+                        .background(Theme.input, in: Circle())
+                }
+            }
+            .overlay(Circle().strokeBorder(tab == 4 ? Theme.accent : Color.white.opacity(0.18), lineWidth: 2))
+            .shadow(color: .black.opacity(0.3), radius: 8, y: 3)
+        }
+        .buttonStyle(PressStyle())
+        .accessibilityLabel(Text("Impostazioni"))
+    }
+
+    private func item(_ index: Int, _ symbol: String, _ label: String) -> some View {
+        Button { tab = index } label: {
+            Image(systemName: symbol)
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(tab == index ? Theme.accent : Theme.text)
+                .frame(width: 48, height: 54)
+                .background(tab == index ? Theme.deep : Color.clear, in: Capsule())
+        }
+        .buttonStyle(PressStyle())
+        .accessibilityLabel(Text(LocalizedStringKey(label)))
+        .accessibilityAddTraits(tab == index ? .isSelected : [])
     }
 }
 
@@ -79,7 +183,7 @@ struct TrackMapContent: MapContent {
     private func color(_ track: MapTrack) -> Color {
         let base: Color
         switch track.kind {
-        case .run: base = colorful ? Theme.runColor(track.number) : Theme.accent
+        case .run: base = colorful ? Theme.runColor(track.number) : Theme.track
         case .lift: base = Theme.lift
         case .idle: base = Theme.sub
         }
@@ -142,9 +246,8 @@ struct Chip: View {
             Image(systemName: symbol).font(.caption2.weight(.semibold)).foregroundStyle(color)
             Text(text).font(.caption).foregroundStyle(Theme.text)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
         .background(Theme.input, in: Capsule())
-        .overlay(Capsule().strokeBorder(Theme.line, lineWidth: 1))
     }
 }
