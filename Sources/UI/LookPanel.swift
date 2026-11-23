@@ -25,21 +25,18 @@ struct LookPanel: View {
                 Divider().overlay(Theme.line)
                 let now = IconArt.parse(icon)
                 Text("Icona dell'app").font(.caption.weight(.semibold)).foregroundStyle(Theme.sub)
-                // The four drawings, then the first of them in the other colors.
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(Array(IconArt.choices.enumerated()), id: \.offset) { _, choice in
-                            let chosen = choice.art == now.art && choice.look == now.look
-                            let label = IconArt.label(choice.art, choice.look)
-                            Button { setIcon(choice.art.iconName(choice.look)) } label: {
-                                IconChoice(picture: choice.art.preview(choice.look), label: label, chosen: chosen)
-                            }
-                            .buttonStyle(PressStyle())
-                            .accessibilityLabel(Text(LocalizedStringKey(label)))
-                            .accessibilityAddTraits(chosen ? .isSelected : [])
+                // The four drawings, then the first of them in the other colors: all in sight.
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 68), spacing: 10, alignment: .top)], spacing: 12) {
+                    ForEach(Array(IconArt.choices.enumerated()), id: \.offset) { _, choice in
+                        let chosen = choice.art == now.art && choice.look == now.look
+                        let label = IconArt.label(choice.art, choice.look)
+                        Button { setIcon(choice.art.iconName(choice.look)) } label: {
+                            IconChoice(picture: choice.art.preview(choice.look), label: label, chosen: chosen)
                         }
+                        .buttonStyle(PressStyle())
+                        .accessibilityLabel(Text(LocalizedStringKey(label)))
+                        .accessibilityAddTraits(chosen ? .isSelected : [])
                     }
-                    .padding(.vertical, 2)
                 }
                 Text("L'icona cambia sulla schermata Home: iOS te lo conferma con un avviso.")
                     .prose().font(.caption).foregroundStyle(Theme.sub)
@@ -111,7 +108,7 @@ private struct IconChoice: View {
                 .clipShape(shape)
                 .overlay(shape.strokeBorder(chosen ? Theme.accent : Theme.line, lineWidth: chosen ? 2.5 : 1))
             Text(LocalizedStringKey(label)).font(.caption2.weight(chosen ? .semibold : .regular))
-                .foregroundStyle(chosen ? Theme.text : Theme.sub).lineLimit(1)
+                .foregroundStyle(chosen ? Theme.text : Theme.sub).lineLimit(1).minimumScaleFactor(0.75)
         }
     }
 }
