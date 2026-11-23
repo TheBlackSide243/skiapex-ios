@@ -1,6 +1,10 @@
-Prima versione di Ski Apex, il diario delle tue giornate sugli sci.
-- Premi Inizia ai piedi della pista e metti l'iPhone in tasca: registra anche a schermo spento.
-- Riconosce da sola discese e risalite, con velocità massima, dislivello, chilometri e quota.
-- In Giornate trovi la mappa di ogni giornata, il grafico della quota e il dettaglio di ogni discesa.
-- Niente neve? In Impostazioni puoi creare una giornata di prova.
-Da provare: una giornata vera sulla neve, e dirmi se le discese contate sono giuste.
+Ski Apex 0.2.0
+- Nomi delle piste e degli impianti (da OpenStreetMap) con il colore della difficolta, e meteo della giornata.
+- Cronologia della giornata: discese, risalite e soste in ordine.
+- Rivivi la giornata: replay sulla mappa con ora, velocita e quota.
+- Ogni discesa disegnata sulla mappa con i colori della velocita.
+- Nuova scheda Statistiche: totali, medie, record e grafici.
+- Immagine da condividere con traccia e numeri.
+- Importazione di file GPX da altre app.
+- Sci, snowboard, telemark o slittino per ogni giornata.
+Da provare: una giornata vera sulla neve. Dimmi se i nomi delle piste sono giusti.

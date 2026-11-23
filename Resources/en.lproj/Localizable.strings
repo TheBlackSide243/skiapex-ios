@@ -22,7 +22,6 @@
 "Discese" = "Runs";
 "Dislivello" = "Vertical";
 "Max %@" = "Max %@";
-"Sci" = "Skied";
 "Risalite" = "Lifts";
 "Quota max" = "Top altitude";
 "Pausa" = "Pause";
@@ -103,3 +102,71 @@
 "Versione" = "Version";
 "Giornate salvate" = "Days saved";
 "Velocità, distanze e quote sono stime del GPS e del barometro: non usarle per la sicurezza." = "Speeds, distances and altitudes are estimates from GPS and the barometer: don't rely on them for safety.";
+
+/* 0.2.0 */
+"Statistiche" = "Stats";
+"Importa GPX" = "Import GPX";
+"Registra una giornata dalla scheda Registra, o importa un file GPX con il pulsante in alto. Per vedere com'è, in Impostazioni puoi crearne una di prova." = "Record a day from the Record tab, or import a GPX file with the button at the top. To see what it looks like, you can make a sample one in Settings.";
+"Nel file non c'è una traccia con gli orari: non posso ricavarne una giornata." = "The file has no track with times: a day can't be made from it.";
+"Questa giornata c'è già." = "This day is already here.";
+"Condividi immagine" = "Share picture";
+"Attività" = "Activity";
+"Rivivi" = "Replay";
+"Condividi" = "Share";
+"Elenco" = "List";
+"Cronologia" = "Timeline";
+"Risalita %lld" = "Lift %lld";
+"Sosta" = "Break";
+"Pista %@" = "Piste %@";
+"Lento" = "Slow";
+"Colori della velocità, da lento a veloce" = "Speed colors, from slow to fast";
+
+"Principianti" = "Beginner";
+"Facile" = "Easy";
+"Media" = "Intermediate";
+"Difficile" = "Advanced";
+"Esperti" = "Expert";
+"Fuoripista" = "Off-piste";
+
+"Sci" = "Ski";
+"Snowboard" = "Snowboard";
+"Telemark" = "Telemark";
+"Slittino" = "Sled";
+
+"Sereno" = "Clear";
+"Poco nuvoloso" = "Partly cloudy";
+"Coperto" = "Overcast";
+"Nebbia" = "Fog";
+"Pioggia" = "Rain";
+"Neve" = "Snow";
+"Temporale" = "Thunderstorm";
+"Nuvoloso" = "Cloudy";
+
+"Rivivi la giornata" = "Replay the day";
+"Vista dall'alto" = "Overview";
+"Segui" = "Follow";
+"Momento della giornata" = "Moment of the day";
+"Riproduci" = "Play";
+"Velocità del replay" = "Replay speed";
+
+"Immagine della giornata con la traccia e i numeri" = "Picture of the day with the track and the numbers";
+"Condividi la giornata" = "Share the day";
+
+"Sempre" = "All time";
+"In media al giorno" = "Average per day";
+"Record" = "Records";
+"Più dislivello in un giorno" = "Most vertical in a day";
+"Più discese in un giorno" = "Most runs in a day";
+"Discesa più lunga" = "Longest run";
+"Più chilometri in un giorno" = "Most distance in a day";
+"Quota più alta" = "Highest altitude";
+"Dislivello per giornata" = "Vertical per day";
+"Velocità max per giornata" = "Top speed per day";
+"Ancora nessun numero" = "No numbers yet";
+"Totali, medie e record compaiono qui dopo la prima giornata." = "Totals, averages and records appear here after your first day.";
+
+"Le nuove giornate vengono salvate così. Puoi cambiarlo per ogni giornata dal suo menu." = "New days are saved as this. You can change it for each day from its menu.";
+"Internet" = "Internet";
+"Nomi delle piste e meteo" = "Piste names and weather";
+"Quando apri una giornata, Ski Apex chiede a OpenStreetMap i nomi delle piste e degli impianti della zona e a Open-Meteo il meteo di quel giorno. Viene inviata solo la zona della giornata, senza account e senza il tuo nome. Spento, non esce niente dall'iPhone." = "When you open a day, Ski Apex asks OpenStreetMap for the names of the pistes and lifts of the area and Open-Meteo for the weather of that day. Only the area of the day is sent, with no account and without your name. When off, nothing leaves the iPhone.";
+"Nomi di piste e impianti: © i contributori di OpenStreetMap (ODbL). Meteo: Open-Meteo.com." = "Piste and lift names: © OpenStreetMap contributors (ODbL). Weather: Open-Meteo.com.";

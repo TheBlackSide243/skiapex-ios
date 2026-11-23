@@ -11,16 +11,26 @@ Premi **Inizia** ai piedi della pista, metti l'iPhone in tasca e scia. Ski Apex 
 - Velocità massima e media, dislivello, chilometri sciati, quota massima, tempo in pista e in risalita.
 - Mappa della giornata con ogni discesa nel suo colore e le risalite tratteggiate (mappa o satellite).
 - Grafico della quota durante la giornata, e per ogni discesa velocità, pendenza, partenza e arrivo.
-- Totali della stagione, esportazione GPX, unità metriche o imperiali, italiano e inglese.
+- **Nomi delle piste e degli impianti** da OpenStreetMap, con il colore della difficoltà, e il **meteo** della giornata.
+- **Cronologia** della giornata: discese, risalite e soste in ordine.
+- **Rivivi la giornata**: il replay sulla mappa vista dall'alto, con ora, velocità e quota.
+- **Velocità sulla mappa**: ogni discesa disegnata dal blu (lento) al rosso (veloce).
+- **Statistiche**: totali, medie al giorno, record e grafici per stagione.
+- **Immagine da condividere** con traccia e numeri; importazione ed esportazione **GPX**.
+- Sci, snowboard, telemark o slittino; unità metriche o imperiali; italiano e inglese.
 - Se l'app viene chiusa a metà giornata, la registrazione si ritrova al prossimo avvio.
-- Le giornate restano sull'iPhone (visibili anche nell'app File). Nessun account, nessun server.
+- Le giornate restano sull'iPhone (visibili anche nell'app File). Nessun account, nessun server: per i nomi delle piste e il meteo viene chiesta solo la zona a OpenStreetMap e Open-Meteo, e si può spegnere.
 - Niente neve? In Impostazioni si crea una giornata di prova.
 
 <p>
   <img src="docs/screenshots/iphone-live.jpg" width="190" alt="Registrazione in corso: mappa, velocità e numeri della giornata">
   <img src="docs/screenshots/iphone-days.jpg" width="190" alt="Giornate e totali della stagione">
   <img src="docs/screenshots/iphone-day.jpg" width="190" alt="Una giornata: mappa e numeri">
-  <img src="docs/screenshots/iphone-run.jpg" width="190" alt="Il dettaglio di una discesa">
+  <img src="docs/screenshots/iphone-run.jpg" width="190" alt="Il dettaglio di una discesa, con la velocità sulla mappa">
+  <img src="docs/screenshots/iphone-timeline.jpg" width="190" alt="La cronologia della giornata">
+  <img src="docs/screenshots/iphone-replay.jpg" width="190" alt="Rivivi la giornata">
+  <img src="docs/screenshots/iphone-stats.jpg" width="190" alt="Statistiche e record">
+  <img src="docs/screenshots/iphone-share.jpg" width="190" alt="L'immagine da condividere">
 </p>
 
 ### Installazione
@@ -37,9 +47,15 @@ Tap **Start** at the bottom of the slope, put your iPhone in your pocket and ski
 - Top and average speed, vertical, distance skied, top altitude, time on runs and on lifts.
 - Map of the day with each run in its own color and dashed lifts (map or satellite).
 - Altitude through the day, and for each run its speed, slope, start and finish.
-- Season totals, GPX export, metric or imperial units, Italian and English.
+- **Piste and lift names** from OpenStreetMap, with the color of the difficulty, and the **weather** of the day.
+- **Timeline** of the day: runs, lifts and breaks in order.
+- **Replay the day** on the map seen from above, with time, speed and altitude.
+- **Speed on the map**: every run drawn from blue (slow) to red (fast).
+- **Stats**: totals, averages per day, records and charts by season.
+- **Picture to share** with the track and the numbers; **GPX** import and export.
+- Ski, snowboard, telemark or sled; metric or imperial units; Italian and English.
 - If the app is closed during the day, the recording comes back at the next launch.
-- Your days stay on the iPhone (also visible in the Files app). No account, no server.
+- Your days stay on the iPhone (also visible in the Files app). No account, no server: for piste names and weather only the area is asked to OpenStreetMap and Open-Meteo, and it can be turned off.
 - No snow? Make a sample day in Settings.
 
 ### Install

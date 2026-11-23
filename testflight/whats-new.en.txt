@@ -1,6 +1,10 @@
-First version of Ski Apex, the diary of your days on skis.
-- Tap Start at the bottom of the slope and put your iPhone in your pocket: it records with the screen off too.
-- It recognizes runs and lifts on its own, with top speed, vertical, distance and altitude.
-- In Days you find the map of each day, the altitude chart and the details of every run.
-- No snow? In Settings you can make a sample day.
-To test: a real day on the snow, and tell me whether the runs counted are right.
+Ski Apex 0.2.0
+- Piste and lift names (from OpenStreetMap) with the color of the difficulty, and the weather of the day.
+- Timeline of the day: runs, lifts and breaks in order.
+- Replay the day on the map with time, speed and altitude.
+- Every run drawn on the map in the colors of its speed.
+- New Stats tab: totals, averages, records and charts.
+- Picture to share with the track and the numbers.
+- Import GPX files from other apps.
+- Ski, snowboard, telemark or sled for each day.
+To test: a real day on the snow. Tell me whether the piste names are right.

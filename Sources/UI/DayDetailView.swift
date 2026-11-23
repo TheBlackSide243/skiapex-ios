@@ -2,7 +2,8 @@ import Charts
 import MapKit
 import SwiftUI
 
-/// A day saved: its map, its numbers, the altitude through the day and every run.
+/// A day saved: its map, its numbers, the weather, the altitude through the day and everything
+/// that happened in it, run by run.
 struct DayDetailView: View {
     let id: UUID
     @Environment(Library.self) private var library
@@ -17,6 +18,10 @@ struct DayDetailView: View {
     @State private var newName = ""
     @State private var run: Segment?
     @State private var missing = false
+    @State private var replaying = false
+    @State private var sharing = false
+    /// Everything that happened, or the runs alone.
+    @State private var everything = Demo.screen == "timeline"
 
     private var look: MapLook { MapLook(rawValue: mapLook) ?? .standard }
 
@@ -31,11 +36,12 @@ struct DayDetailView: View {
             }
         }
         .screen()
-        .navigationTitle(day?.place ?? String(localized: "Giornata"))
+        .navigationTitle(day?.title ?? String(localized: "Giornata"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
+                    Button { sharing = true } label: { Label("Condividi immagine", systemImage: "photo") }
                     if let gpx {
                         ShareLink(item: gpx) { Label("Esporta GPX", systemImage: "square.and.arrow.up") }
                     }
@@ -43,19 +49,33 @@ struct DayDetailView: View {
                         newName = day?.place ?? ""
                         renaming = true
                     } label: { Label("Rinomina", systemImage: "pencil") }
+                    Menu {
+                        ForEach(Sport.allCases) { sport in
+                            Button {
+                                library.setSport(id, to: sport)
+                            } label: {
+                                if (day?.sport ?? .ski) == sport {
+                                    Label(LocalizedStringKey(sport.label), systemImage: "checkmark")
+                                } else {
+                                    Text(LocalizedStringKey(sport.label))
+                                }
+                            }
+                        }
+                    } label: { Label("Attività", systemImage: "figure.skiing.downhill") }
                     Button(role: .destructive) { confirmDelete = true } label: { Label("Elimina", systemImage: "trash") }
                 } label: {
                     Label("Altro", systemImage: "ellipsis")
                 }
             }
         }
-        .task(id: id) { load() }
+        .task(id: id) {
+            load()
+            await library.enrich(id)
+        }
+        .onChange(of: library.saves) { _, _ in load() }
         .alert("Nome della giornata", isPresented: $renaming) {
             TextField("Località", text: $newName)
-            Button("Salva") {
-                library.rename(id, to: newName)
-                load()
-            }
+            Button("Salva") { library.rename(id, to: newName) }
             Button("Annulla", role: .cancel) {}
         }
         .confirmationDialog("Eliminare questa giornata?", isPresented: $confirmDelete, titleVisibility: .visible) {
@@ -69,18 +89,32 @@ struct DayDetailView: View {
         .navigationDestination(item: $run) { seg in
             if let day { RunDetailView(day: day, run: seg) }
         }
+        .navigationDestination(isPresented: $replaying) {
+            if let day { ReplayView(day: day) }
+        }
+        .sheet(isPresented: $sharing) {
+            if let day { ShareSheet(day: day) }
+        }
     }
 
     private func load() {
         guard let loaded = library.day(id) else {
-            missing = true
+            // Deleted from here: the screen is closing.
+            missing = day == nil
             return
         }
+        let first = day == nil
         day = loaded
         tracks = MapTrack.build(points: loaded.points, segments: loaded.segments)
         profile = ProfilePoint.make(loaded)
         gpx = try? GPX.file(loaded)
-        if Demo.screen == "run", run == nil, loaded.runs.count > 2 { run = loaded.runs[2] }
+        guard first else { return }
+        switch Demo.screen {
+        case "run": if loaded.runs.count > 2 { run = loaded.runs[2] }
+        case "replay": replaying = true
+        case "share": sharing = true
+        default: break
+        }
     }
 
     @ViewBuilder private func content(_ day: SkiDay) -> some View {
@@ -100,12 +134,34 @@ struct DayDetailView: View {
                 .padding(10)
             }
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text(Fmt.day(day.start).capitalized).font(.display(.title3)).foregroundStyle(Theme.text)
                 Text("\(Fmt.time(day.start)) – \(Fmt.time(day.end)) · \(Fmt.duration(day.stats.totalTime))")
                     .font(.caption).foregroundStyle(Theme.sub)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        Chip(symbol: (day.sport ?? .ski).symbol, text: String(localized: String.LocalizationValue((day.sport ?? .ski).label)), color: Theme.accent)
+                        if let resort = day.resort, resort != day.place {
+                            Chip(symbol: "mountain.2", text: resort, color: Theme.accent)
+                        }
+                        if let weather = day.weather {
+                            Chip(symbol: weather.symbol, text: "\(Fmt.temperature(weather.tempMin)) / \(Fmt.temperature(weather.tempMax))", color: Theme.accent)
+                            if weather.snowfall >= 0.5 {
+                                Chip(symbol: "snowflake", text: Fmt.snow(weather.snowfall), color: Theme.accent)
+                            }
+                            Chip(symbol: "wind", text: Fmt.wind(weather.windMax), color: Theme.accent)
+                        }
+                    }
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+
+            HStack(spacing: 10) {
+                Button { replaying = true } label: { Label("Rivivi", systemImage: "play.fill") }
+                    .buttonStyle(PrimaryButtonStyle())
+                Button { sharing = true } label: { Label("Condividi", systemImage: "square.and.arrow.up") }
+                    .buttonStyle(SecondaryButtonStyle())
+            }
 
             let s = day.stats
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
@@ -131,18 +187,31 @@ struct DayDetailView: View {
                 }
             }
 
-            if !day.runs.isEmpty {
-                Panel("Discese") {
-                    ForEach(day.runs) { seg in
-                        Button { run = seg } label: { RunRow(run: seg) }
-                            .buttonStyle(PressStyle())
-                        if seg.id != day.runs.last?.id { Divider().overlay(Theme.line) }
-                    }
-                }
-            } else {
+            if day.runs.isEmpty {
                 Panel {
                     Text("Nessuna discesa riconosciuta: servono almeno \(Int(Segmenter.minRunDrop)) m di dislivello in movimento.")
                         .prose().font(.subheadline).foregroundStyle(Theme.sub)
+                }
+            } else {
+                Panel {
+                    Picker("Elenco", selection: $everything) {
+                        Text("Discese").tag(false)
+                        Text("Cronologia").tag(true)
+                    }
+                    .pickerStyle(.segmented)
+                    let rows = everything ? day.segments.filter { $0.kind != .idle || $0.duration >= 180 } : day.runs
+                    ForEach(rows) { seg in
+                        switch seg.kind {
+                        case .run:
+                            Button { run = seg } label: { RunRow(run: seg) }
+                                .buttonStyle(PressStyle())
+                        case .lift:
+                            StretchRow(segment: seg)
+                        case .idle:
+                            StretchRow(segment: seg)
+                        }
+                        if seg.id != rows.last?.id { Divider().overlay(Theme.line) }
+                    }
                 }
             }
         }
@@ -169,12 +238,15 @@ struct RunRow: View {
                 .frame(width: 34, height: 34)
                 .background(Theme.runColor(run.number), in: Circle())
             VStack(alignment: .leading, spacing: 3) {
-                Text("\(Fmt.time(run.startTime)) · \(Fmt.duration(run.duration))")
-                    .font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
-                Text("\(Fmt.height(run.drop)) ↓ · \(Fmt.distance(run.distance))")
-                    .font(.caption).foregroundStyle(Theme.sub)
+                HStack(spacing: 6) {
+                    DifficultyDot(difficulty: run.difficulty)
+                    Text(run.name ?? String(localized: "Discesa \(run.number)"))
+                        .font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text).lineLimit(1)
+                }
+                Text("\(Fmt.time(run.startTime)) · \(Fmt.duration(run.duration)) · \(Fmt.height(run.drop)) ↓")
+                    .font(.caption).foregroundStyle(Theme.sub).lineLimit(1)
             }
-            Spacer()
+            Spacer(minLength: 6)
             VStack(alignment: .trailing, spacing: 2) {
                 Text(Fmt.speedValue(run.maxSpeed)).font(.display(.headline)).monospacedDigit().foregroundStyle(Theme.accent)
                 Text("max \(Fmt.speedUnit)").font(.caption2).foregroundStyle(Theme.sub)
@@ -182,6 +254,31 @@ struct RunRow: View {
             Image(systemName: "chevron.right").font(.caption.weight(.bold)).foregroundStyle(Theme.sub)
         }
         .contentShape(Rectangle())
+    }
+}
+
+/// A lift or a break in the timeline of a day.
+struct StretchRow: View {
+    let segment: Segment
+
+    var body: some View {
+        let lift = segment.kind == .lift
+        let title: String = lift ? (segment.name ?? String(localized: "Risalita \(segment.number)")) : String(localized: "Sosta")
+        let when = "\(Fmt.time(segment.startTime)) · \(Fmt.duration(segment.duration))"
+        let detail: String = lift ? "\(when) · \(Fmt.height(segment.gain)) ↑" : when
+        HStack(spacing: 12) {
+            Image(systemName: lift ? "cablecar" : "cup.and.saucer")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(lift ? Theme.lift : Theme.sub)
+                .frame(width: 34, height: 34)
+                .iconBox(lift ? Theme.lift : Theme.sub)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text).lineLimit(1)
+                Text(detail).font(.caption).foregroundStyle(Theme.sub).lineLimit(1)
+            }
+            Spacer()
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 

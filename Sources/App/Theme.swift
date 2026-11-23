@@ -30,6 +30,33 @@ enum Theme {
     static let runColors: [Color] = [c(0x5ccfff), c(0xff8a4c), c(0x34d399), c(0xf472b6), c(0xfbbf24), c(0xa78bfa), c(0x22d3ee), c(0xfb7185)]
     static func runColor(_ number: Int) -> Color { runColors[max(0, number - 1) % runColors.count] }
 
+    /// The color of a piste on the signs: green, blue, red, black; yellow off piste.
+    static func difficultyColor(_ difficulty: String?) -> Color? {
+        switch difficulty {
+        case "novice": c(0x34d399)
+        case "easy": c(0x4f9dff)
+        case "intermediate": c(0xf2555a)
+        case "advanced", "expert": c(0x0a0d12)
+        case "freeride", "extreme": c(0xfbbf24)
+        default: nil
+        }
+    }
+
+    static func difficultyLabel(_ difficulty: String?) -> String? {
+        switch difficulty {
+        case "novice": "Principianti"
+        case "easy": "Facile"
+        case "intermediate": "Media"
+        case "advanced": "Difficile"
+        case "expert": "Esperti"
+        case "freeride", "extreme": "Fuoripista"
+        default: nil
+        }
+    }
+
+    /// From slow to fast, for the speed drawn along a run.
+    static let speedColors: [Color] = [c(0x4f9dff), c(0x34d399), c(0xfbbf24), c(0xff8a4c), c(0xf2555a)]
+
     static let round = RoundedRectangle(cornerRadius: 22, style: .continuous)
     static let roundSmall = RoundedRectangle(cornerRadius: 13, style: .continuous)
 

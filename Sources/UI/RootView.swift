@@ -1,7 +1,7 @@
 import MapKit
 import SwiftUI
 
-/// Three tabs: the day under way, the days saved, the settings.
+/// Four tabs: the day under way, the days saved, the numbers and the settings.
 struct RootView: View {
     @AppStorage(Prefs.units) private var units = Units.metric.rawValue
     @State private var tab = Demo.tab
@@ -14,9 +14,12 @@ struct RootView: View {
             DaysView()
                 .tabItem { Label("Giornate", systemImage: "calendar") }
                 .tag(1)
+            StatsView()
+                .tabItem { Label("Statistiche", systemImage: "chart.bar.xaxis") }
+                .tag(2)
             SettingsView()
                 .tabItem { Label("Impostazioni", systemImage: "gearshape") }
-                .tag(2)
+                .tag(3)
         }
         // Every number again in the new units.
         .id(units)
@@ -31,6 +34,8 @@ struct TrackMapContent: MapContent {
     /// The one run to show, the others faded.
     var highlight: Int?
     var colorful = true
+    /// Everything faded, under something else drawn on top.
+    var dimmed = false
 
     var body: some MapContent {
         ForEach(tracks) { track in
@@ -46,6 +51,7 @@ struct TrackMapContent: MapContent {
         case .lift: base = Theme.lift
         case .idle: base = Theme.sub
         }
+        if dimmed { return base.opacity(0.25) }
         if let highlight, highlight != track.id { return base.opacity(0.25) }
         return base
     }
@@ -75,5 +81,38 @@ struct MapButton: View {
         }
         .buttonStyle(PressStyle())
         .accessibilityLabel(Text(LocalizedStringKey(label)))
+    }
+}
+
+/// The color of a piste as on the signs, with its name for VoiceOver.
+struct DifficultyDot: View {
+    let difficulty: String?
+    var size: CGFloat = 10
+
+    var body: some View {
+        if let color = Theme.difficultyColor(difficulty), let label = Theme.difficultyLabel(difficulty) {
+            Circle().fill(color)
+                .overlay(Circle().strokeBorder(Color.white.opacity(0.75), lineWidth: 1))
+                .frame(width: size, height: size)
+                .accessibilityLabel(Text(LocalizedStringKey(label)))
+        }
+    }
+}
+
+/// A small pill with a symbol and a few words.
+struct Chip: View {
+    let symbol: String
+    let text: String
+    var color: Color = Theme.sub
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Image(systemName: symbol).font(.caption2.weight(.semibold)).foregroundStyle(color)
+            Text(text).font(.caption).foregroundStyle(Theme.text)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(Theme.input, in: Capsule())
+        .overlay(Capsule().strokeBorder(Theme.line, lineWidth: 1))
     }
 }

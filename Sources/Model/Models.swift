@@ -48,12 +48,84 @@ struct Segment: Codable, Hashable, Identifiable {
     var bottomAlt: Double
     /// Its place among the runs, or among the lifts, from 1; 0 for the idle stretches.
     var number: Int
+    /// The piste or the lift it was on, from OpenStreetMap; nil when not known.
+    var name: String? = nil
+    /// The `piste:difficulty` of OpenStreetMap: novice, easy, intermediate, advanced, expert, freeride.
+    var difficulty: String? = nil
 
     var id: Int { start }
     var duration: TimeInterval { endTime.timeIntervalSince(startTime) }
     /// The mean steepness, as a percentage: meters down per 100 meters across (`distance` is
     /// measured on the map, flat).
     var slope: Double { distance > 1 ? drop / distance * 100 : 0 }
+}
+
+/// What was on the feet.
+enum Sport: String, Codable, CaseIterable, Identifiable {
+    case ski, snowboard, telemark, sled
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .ski: "Sci"
+        case .snowboard: "Snowboard"
+        case .telemark: "Telemark"
+        case .sled: "Slittino"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .ski, .telemark: "figure.skiing.downhill"
+        case .snowboard: "figure.snowboarding"
+        case .sled: "snowflake"
+        }
+    }
+
+    /// The one chosen in Settings, given to the days as they are saved.
+    static var current: Sport {
+        Sport(rawValue: UserDefaults.standard.string(forKey: Prefs.sport) ?? "") ?? .ski
+    }
+}
+
+/// The weather of a day at the resort, from Open-Meteo.
+struct DayWeather: Codable, Hashable {
+    /// °C, the coldest and the warmest hour of the day on the snow.
+    var tempMin: Double
+    var tempMax: Double
+    /// Centimeters of snow fallen in the 24 hours up to the end of the day.
+    var snowfall: Double
+    /// km/h, the windiest hour.
+    var windMax: Double
+    /// The WMO code of the sky for most of the day.
+    var code: Int
+
+    var symbol: String {
+        switch code {
+        case 0: "sun.max"
+        case 1, 2: "cloud.sun"
+        case 3: "cloud"
+        case 45, 48: "cloud.fog"
+        case 51...67, 80...82: "cloud.rain"
+        case 71...77, 85, 86: "cloud.snow"
+        case 95...99: "cloud.bolt"
+        default: "cloud"
+        }
+    }
+
+    var label: String {
+        switch code {
+        case 0: "Sereno"
+        case 1, 2: "Poco nuvoloso"
+        case 3: "Coperto"
+        case 45, 48: "Nebbia"
+        case 51...67, 80...82: "Pioggia"
+        case 71...77, 85, 86: "Neve"
+        case 95...99: "Temporale"
+        default: "Nuvoloso"
+        }
+    }
 }
 
 /// The numbers of a day.
@@ -82,14 +154,20 @@ struct SkiDay: Codable, Identifiable {
     var id: UUID
     var start: Date
     var end: Date
-    /// Where it was: the resort or the town, from the map; nil until it is known.
+    /// Where it was: the town, from the map, or the name given by hand; nil until it is known.
     var place: String?
     var points: [TrackPoint]
     var segments: [Segment]
     var stats: DayStats
+    var sport: Sport?
+    /// The ski area, from OpenStreetMap.
+    var resort: String?
+    var weather: DayWeather?
+    /// The pistes and lifts of OpenStreetMap were looked up (whether or not any was found).
+    var mapped: Bool?
 
     /// A day made of the points recorded: cleaned up, then cut into runs and lifts.
-    init(id: UUID = UUID(), points raw: [TrackPoint], place: String? = nil) {
+    init(id: UUID = UUID(), points raw: [TrackPoint], place: String? = nil, sport: Sport? = nil) {
         let points = Segmenter.clean(raw)
         let result = Segmenter.analyze(points)
         self.id = id
@@ -99,10 +177,15 @@ struct SkiDay: Codable, Identifiable {
         self.place = place
         self.segments = result.segments
         self.stats = result.stats
+        self.sport = sport
     }
 
     var runs: [Segment] { segments.filter { $0.kind == .run } }
-    var summary: DaySummary { DaySummary(id: id, start: start, end: end, place: place, stats: stats) }
+    /// The name given by hand or the town; the ski area when there is neither.
+    var title: String? { place ?? resort }
+    var summary: DaySummary {
+        DaySummary(id: id, start: start, end: end, place: place, stats: stats, sport: sport, resort: resort)
+    }
 }
 
 /// What the list of days shows, without the points: kept all together in one small file.
@@ -112,8 +195,11 @@ struct DaySummary: Codable, Identifiable, Hashable {
     var end: Date
     var place: String?
     var stats: DayStats
+    var sport: Sport?
+    var resort: String?
 
     var season: Season { Season(start) }
+    var title: String? { place ?? resort }
 }
 
 /// A winter, from July to June: "2026/27".
@@ -144,5 +230,15 @@ enum Geo {
         let dla = la2 - la1, dlo = (lon2 - lon1) * .pi / 180
         let h = sin(dla / 2) * sin(dla / 2) + cos(la1) * cos(la2) * sin(dlo / 2) * sin(dlo / 2)
         return 2 * r * asin(min(1, sqrt(h)))
+    }
+
+    /// The compass direction from one point to another, in degrees.
+    static func bearing(from a: TrackPoint, to b: TrackPoint) -> Double {
+        let la1 = a.lat * .pi / 180, la2 = b.lat * .pi / 180
+        let dlo = (b.lon - a.lon) * .pi / 180
+        let y = sin(dlo) * cos(la2)
+        let x = cos(la1) * sin(la2) - sin(la1) * cos(la2) * cos(dlo)
+        let deg = atan2(y, x) * 180 / .pi
+        return deg < 0 ? deg + 360 : deg
     }
 }

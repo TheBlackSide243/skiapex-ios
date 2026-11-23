@@ -2,30 +2,56 @@ import Charts
 import MapKit
 import SwiftUI
 
-/// One run: where it went on the map, its numbers, and the speed from top to bottom.
+/// One run: where it went on the map, drawn in the colors of its speed, its numbers, and the
+/// speed and the altitude from top to bottom.
 struct RunDetailView: View {
     let day: SkiDay
     let run: Segment
     @AppStorage(Prefs.mapLook) private var mapLook = MapLook.standard.rawValue
     @State private var tracks: [MapTrack] = []
+    @State private var chunks: [SpeedChunk] = []
     @State private var profile: [ProfilePoint] = []
 
     private var look: MapLook { MapLook(rawValue: mapLook) ?? .standard }
+    private var title: String { run.name ?? String(localized: "Discesa \(run.number)") }
 
     var body: some View {
         ScrollView {
             VStack(spacing: 14) {
-                Map(initialPosition: region) {
-                    TrackMapContent(tracks: tracks, highlight: run.id)
+                VStack(spacing: 10) {
+                    Map(initialPosition: region) {
+                        TrackMapContent(tracks: tracks, dimmed: true)
+                        ForEach(chunks) { chunk in
+                            MapPolyline(coordinates: chunk.coordinates)
+                                .stroke(Theme.speedColors[chunk.bucket], style: StrokeStyle(lineWidth: 6, lineCap: .round, lineJoin: .round))
+                        }
+                    }
+                    .mapStyle(look.style)
+                    .frame(height: 300)
+                    .clipShape(Theme.round)
+                    .overlay(Theme.round.strokeBorder(Theme.line, lineWidth: 1))
+                    HStack(spacing: 8) {
+                        Text("Lento").font(.caption2).foregroundStyle(Theme.sub)
+                        LinearGradient(colors: Theme.speedColors, startPoint: .leading, endPoint: .trailing)
+                            .frame(height: 6)
+                            .clipShape(Capsule())
+                        Text(Fmt.speed(run.maxSpeed)).font(.caption2).foregroundStyle(Theme.sub)
+                    }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(Text("Colori della velocità, da lento a veloce"))
                 }
-                .mapStyle(look.style)
-                .frame(height: 300)
-                .clipShape(Theme.round)
-                .overlay(Theme.round.strokeBorder(Theme.line, lineWidth: 1))
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Discesa \(run.number)").font(.display(.title3)).foregroundStyle(Theme.text)
-                    Text("\(Fmt.time(run.startTime)) – \(Fmt.time(run.endTime))").font(.caption).foregroundStyle(Theme.sub)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(title).font(.display(.title3)).foregroundStyle(Theme.text)
+                    HStack(spacing: 8) {
+                        Text("\(Fmt.time(run.startTime)) – \(Fmt.time(run.endTime))").font(.caption).foregroundStyle(Theme.sub)
+                        if let label = Theme.difficultyLabel(run.difficulty) {
+                            HStack(spacing: 5) {
+                                DifficultyDot(difficulty: run.difficulty)
+                                Text(LocalizedStringKey(label)).font(.caption).foregroundStyle(Theme.text)
+                            }
+                        }
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -54,10 +80,11 @@ struct RunDetailView: View {
             .padding(16)
         }
         .screen()
-        .navigationTitle("Discesa \(run.number)")
+        .navigationTitle(String(localized: "Discesa \(run.number)"))
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            tracks = MapTrack.build(points: day.points, segments: day.segments)
+            tracks = MapTrack.build(points: day.points, segments: day.segments).filter { $0.id != run.id }
+            chunks = SpeedChunk.make(day.points[run.start...run.end], top: run.maxSpeed)
             profile = ProfilePoint.make(day, in: run.start...run.end, maxPoints: 300)
         }
     }
@@ -70,6 +97,39 @@ struct RunDetailView: View {
         let center = CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2, longitude: (minLon + maxLon) / 2)
         let span = MKCoordinateSpan(latitudeDelta: max(0.004, (maxLat - minLat) * 1.4), longitudeDelta: max(0.004, (maxLon - minLon) * 1.4))
         return .region(MKCoordinateRegion(center: center, span: span))
+    }
+}
+
+/// A piece of a run skied at about the same speed: one line on the map, in the color of that speed.
+struct SpeedChunk: Identifiable {
+    let id: Int
+    /// From 0, the slowest fifth of the run's top speed, to 4.
+    let bucket: Int
+    let coordinates: [CLLocationCoordinate2D]
+
+    static func make(_ points: ArraySlice<TrackPoint>, top: Double) -> [SpeedChunk] {
+        guard points.count > 1, top > 0 else { return [] }
+        let step = max(1, points.count / 400)
+        let count = Theme.speedColors.count
+        var out: [SpeedChunk] = []
+        var current: [CLLocationCoordinate2D] = []
+        var bucket = -1
+        var i = points.startIndex
+        while i < points.endIndex {
+            let p = points[i]
+            let b = min(count - 1, max(0, Int(max(0, p.speed) / top * Double(count))))
+            if b != bucket, !current.isEmpty {
+                // The pieces share a point, so that the line has no holes.
+                current.append(p.coordinate)
+                out.append(SpeedChunk(id: out.count, bucket: bucket, coordinates: current))
+                current = []
+            }
+            bucket = b
+            current.append(p.coordinate)
+            i += step
+        }
+        if current.count > 1 { out.append(SpeedChunk(id: out.count, bucket: bucket, coordinates: current)) }
+        return out
     }
 }
 

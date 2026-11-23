@@ -46,10 +46,14 @@ enum Prefs {
     static let units = "units"
     /// `MapLook.rawValue`.
     static let mapLook = "mapLook"
+    /// `Sport.rawValue`: what new days are saved as.
+    static let sport = "sport"
+    /// Ask OpenStreetMap and Open-Meteo for the names of the pistes and the weather. On unless set off.
+    static let online = "online"
 }
 
 /// Launched with `-demo`: made-up days and a day under way, for the screenshots. `-screen <name>`
-/// opens one screen: ready, live, days, day, run, settings, empty.
+/// opens one screen: ready, live, days, day, timeline, run, replay, share, stats, settings, empty.
 enum Demo {
     static let isOn = ProcessInfo.processInfo.arguments.contains("-demo")
 
@@ -62,8 +66,9 @@ enum Demo {
     /// The tab the screen asked for is in.
     static var tab: Int {
         switch screen {
-        case "days", "day", "run", "empty": 1
-        case "settings": 2
+        case "days", "day", "timeline", "run", "replay", "share", "empty": 1
+        case "stats": 2
+        case "settings": 3
         default: 0
         }
     }
@@ -78,9 +83,31 @@ enum Demo {
             let morning = Calendar.current.date(bySettingHour: 9, minute: 5, second: 0, of: Date()) ?? Date()
             let start = Calendar.current.date(byAdding: .day, value: -(i * 9 + 2), to: morning) ?? morning
             let points = SkiSim.day(laps: 7 + i * 2, start: start, seed: UInt64(11 + i))
-            try? library.save(SkiDay(points: points, place: place))
+            var day = SkiDay(points: points, place: place, sport: i == 1 ? .snowboard : .ski)
+            name(&day)
+            day.weather = DayWeather(tempMin: -8 + Double(i), tempMax: -2 + Double(i), snowfall: i == 0 ? 12 : 0,
+                                     windMax: 14 + Double(i * 9), code: i == 0 ? 71 : i == 1 ? 0 : 2)
+            day.mapped = true
+            try? library.save(day)
         }
         return library
+    }
+
+    /// Made-up names for the pistes and the lift, as OpenStreetMap would give them.
+    private static func name(_ day: inout SkiDay) {
+        let pistes = [("Pista del Sole", "easy"), ("Gran Bosco", "intermediate"), ("Canalone", "advanced")]
+        for i in day.segments.indices {
+            switch day.segments[i].kind {
+            case .run:
+                let piste = pistes[(day.segments[i].number - 1) % pistes.count]
+                day.segments[i].name = piste.0
+                day.segments[i].difficulty = piste.1
+            case .lift:
+                day.segments[i].name = "Seggiovia Cima Bianca"
+            case .idle:
+                break
+            }
+        }
     }
 
     /// A day under way, stopped in the middle of its last run as if it were now; nothing yet for

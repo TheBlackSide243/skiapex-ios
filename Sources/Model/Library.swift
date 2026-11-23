@@ -6,6 +6,10 @@ import Observation
 /// for the list. The folder is visible in the Files app.
 @Observable final class Library {
     private(set) var days: [DaySummary] = []
+    /// Goes up at every save: an open day reads itself again when it changes.
+    private(set) var saves = 0
+    /// The days being looked up on the internet right now.
+    @ObservationIgnored private var enriching: Set<UUID> = []
     private let dir: URL
     private var index: URL { dir.appendingPathComponent("indice.json") }
 
@@ -41,12 +45,61 @@ import Observation
         days.append(day.summary)
         days.sort { $0.start > $1.start }
         writeIndex()
+        saves += 1
+    }
+
+    func setSport(_ id: UUID, to sport: Sport) {
+        guard var day = day(id) else { return }
+        day.sport = sport
+        try? save(day)
+    }
+
+    /// A day out of a GPX file, from this app or from another one.
+    @discardableResult func importGPX(_ url: URL) throws -> UUID {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        let points = GPXImport.points(from: try Data(contentsOf: url))
+        guard points.count >= 10 else { throw ImportError.empty }
+        let day = SkiDay(points: points, sport: Sport.current)
+        if days.contains(where: { abs($0.start.timeIntervalSince(day.start)) < 2 && abs($0.end.timeIntervalSince(day.end)) < 2 }) {
+            throw ImportError.duplicate
+        }
+        try save(day)
+        return day.id
+    }
+
+    /// What the internet knows about a day and the app does not yet: the town, the names of the
+    /// pistes and of the lifts (OpenStreetMap), the weather (Open-Meteo). Each is asked once; what
+    /// fails is asked again the next time the day is opened. Nothing is asked when "Nomi delle
+    /// piste e meteo" is off in Settings.
+    @MainActor func enrich(_ id: UUID) async {
+        let allowed = UserDefaults.standard.object(forKey: Prefs.online) as? Bool ?? true
+        guard allowed, !Demo.isOn, !enriching.contains(id), let before = day(id) else { return }
+        guard before.place == nil || before.mapped != true || before.weather == nil else { return }
+        enriching.insert(id)
+        defer { enriching.remove(id) }
+        var place: String?
+        var map: ResortMap?
+        var weather: DayWeather?
+        if before.place == nil { place = await Places.name(for: before) }
+        if before.mapped != true { map = try? await Pistes.fetch(around: before.points) }
+        if before.weather == nil { weather = try? await Weather.fetch(for: before) }
+        // Read again: it may have been renamed, or deleted, in the meantime.
+        guard var day = day(id), place != nil || map != nil || weather != nil else { return }
+        if day.place == nil, let place { day.place = place }
+        if let map {
+            Pistes.apply(map, to: &day)
+            day.mapped = true
+        }
+        if day.weather == nil, let weather { day.weather = weather }
+        try? save(day)
     }
 
     func delete(_ id: UUID) {
         try? FileManager.default.removeItem(at: file(id))
         days.removeAll { $0.id == id }
         writeIndex()
+        saves += 1
     }
 
     func rename(_ id: UUID, to place: String) {
@@ -124,7 +177,7 @@ enum GPX {
 
     static func title(_ day: SkiDay) -> String {
         let date = day.start.formatted(date: .abbreviated, time: .omitted)
-        if let place = day.place { return "\(place) · \(date)" }
+        if let place = day.title { return "\(place) · \(date)" }
         return date
     }
 

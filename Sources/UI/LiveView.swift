@@ -165,7 +165,7 @@ struct LiveView: View {
             LiveCell(value: "\(s.runs)", label: "Discese")
             LiveCell(value: Fmt.height(s.vertical), label: "Dislivello")
             LiveCell(value: Fmt.speedValue(s.maxSpeed), label: "Max \(Fmt.speedUnit)")
-            LiveCell(value: Fmt.distance(s.runDistance), label: "Sci")
+            LiveCell(value: Fmt.distance(s.runDistance), label: "Sciati")
             LiveCell(value: "\(s.lifts)", label: "Risalite")
             LiveCell(value: Fmt.height(s.topAlt), label: "Quota max")
         }
@@ -207,8 +207,8 @@ struct LiveView: View {
             error = String(localized: "Troppo pochi punti GPS: non c'è niente da salvare.")
             return
         }
-        var day = SkiDay(points: points)
-        day.place = await Places.name(for: day)
+        // The town, the names of the pistes and the weather come when the day is opened.
+        let day = SkiDay(points: points, sport: Sport.current)
         do {
             try library.save(day)
             recorder.forget()
