@@ -23,17 +23,20 @@ struct LookPanel: View {
             .sensoryFeedback(.selection, trigger: current)
             if UIApplication.shared.supportsAlternateIcons {
                 Divider().overlay(Theme.line)
+                let now = IconArt.parse(icon)
                 Text("Icona dell'app").font(.caption.weight(.semibold)).foregroundStyle(Theme.sub)
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(Look.allCases) { look in
-                            Button { setIcon(look) } label: { IconChoice(look: look, chosen: look.iconName == icon) }
-                                .buttonStyle(PressStyle())
-                                .accessibilityLabel(Text(LocalizedStringKey(look.label)))
-                                .accessibilityAddTraits(look.iconName == icon ? .isSelected : [])
+                // The four drawings, then the first of them in the other colors: all in sight.
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 68), spacing: 10, alignment: .top)], spacing: 12) {
+                    ForEach(Array(IconArt.choices.enumerated()), id: \.offset) { _, choice in
+                        let chosen = choice.art == now.art && choice.look == now.look
+                        let label = IconArt.label(choice.art, choice.look)
+                        Button { setIcon(choice.art.iconName(choice.look)) } label: {
+                            IconChoice(picture: choice.art.preview(choice.look), label: label, chosen: chosen)
                         }
+                        .buttonStyle(PressStyle())
+                        .accessibilityLabel(Text(LocalizedStringKey(label)))
+                        .accessibilityAddTraits(chosen ? .isSelected : [])
                     }
-                    .padding(.vertical, 2)
                 }
                 Text("L'icona cambia sulla schermata Home: iOS te lo conferma con un avviso.")
                     .prose().font(.caption).foregroundStyle(Theme.sub)
@@ -42,12 +45,12 @@ struct LookPanel: View {
         }
     }
 
-    private func setIcon(_ look: Look) {
-        guard look.iconName != icon else { return }
+    private func setIcon(_ name: String?) {
+        guard name != icon else { return }
         Task { @MainActor in
             do {
-                try await UIApplication.shared.setAlternateIconName(look.iconName)
-                icon = look.iconName
+                try await UIApplication.shared.setAlternateIconName(name)
+                icon = name
             } catch {
                 self.error = error.localizedDescription
             }
@@ -90,21 +93,22 @@ private struct LookSwatch: View {
     }
 }
 
-/// An icon of the app to choose, with the name of its look.
+/// An icon of the app to choose, with the name of its drawing or of its colors.
 private struct IconChoice: View {
-    let look: Look
+    let picture: String
+    let label: String
     let chosen: Bool
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
         VStack(spacing: 6) {
-            Image(look.iconPreview)
+            Image(picture)
                 .resizable()
                 .frame(width: 62, height: 62)
                 .clipShape(shape)
                 .overlay(shape.strokeBorder(chosen ? Theme.accent : Theme.line, lineWidth: chosen ? 2.5 : 1))
-            Text(LocalizedStringKey(look.label)).font(.caption2.weight(chosen ? .semibold : .regular))
-                .foregroundStyle(chosen ? Theme.text : Theme.sub).lineLimit(1)
+            Text(LocalizedStringKey(label)).font(.caption2.weight(chosen ? .semibold : .regular))
+                .foregroundStyle(chosen ? Theme.text : Theme.sub).lineLimit(1).minimumScaleFactor(0.75)
         }
     }
 }

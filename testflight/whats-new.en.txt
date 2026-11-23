@@ -1,4 +1,5 @@
-Ski Apex 0.6.1
+Ski Apex 0.6.2
+- A new icon: ski goggles with the peak in their lens. In Settings, Look, choose among four drawings, and the first in the other colors too.
 - On the iPhones with the clock and the battery on the right edge of the screen the buttons go in that band: no more empty space on the right.
 - At the bottom of every screen there is room to scroll clear of the round button.
 - Skiing, snowboarding, telemark and sled are all in sight, with no scrolling.
