@@ -66,7 +66,7 @@ struct SeasonCard: View {
             }
             if let best = recap.best, best.stats.vertical > 0 {
                 Spacer(minLength: 14)
-                Text("LA GIORNATA PIÙ LUNGA").font(.system(size: 10, weight: .bold, design: .monospaced)).tracking(1).foregroundStyle(Theme.sub)
+                Text("LA GIORNATA MIGLIORE").font(.system(size: 10, weight: .bold, design: .monospaced)).tracking(1).foregroundStyle(Theme.sub)
                 Text("\(best.title ?? Fmt.dayShort(best.start)) · \(Fmt.height(best.stats.vertical))")
                     .font(.system(size: 15, weight: .semibold, design: .monospaced)).foregroundStyle(Theme.text)
                     .lineLimit(1).minimumScaleFactor(0.6)
