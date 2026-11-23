@@ -161,14 +161,15 @@ struct LiveView: View {
     private var sportPicker: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Cosa fai oggi?").font(.headline).foregroundStyle(Theme.text)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(Sport.allCases) { one in
-                        Button { sport = one.rawValue } label: {
-                            ChoicePill(title: one.label, symbol: one.symbol, on: sport == one.rawValue)
-                        }
-                        .buttonStyle(PressStyle())
+            // All of them in sight, on as many lines as it takes: none is found by scrolling.
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 8, alignment: .leading)], alignment: .leading, spacing: 8) {
+                ForEach(Sport.allCases) { one in
+                    Button { sport = one.rawValue } label: {
+                        ChoicePill(title: one.label, symbol: one.symbol, on: sport == one.rawValue)
+                            .frame(maxWidth: .infinity)
+                            .background(sport == one.rawValue ? Theme.accent : Theme.accent.opacity(0.18), in: Capsule())
                     }
+                    .buttonStyle(PressStyle())
                 }
             }
             .sensoryFeedback(.selection, trigger: sport)

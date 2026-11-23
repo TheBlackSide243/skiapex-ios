@@ -240,16 +240,22 @@ extension View {
 
 private struct Screen: ViewModifier {
     @Environment(\.railInset) private var rail
+    @Environment(\.railFoot) private var foot
 
     func body(content: Content) -> some View {
         content
             .scrollContentBackground(.hidden)
             .contentMargins(.trailing, rail, for: .scrollContent)
+            .contentMargins(.bottom, foot, for: .scrollContent)
             .background(Ground())
     }
 }
 
 private struct RailInsetKey: EnvironmentKey {
+    static let defaultValue: CGFloat = 0
+}
+
+private struct RailFootKey: EnvironmentKey {
     static let defaultValue: CGFloat = 0
 }
 
@@ -259,6 +265,12 @@ extension EnvironmentValues {
         get { self[RailInsetKey.self] }
         set { self[RailInsetKey.self] = newValue }
     }
+
+    /// How much room a screen leaves under its last thing, to scroll it clear of the round button.
+    var railFoot: CGFloat {
+        get { self[RailFootKey.self] }
+        set { self[RailFootKey.self] = newValue }
+    }
 }
 
 /// The whole app in its look. Every sheet opened over a screen wears it, and has no buttons on
@@ -267,6 +279,7 @@ struct Dressed: ViewModifier {
     func body(content: Content) -> some View {
         content
             .environment(\.railInset, 0)
+            .environment(\.railFoot, 0)
             .tint(Theme.accent)
             .preferredColorScheme(Theme.dark ? .dark : .light)
     }

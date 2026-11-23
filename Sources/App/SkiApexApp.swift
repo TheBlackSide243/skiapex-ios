@@ -89,6 +89,14 @@ enum Demo {
         return args[i + 1]
     }()
 
+    /// `-band <points>`: a band kept free on the right edge of the sheet, as on the iPhones whose
+    /// screen has the clock and the battery there, to see the screens as they are on those.
+    static let band: CGFloat = {
+        let args = ProcessInfo.processInfo.arguments
+        guard isOn, let i = args.firstIndex(of: "-band"), i + 1 < args.count, let points = Double(args[i + 1]) else { return 0 }
+        return CGFloat(max(0, min(120, points)))
+    }()
+
     /// The tab the screen asked for is in.
     static var tab: Int {
         switch screen {
