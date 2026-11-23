@@ -56,8 +56,8 @@ struct Terrain {
         var terrain = Terrain()
         terrain.ways = try Pistes.parse(data).ways.filter { $0.lats.count >= 2 }
         terrain.huts = parseHuts(data, near: terrain.ways)
-        if let altitudes = try? await altitudes(ofEndsOf: terrain.ways) {
-            apply(altitudes, to: &terrain.ways)
+        if let heights = try? await altitudes(ofEndsOf: terrain.ways) {
+            apply(heights, to: &terrain.ways)
         }
         return terrain
     }

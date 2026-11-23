@@ -248,8 +248,8 @@ final class RouteGraph {
                 // The whole line of the lift, from the end it was taken at.
                 let last = way.lats.count - 1
                 let up = hypot(way.lats[last] - lat[v], way.lons[last] - lon[v]) <= hypot(way.lats[0] - lat[v], way.lons[0] - lon[v])
-                route.lats += up ? way.lats : way.lats.reversed()
-                route.lons += up ? way.lons : way.lons.reversed()
+                route.lats += up ? way.lats : Array(way.lats.reversed())
+                route.lons += up ? way.lons : Array(way.lons.reversed())
             } else {
                 route.lats.append(lat[v])
                 route.lons.append(lon[v])

@@ -44,11 +44,11 @@ struct ExploreView: View {
     }
 
     var body: some View {
-        let lines = lines()
+        let drawn = lines()
         ZStack(alignment: .bottom) {
             MapReader { proxy in
                 Map(position: $camera) {
-                    ForEach(lines) { line in
+                    ForEach(drawn) { line in
                         MapPolyline(coordinates: line.coordinates).stroke(line.color, style: line.style)
                     }
                     if showHuts, let terrain {
