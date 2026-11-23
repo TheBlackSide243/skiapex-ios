@@ -26,9 +26,24 @@ struct RootView: View {
                 .tabItem { Label("Impostazioni", systemImage: "gearshape") }
                 .tag(4)
         }
-        // Every number again in the new units.
-        .id(units)
+        // Every number again in the new units, every color again in the new look.
+        .id(units + Looks.shared.look.rawValue)
         .sensoryFeedback(.selection, trigger: tab)
+        .onOpenURL { url in
+            guard url.scheme == "skiapex" else { return }
+            switch url.host {
+            case "friend":
+                // skiapex://friend/<code>: an invitation, from the page of its link.
+                if let code = url.pathComponents.last, code.count == 8 { social.pendingCode = code.uppercased() }
+            case "record":
+                // From the widget: ready to start.
+                tab = 0
+            case "guide":
+                tab = 2
+            default:
+                break
+            }
+        }
         // An invitation opened from its link goes to the friends.
         .onChange(of: social.pendingCode) { _, code in
             if code != nil { tab = 3 }

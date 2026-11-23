@@ -42,12 +42,6 @@ struct SkiApexApp: App {
                 .environment(recorder)
                 .environment(Shared.guide)
                 .environment(Shared.social)
-                .onOpenURL { url in
-                    // skiapex://friend/<code>: an invitation, from the page of its link.
-                    if url.scheme == "skiapex", url.host == "friend", let code = url.pathComponents.last, code.count == 8 {
-                        Shared.social.pendingCode = code.uppercased()
-                    }
-                }
                 .onChange(of: phase) { _, now in
                     recorder.setActive(now == .active)
                 }
@@ -72,6 +66,8 @@ enum Prefs {
     static let shareLive = "shareLive"
     /// Say when a friend who shares is close. On unless set off.
     static let nearAlerts = "nearAlerts"
+    /// `Look.rawValue`: the colors of the app.
+    static let theme = "theme"
 }
 
 /// Launched with `-demo`: made-up days and a day under way, for the screenshots. `-screen <name>`

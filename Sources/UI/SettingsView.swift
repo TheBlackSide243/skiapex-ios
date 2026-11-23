@@ -26,6 +26,7 @@ struct SettingsView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 14) {
+                    LookPanel()
                     Panel("Attività") {
                         Picker("Attività", selection: $sport) {
                             ForEach(Sport.allCases) { Text(LocalizedStringKey($0.label)).tag($0.rawValue) }
@@ -104,6 +105,7 @@ struct SettingsView: View {
                             .prose().font(.subheadline).foregroundStyle(Theme.sub)
                             .fixedSize(horizontal: false, vertical: true)
                     }
+                    Group {
                     Panel("Prova") {
                         Text("Una giornata inventata, con risalite e discese, per vedere l'app senza andare sulla neve.")
                             .prose().font(.subheadline).foregroundStyle(Theme.sub)
@@ -134,6 +136,7 @@ struct SettingsView: View {
                         Text("Nomi di piste e impianti: © i contributori di OpenStreetMap (ODbL). Meteo: Open-Meteo.com.")
                             .prose().font(.caption).foregroundStyle(Theme.sub)
                             .fixedSize(horizontal: false, vertical: true)
+                    }
                     }
                 }
                 .padding(16)

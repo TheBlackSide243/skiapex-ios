@@ -26,8 +26,9 @@ jobs:
       - name: Tools
         run: brew install xcodegen librsvg
 
-      - name: App icon
-        run: rsvg-convert -w 1024 -h 1024 -b '#08111E' icon.svg -o Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png
+      # The icon of the app and the ones to choose from in Settings, without an alpha channel.
+      - name: App icons
+        run: python3 scripts/icons.py
 
       - name: Xcode project
         run: xcodegen generate

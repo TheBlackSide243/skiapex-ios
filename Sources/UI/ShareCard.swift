@@ -58,7 +58,7 @@ struct ShareCard: View {
         .padding(22)
         .frame(width: Self.size.width, height: Self.size.height)
         .background(
-            LinearGradient(colors: [Color(red: 0.10, green: 0.19, blue: 0.33), Theme.bg, Theme.deep],
+            LinearGradient(colors: [Theme.sky, Theme.bg, Theme.deep],
                            startPoint: .top, endPoint: .bottom)
         )
     }
@@ -166,7 +166,7 @@ struct ShareSheet: View {
 
     @MainActor private func render() {
         let tracks = MapTrack.build(points: day.points, segments: day.segments, maxPoints: 200)
-        let renderer = ImageRenderer(content: ShareCard(day: day, tracks: tracks).environment(\.colorScheme, .dark))
+        let renderer = ImageRenderer(content: ShareCard(day: day, tracks: tracks).environment(\.colorScheme, Theme.dark ? .dark : .light))
         renderer.scale = 3
         guard let made = renderer.uiImage, let data = made.pngData() else { return }
         image = made

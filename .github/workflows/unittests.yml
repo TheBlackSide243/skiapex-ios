@@ -23,7 +23,11 @@ jobs:
           xcodebuild -version
 
       - name: Tools
-        run: brew install xcodegen
+        run: brew install xcodegen librsvg
+
+      # The icon of the app and the ones to choose from in Settings, without an alpha channel.
+      - name: App icons
+        run: python3 scripts/icons.py
 
       - name: Xcode project
         run: xcodegen generate

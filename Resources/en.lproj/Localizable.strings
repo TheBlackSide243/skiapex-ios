@@ -335,3 +335,14 @@
 "È a %@ da te." = "%@ away from you.";
 "%@ sta sciando nella tua zona" = "%@ is skiing in your area";
 "È a %@ da te: lo trovi sulla mappa." = "%@ away from you: find them on the map.";
+
+/* 0.4.0: looks and icons */
+"Aspetto" = "Look";
+"Tema" = "Theme";
+"Icona dell'app" = "App icon";
+"L'icona cambia sulla schermata Home: iOS te lo conferma con un avviso." = "The icon changes on the Home Screen: iOS confirms it with a notice.";
+"Notte" = "Night";
+"Aurora" = "Aurora";
+"Alba" = "Sunrise";
+"Bosco" = "Forest";
+"Carbone" = "Carbon";

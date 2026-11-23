@@ -4,7 +4,8 @@
 .wrangler/
 DerivedData/
 Payload/
-Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png
+*.appiconset/*.png
+Resources/Assets.xcassets/IconPreview-*.imageset/*.png
 __pycache__/
 build/
 node_modules/
