@@ -49,7 +49,7 @@ jobs:
           cp -R build/SkiApex.xcarchive/Products/Applications/SkiApex.app Payload/
           # The Apple Watch app stays out: sideloading tools sign the iPhone app only, and an
           # unsigned watch app inside makes the installation fail. It comes with TestFlight.
-          test -d Payload/SkiApex.app/Watch && rm -rf Payload/SkiApex.app/Watch
+          if [ -d Payload/SkiApex.app/Watch ]; then ls Payload/SkiApex.app/Watch; rm -rf Payload/SkiApex.app/Watch; else echo "::warning::No Apple Watch app inside the archive"; fi
           for x in Payload/SkiApex.app/PlugIns/*.appex; do if [ -d "$x" ]; then codesign -f -s - "$x"; fi; done
           codesign -f -s - Payload/SkiApex.app
           VER="$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' Payload/SkiApex.app/Info.plist)"
