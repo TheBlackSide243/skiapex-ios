@@ -52,7 +52,7 @@ for s in ${SCREENS:-ready live days day timeline run replay share manual stats h
     sleep 15
   done
   # The map needs a moment to download its tiles.
-  sleep 14
+  sleep 24
   xcrun simctl io "$udid" screenshot --type=png "$OUT/iphone-$s.png" >/dev/null
   echo "   iphone-$s.png"
 done
