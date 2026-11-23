@@ -60,6 +60,12 @@ enum Look: String, CaseIterable, Identifiable {
         }
     }
 
+    /// The look whose icon is on the Home Screen now.
+    static var iconInUse: Look {
+        let name = UIApplication.shared.alternateIconName
+        return allCases.first { $0.iconName == name } ?? .night
+    }
+
     /// The same icon as a picture, to show it in Settings.
     var iconPreview: String { "IconPreview-\(rawValue)" }
 

@@ -1,8 +1,8 @@
 import Foundation
 
-/// The day under way as the iPhone tells it to the Apple Watch. The numbers come already
-/// written, in the units chosen on the iPhone. This file is in the app, which writes it, and in
-/// the watch app, which shows it.
+/// The day under way as the watch shows it: told by the iPhone when the iPhone records, made by
+/// the watch when the watch does. The numbers come already written, in the units chosen on the
+/// iPhone. This file is in the app and in the watch app.
 struct WatchState: Codable, Equatable {
     /// idle, recording or paused.
     var state: String
@@ -18,6 +18,8 @@ struct WatchState: Codable, Equatable {
     var distance: String
     var maxSpeed: String
     var altitude: String
+    /// Beats a minute, when the watch is the one recording.
+    var heart: String?
 
     static let idle = WatchState(state: "idle", phase: "idle", start: nil, speed: "0", speedUnit: "km/h", runs: 0,
                                  vertical: "–", distance: "–", maxSpeed: "–", altitude: "–")
@@ -29,7 +31,7 @@ struct WatchState: Codable, Equatable {
     }
 
     init(state: String, phase: String, start: Date?, speed: String, speedUnit: String, runs: Int, vertical: String,
-         distance: String, maxSpeed: String, altitude: String) {
+         distance: String, maxSpeed: String, altitude: String, heart: String? = nil) {
         self.state = state
         self.phase = phase
         self.start = start
@@ -40,6 +42,7 @@ struct WatchState: Codable, Equatable {
         self.distance = distance
         self.maxSpeed = maxSpeed
         self.altitude = altitude
+        self.heart = heart
     }
 
     init?(packed: [String: Any]) {
@@ -59,4 +62,9 @@ enum WatchLink {
     static let commandKey = "command"
     /// In the answer to a command: a few words to show, when there is something to say.
     static let noteKey = "note"
+    /// With the file of a day recorded on the watch: what it is, its id, and whether the watch
+    /// saved its workout in Health already.
+    static let kindKey = "kind"
+    static let idKey = "id"
+    static let healthKey = "health"
 }

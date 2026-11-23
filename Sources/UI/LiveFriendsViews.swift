@@ -1,7 +1,8 @@
 import MapKit
 import SwiftUI
 
-/// A friend on the map: the first letters of the name, ringed in the color of what they are doing.
+/// A friend on the map: their picture, or the first letters of the name, ringed in the color of
+/// what they are doing.
 struct FriendMarker: View {
     let friend: LiveFriend
 
@@ -14,13 +15,9 @@ struct FriendMarker: View {
     }
 
     var body: some View {
-        Text(friend.initials)
-            .font(.system(size: 12, weight: .bold, design: .monospaced))
-            .foregroundStyle(Theme.text)
-            .frame(width: 34, height: 34)
-            .background(Theme.deep, in: Circle())
-            .overlay(Circle().strokeBorder(Self.color(friend.phase), lineWidth: 3))
+        Avatar(id: friend.id, name: friend.name, photo: friend.photo, size: 38, ring: Self.color(friend.phase))
             .shadow(color: .black.opacity(0.45), radius: 4, y: 2)
+            .accessibilityHidden(false)
             .accessibilityLabel(Text(friend.name))
     }
 }

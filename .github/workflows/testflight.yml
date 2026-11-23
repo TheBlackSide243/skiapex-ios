@@ -99,10 +99,13 @@ jobs:
         run: |
           set -eu
           APP=build/SkiApex.xcarchive/Products/Applications/SkiApex.app
-          for x in "$APP"/PlugIns/*.appex "$APP"/Watch/*.app; do if [ -d "$x" ]; then codesign --force --sign - --timestamp=none "$x"; fi; done
+          for x in "$APP"/PlugIns/*.appex; do if [ -d "$x" ]; then codesign --force --sign - --timestamp=none "$x"; fi; done
+          # The watch app with Apple Health too: its workout session keeps a recording going.
+          codesign --force --sign - --timestamp=none --entitlements Support/SkiApexWatch.entitlements "$APP/Watch/SkiApexWatch.app"
           codesign --force --sign - --timestamp=none --entitlements Support/SkiApex.entitlements "$APP"
           codesign -d --entitlements - "$APP" 2>&1 | tee "$RUNNER_TEMP/entitlements.txt"
           grep -q healthkit "$RUNNER_TEMP/entitlements.txt"
+          grep -q applesignin "$RUNNER_TEMP/entitlements.txt"
 
       - name: Upload to TestFlight
         run: |

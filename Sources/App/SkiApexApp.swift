@@ -75,7 +75,7 @@ enum Prefs {
 
 /// Launched with `-demo`: made-up days and a day under way, for the screenshots. `-screen <name>`
 /// opens one screen: ready, live, days, day, timeline, run, replay, share, manual, stats, heat,
-/// guide, explore, friends, settings, empty.
+/// guide, explore, friends, settings, looks, profile, empty.
 enum Demo {
     static let isOn = ProcessInfo.processInfo.arguments.contains("-demo")
 
@@ -91,7 +91,7 @@ enum Demo {
         case "days", "day", "timeline", "run", "replay", "share", "manual", "stats", "heat", "empty": 1
         case "guide", "explore": 2
         case "friends": 3
-        case "settings": 4
+        case "settings", "looks", "profile": 4
         default: 0
         }
     }

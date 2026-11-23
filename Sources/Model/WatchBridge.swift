@@ -2,9 +2,10 @@ import Foundation
 import UIKit
 import WatchConnectivity
 
-/// The iPhone's side of the Apple Watch app: tells the watch the numbers of the day under way
-/// and does what its buttons ask (start, pause, resume, finish). The day is recorded by the
-/// iPhone; the watch shows it and commands it.
+/// The iPhone's side of the Apple Watch app. When the iPhone records, it tells the watch the
+/// numbers of the day under way and does what its buttons ask (start, pause, resume, finish).
+/// When the watch records by itself, the day arrives here as a file when it ends, and is kept
+/// with the others.
 final class WatchBridge: NSObject, WCSessionDelegate {
     static let shared = WatchBridge()
 
@@ -91,7 +92,41 @@ final class WatchBridge: NSObject, WCSessionDelegate {
         }
     }
 
+    /// Keeps a day recorded on the watch. False when there is nothing to keep: too few points,
+    /// or a day that is here already (a file sent twice).
+    @discardableResult static func keep(_ points: [TrackPoint], id: UUID, inHealth: Bool, in library: Library) -> Bool {
+        guard Segmenter.clean(points).count >= 10, library.day(id) == nil else { return false }
+        var day = SkiDay(id: id, points: points, sport: Sport.current)
+        // Saved in Health by the watch, with the heart rate: not to be saved again from here.
+        if inHealth { day.inHealth = true }
+        do {
+            try library.save(day)
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    /// The points of a file written by the watch: one JSON a line.
+    static func points(in data: Data) -> [TrackPoint] {
+        let decoder = JSONDecoder()
+        return data.split(separator: 0x0A).compactMap { try? decoder.decode(TrackPoint.self, from: Data($0)) }
+    }
+
     // MARK: WCSessionDelegate
+
+    func session(_ session: WCSession, didReceive file: WCSessionFile) {
+        // The file is gone when this returns: read now.
+        guard file.metadata?[WatchLink.kindKey] as? String == "day", let data = try? Data(contentsOf: file.fileURL) else { return }
+        let points = Self.points(in: data)
+        let id = (file.metadata?[WatchLink.idKey] as? String).flatMap { UUID(uuidString: $0) } ?? UUID()
+        let inHealth = file.metadata?[WatchLink.healthKey] as? Bool ?? false
+        DispatchQueue.main.async {
+            guard Self.keep(points, id: id, inHealth: inHealth, in: Shared.library), let start = points.first?.t else { return }
+            // The friends' leaderboard hears about the new day.
+            Task { await Shared.social.refresh(season: Season(start), days: Shared.library.days) }
+        }
+    }
 
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
         pushNow()

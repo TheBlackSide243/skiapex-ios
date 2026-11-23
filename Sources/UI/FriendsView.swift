@@ -9,8 +9,6 @@ struct FriendsView: View {
     @State private var metric = BoardMetric.days
     @State private var typingCode = false
     @State private var code = ""
-    @State private var deleting = false
-    @State private var password = ""
 
     private var seasons: [Season] {
         Array(Set(library.seasons + [Season(Date())])).sorted(by: >)
@@ -29,11 +27,11 @@ struct FriendsView: View {
                         LiveFriendsPanel()
                         invite
                         people
-                        accountPanel
+                        profileLink
                     } else {
                         SignInPanel()
                     }
-                    Text("Con gli amici condividi il nome e i totali della stagione: giorni, discese, dislivello, chilometri, tempo e velocità massima. La posizione la vedono solo se accendi \"Fatti vedere dagli amici\", e solo mentre registri. Le tracce e i posti delle tue giornate restano sul tuo iPhone.")
+                    Text("Con gli amici condividi il nome, la foto se la metti e i totali della stagione: giorni, discese, dislivello, chilometri, tempo e velocità massima. La posizione la vedono solo se accendi \"Fatti vedere dagli amici\", e solo mentre registri. Le tracce e i posti delle tue giornate restano sul tuo iPhone.")
                         .prose().font(.caption).foregroundStyle(Theme.sub)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -64,18 +62,6 @@ struct FriendsView: View {
                 Button("Annulla", role: .cancel) { code = "" }
             } message: {
                 Text("Scrivi il codice che ti ha mandato il tuo amico.")
-            }
-            .alert("Eliminare l'account?", isPresented: $deleting) {
-                SecureField("Password", text: $password)
-                Button("Elimina", role: .destructive) {
-                    Task {
-                        _ = await social.deleteAccount(password: password)
-                        password = ""
-                    }
-                }
-                Button("Annulla", role: .cancel) { password = "" }
-            } message: {
-                Text("Il nome, gli amici e i totali condivisi vengono cancellati dal server. Le giornate sul tuo iPhone restano.")
             }
         }
     }
@@ -117,9 +103,10 @@ struct FriendsView: View {
                 ForEach(ranked, id: \.row.id) { entry in
                     HStack(spacing: 12) {
                         Text("\(entry.place)").font(.display(.subheadline)).monospacedDigit()
-                            .foregroundStyle(entry.row.me ? Theme.onAccent : Theme.text)
-                            .frame(width: 34, height: 34)
-                            .background(entry.row.me ? Theme.accent : Theme.deep, in: Circle())
+                            .foregroundStyle(entry.row.me ? Theme.accent : Theme.sub)
+                            .frame(width: 22)
+                        Avatar(id: entry.row.id, name: entry.row.name, photo: entry.row.photo, size: 36,
+                               ring: entry.row.me ? Theme.accent : nil)
                         Text(entry.row.name).font(.subheadline.weight(entry.row.me ? .bold : .regular)).foregroundStyle(Theme.text).lineLimit(1)
                         if entry.row.me {
                             Text("tu").font(.caption2.weight(.semibold)).foregroundStyle(Theme.accent)
@@ -179,9 +166,7 @@ struct FriendsView: View {
             Panel("I tuoi amici") {
                 ForEach(social.friends) { friend in
                     HStack {
-                        Image(systemName: "person.fill").font(.footnote).foregroundStyle(Theme.accent)
-                            .frame(width: 34, height: 34)
-                            .iconBox()
+                        Avatar(id: friend.id, name: friend.name, photo: friend.photo, size: 36)
                         Text(friend.name).font(.subheadline).foregroundStyle(Theme.text)
                         Spacer()
                         Menu {
@@ -199,67 +184,26 @@ struct FriendsView: View {
         }
     }
 
-    private var accountPanel: some View {
-        Panel("Account") {
-            InfoRow("Nome", social.account?.name ?? "")
-            Button { Task { await social.signOut() } } label: { Label("Esci", systemImage: "rectangle.portrait.and.arrow.right") }
-                .buttonStyle(SecondaryButtonStyle())
-            Button { deleting = true } label: { Label("Elimina l'account", systemImage: "trash") }
-                .buttonStyle(SecondaryButtonStyle(color: Theme.bad))
-        }
-    }
-}
-
-/// A name and a password: to make the account, or to come back to it.
-private struct SignInPanel: View {
-    @Environment(Social.self) private var social
-    @State private var name = ""
-    @State private var password = ""
-    @State private var new = true
-
-    var body: some View {
-        VStack(spacing: 14) {
-            VStack(spacing: 12) {
-                Image(systemName: "person.2.fill")
-                    .font(.system(size: 34, weight: .semibold))
-                    .foregroundStyle(Theme.accent)
-                    .frame(width: 84, height: 84)
-                    .iconBox()
-                Text("Sfida i tuoi amici").font(.display(.headline)).foregroundStyle(Theme.text)
-                Text("Chi ha fatto più giorni sulla neve, più dislivello, più chilometri? Crea un account, manda il link a un amico e confrontate la stagione.")
-                    .prose().font(.subheadline).foregroundStyle(Theme.sub).multilineTextAlignment(.center)
+    /// Your picture and your name: the way to the profile.
+    @ViewBuilder private var profileLink: some View {
+        if let account = social.account {
+            NavigationLink {
+                ProfileView()
+            } label: {
+                HStack(spacing: 12) {
+                    Avatar(id: account.id, name: account.name, photo: account.photo, size: 46)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(account.name).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text).lineLimit(1)
+                        Text("Foto, account e uscita").font(.caption).foregroundStyle(Theme.sub)
+                    }
+                    Spacer(minLength: 6)
+                    Image(systemName: "chevron.right").font(.caption.weight(.bold)).foregroundStyle(Theme.sub)
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .card()
             }
-            .padding(.vertical, 8)
-            Panel(new ? "Crea un account" : "Accedi") {
-                field {
-                    TextField("Nome (lo vedono i tuoi amici)", text: $name)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .textContentType(.username)
-                }
-                field {
-                    SecureField("Password (almeno 8 caratteri)", text: $password)
-                        .textContentType(new ? .newPassword : .password)
-                }
-                Button {
-                    Task { await social.enter(name: name.trimmingCharacters(in: .whitespaces), password: password, new: new) }
-                } label: {
-                    if social.busy { ProgressView() } else { Text(LocalizedStringKey(new ? "Crea l'account" : "Accedi")) }
-                }
-                .buttonStyle(PrimaryButtonStyle())
-                .disabled(name.count < 3 || password.count < 8 || social.busy)
-                Button(LocalizedStringKey(new ? "Ho già un account" : "Non ho un account")) { new.toggle() }
-                    .font(.subheadline)
-                    .frame(maxWidth: .infinity)
-            }
+            .buttonStyle(PressStyle())
         }
-    }
-
-    private func field<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
-        content()
-            .padding(.vertical, 12)
-            .padding(.horizontal, 16)
-            .background(Theme.deep, in: Capsule())
-            .overlay(Capsule().strokeBorder(Theme.line, lineWidth: 1))
     }
 }

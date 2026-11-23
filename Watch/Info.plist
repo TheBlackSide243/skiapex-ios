@@ -25,6 +25,22 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Per registrare le tue discese, le risalite e la velocità con il GPS del Watch.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Per misurare il dislivello con il barometro del Watch, molto più preciso del GPS.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Per mostrarti il battito mentre scii.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Per salvare la giornata sugli sci in Salute come allenamento, con il percorso.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
+	<key>WKBackgroundModes</key>
+	<array>
+		<string>workout-processing</string>
+	</array>
 	<key>WKApplication</key>
 	<true/>
 	<key>WKCompanionAppBundleIdentifier</key>

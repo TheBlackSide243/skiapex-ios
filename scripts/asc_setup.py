@@ -106,16 +106,24 @@ def main():
             ids[identifier] = made["data"]["id"]
             print(f"App ID {identifier}: registered")
 
-    # Apple Health on the app's App ID: the TestFlight build is signed with its entitlement.
-    capabilities = need(*call("GET", f"bundleIds/{ids[bundle]}/bundleIdCapabilities"), "capabilities")["data"]
-    if any(c["attributes"]["capabilityType"] == "HEALTHKIT" for c in capabilities):
-        print("Apple Health: already on")
-    else:
+    # Apple Health on the App IDs of the app and of the watch app, and Sign in with Apple on the
+    # app's: the TestFlight build is signed with their entitlements.
+    wanted = ((bundle, "HEALTHKIT", "Apple Health"), (bundle + ".watchkitapp", "HEALTHKIT", "Apple Health on the watch"),
+              (bundle, "APPLE_ID_AUTH", "Sign in with Apple"))
+    for identifier, capability, label in wanted:
+        capabilities = need(*call("GET", f"bundleIds/{ids[identifier]}/bundleIdCapabilities"), "capabilities")["data"]
+        if any(c["attributes"]["capabilityType"] == capability for c in capabilities):
+            print(f"{label}: already on")
+            continue
+        attributes = {"capabilityType": capability}
+        if capability == "APPLE_ID_AUTH":
+            # As the app's own App ID, not grouped under another one.
+            attributes["settings"] = [{"key": "APPLE_ID_AUTH_APP_CONSENT", "options": [{"key": "PRIMARY_APP_CONSENT"}]}]
         done = soft(*call("POST", "bundleIdCapabilities", {"data": {
-            "type": "bundleIdCapabilities", "attributes": {"capabilityType": "HEALTHKIT"},
-            "relationships": {"bundleId": {"data": {"type": "bundleIds", "id": ids[bundle]}}}}}), "Apple Health")
+            "type": "bundleIdCapabilities", "attributes": attributes,
+            "relationships": {"bundleId": {"data": {"type": "bundleIds", "id": ids[identifier]}}}}}), label)
         if done is not None:
-            print("Apple Health: turned on")
+            print(f"{label}: turned on")
 
     # 2. The app.
     app = app_with(bundle)

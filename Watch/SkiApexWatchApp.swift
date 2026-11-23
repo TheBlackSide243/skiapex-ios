@@ -2,17 +2,23 @@ import Observation
 import SwiftUI
 import WatchConnectivity
 
-/// Ski Apex on the Apple Watch: the numbers of the day the iPhone is recording, and the buttons
-/// to start it, pause it and end it without taking the iPhone out of the pocket.
+/// Ski Apex on the Apple Watch. It records a day by itself, with the GPS of the watch, and sends
+/// it to the iPhone when it ends; or, when the iPhone is the one recording, it shows its numbers
+/// and commands it: start, pause, end.
 @main
 struct SkiApexWatchApp: App {
     @State private var phone = PhoneLink()
+    @State private var recorder = WatchRecorder()
 
     var body: some Scene {
         WindowGroup {
             WatchRootView()
                 .environment(phone)
+                .environment(recorder)
                 .tint(Ink.accent)
+                .onAppear {
+                    recorder.deliver = { [phone] file in phone.queue(file) }
+                }
         }
     }
 }
@@ -34,13 +40,18 @@ enum Ink {
     }
 }
 
-/// The watch's side of the link with the iPhone: what it last said, and the commands to it.
+/// The watch's side of the link with the iPhone: what it last said, the commands to it, and the
+/// days recorded on the watch on their way to it.
 @Observable final class PhoneLink: NSObject, WCSessionDelegate {
     private(set) var state = WatchState.idle
     /// A few words from the iPhone, or about it: shown until the next command.
     private(set) var note: String?
     /// A command was sent and the answer is awaited.
     private(set) var busy = false
+    /// The iPhone is near and its app can be asked.
+    private(set) var reachable = false
+    /// The days recorded here that the iPhone does not have yet.
+    private(set) var waiting = 0
 
     override init() {
         super.init()
@@ -61,7 +72,7 @@ enum Ink {
             DispatchQueue.main.async {
                 self.busy = false
                 self.note = answer[WatchLink.noteKey] as? String
-                if let state = WatchState(packed: answer) { self.state = state }
+                if let state = WatchState(packed: answer) { self.take(state) }
             }
         }, errorHandler: { _ in
             DispatchQueue.main.async {
@@ -71,15 +82,62 @@ enum Ink {
         })
     }
 
+    private func take(_ new: WatchState) {
+        state = new
+        // The units the iPhone writes in are the ones the watch uses when it records by itself.
+        if new.state != "idle" { UserDefaults.standard.set(new.speedUnit == "km/h", forKey: WatchFmt.metricKey) }
+    }
+
     private func take(_ packed: [String: Any]) {
         guard let state = WatchState(packed: packed) else { return }
-        DispatchQueue.main.async { self.state = state }
+        DispatchQueue.main.async { self.take(state) }
+    }
+
+    // MARK: The days recorded here
+
+    /// Sends the file of a day to the iPhone: now if it is near, when it is otherwise.
+    func queue(_ file: URL) {
+        let session = WCSession.default
+        if session.activationState == .activated { transfer(file, with: session) }
+        count()
+    }
+
+    private func transfer(_ file: URL, with session: WCSession) {
+        let name = file.deletingPathExtension().lastPathComponent
+        let parts = name.split(separator: "_")
+        let metadata: [String: Any] = [WatchLink.kindKey: "day", WatchLink.idKey: String(parts.first ?? ""),
+                                       WatchLink.healthKey: parts.last == "1"]
+        session.transferFile(file, metadata: metadata)
+    }
+
+    /// The days still in the folder that are not on their way: after the app was closed.
+    private func resend(with session: WCSession) {
+        let going = Set(session.outstandingFileTransfers.map { $0.file.fileURL.lastPathComponent })
+        let files = (try? FileManager.default.contentsOfDirectory(at: WatchRecorder.outbox, includingPropertiesForKeys: nil)) ?? []
+        for file in files where file.pathExtension == "jsonl" && !going.contains(file.lastPathComponent) {
+            transfer(file, with: session)
+        }
+        count()
+    }
+
+    private func count() {
+        let files = (try? FileManager.default.contentsOfDirectory(at: WatchRecorder.outbox, includingPropertiesForKeys: nil)) ?? []
+        let left = files.filter { $0.pathExtension == "jsonl" }.count
+        DispatchQueue.main.async { self.waiting = left }
     }
 
     // MARK: WCSessionDelegate
 
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
         take(session.receivedApplicationContext)
+        let near = session.isReachable
+        DispatchQueue.main.async { self.reachable = near }
+        if activationState == .activated { resend(with: session) }
+    }
+
+    func sessionReachabilityDidChange(_ session: WCSession) {
+        let near = session.isReachable
+        DispatchQueue.main.async { self.reachable = near }
     }
 
     func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
@@ -89,28 +147,35 @@ enum Ink {
     func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
         take(message)
     }
+
+    func session(_ session: WCSession, didFinish fileTransfer: WCSessionFileTransfer, error: Error?) {
+        // Arrived: the iPhone has the day, the file can go. Otherwise it stays for the next try.
+        if error == nil { try? FileManager.default.removeItem(at: fileTransfer.file.fileURL) }
+        count()
+    }
 }
 
 struct WatchRootView: View {
     @Environment(PhoneLink.self) private var phone
+    @Environment(WatchRecorder.self) private var recorder
 
     var body: some View {
-        if phone.state.state == "idle" {
-            ReadyView()
+        if recorder.state != .idle {
+            // The watch is recording.
+            DayPages(state: recorder.watchState, note: recorder.note, busy: false) { recorder.handle($0) }
+        } else if phone.state.state != "idle" {
+            // The iPhone is recording: its numbers, and its buttons.
+            DayPages(state: phone.state, note: phone.note, busy: phone.busy) { phone.send($0) }
         } else {
-            TabView {
-                NowView()
-                TotalsView()
-                ControlsView()
-            }
-            .tabViewStyle(.verticalPage)
+            ReadyView()
         }
     }
 }
 
-/// Before the day: one button.
+/// Before the day: start it here, or on the iPhone.
 struct ReadyView: View {
     @Environment(PhoneLink.self) private var phone
+    @Environment(WatchRecorder.self) private var recorder
 
     var body: some View {
         ScrollView {
@@ -118,21 +183,51 @@ struct ReadyView: View {
                 Image(systemName: "figure.skiing.downhill")
                     .font(.title2.weight(.semibold))
                     .foregroundStyle(Ink.accent)
-                Text("Pronto").font(.headline)
                 Button {
-                    phone.send(.start)
+                    recorder.start()
                 } label: {
                     Label("Inizia", systemImage: "play.fill")
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(phone.busy)
-                Text(phone.note ?? String(localized: "La giornata la registra l'iPhone: tienilo in tasca."))
-                    .font(.caption2)
-                    .foregroundStyle(phone.note == nil ? Ink.sub : Color.white)
-                    .multilineTextAlignment(.center)
+                if phone.reachable {
+                    Button {
+                        phone.send(.start)
+                    } label: {
+                        Label("Con l'iPhone", systemImage: "iphone")
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(phone.busy)
+                }
+                if let note = recorder.note ?? phone.note {
+                    Text(note).font(.caption2).multilineTextAlignment(.center)
+                } else {
+                    Text("Il Watch registra da solo con il suo GPS: l'iPhone può restare in tasca.")
+                        .font(.caption2).foregroundStyle(Ink.sub).multilineTextAlignment(.center)
+                }
+                if phone.waiting > 0 {
+                    Label("Giornate in attesa dell'iPhone: \(phone.waiting)", systemImage: "arrow.triangle.2.circlepath")
+                        .font(.caption2).foregroundStyle(Ink.sub)
+                }
             }
             .frame(maxWidth: .infinity)
         }
+    }
+}
+
+/// The day under way, a page for each thing: now, the totals, the buttons.
+struct DayPages: View {
+    let state: WatchState
+    let note: String?
+    let busy: Bool
+    let send: (WatchCommand) -> Void
+
+    var body: some View {
+        TabView {
+            NowView(state: state)
+            TotalsView(state: state)
+            ControlsView(state: state, note: note, busy: busy, send: send)
+        }
+        .tabViewStyle(.verticalPage)
     }
 }
 
@@ -156,18 +251,23 @@ private func phaseSymbol(_ phase: String) -> String {
 
 /// What is happening now: skiing or on a lift, the speed, the clock of the day.
 struct NowView: View {
-    @Environment(PhoneLink.self) private var phone
+    let state: WatchState
 
     var body: some View {
-        let state = phone.state
         VStack(alignment: .leading, spacing: 2) {
-            Label {
-                Text(phaseLabel(state.phase))
-            } icon: {
-                Image(systemName: phaseSymbol(state.phase))
+            HStack {
+                Label {
+                    Text(phaseLabel(state.phase))
+                } icon: {
+                    Image(systemName: phaseSymbol(state.phase))
+                }
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Ink.tint(state.phase))
+                Spacer()
+                if let heart = state.heart {
+                    Label(heart, systemImage: "heart.fill").font(.caption2).foregroundStyle(Ink.bad)
+                }
             }
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(Ink.tint(state.phase))
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(state.speed)
                     .font(.system(size: 56, weight: .semibold, design: .rounded))
@@ -191,10 +291,9 @@ struct NowView: View {
 
 /// The numbers of the day so far.
 struct TotalsView: View {
-    @Environment(PhoneLink.self) private var phone
+    let state: WatchState
 
     var body: some View {
-        let state = phone.state
         VStack(spacing: 8) {
             HStack(spacing: 8) {
                 Total(value: "\(state.runs)", label: "Discese")
@@ -227,14 +326,17 @@ private struct Total: View {
 
 /// Pause and end, a swipe away so that a glove does not press them by mistake.
 struct ControlsView: View {
-    @Environment(PhoneLink.self) private var phone
+    let state: WatchState
+    let note: String?
+    let busy: Bool
+    let send: (WatchCommand) -> Void
     @State private var confirming = false
 
     var body: some View {
-        let paused = phone.state.state == "paused"
+        let paused = state.state == "paused"
         VStack(spacing: 8) {
             Button {
-                phone.send(paused ? .resume : .pause)
+                send(paused ? .resume : .pause)
             } label: {
                 Label(LocalizedStringKey(paused ? "Riprendi" : "Pausa"), systemImage: paused ? "play.fill" : "pause.fill")
             }
@@ -246,13 +348,13 @@ struct ControlsView: View {
             }
             .buttonStyle(.bordered)
             .tint(Ink.bad)
-            if let note = phone.note {
+            if let note {
                 Text(note).font(.caption2).foregroundStyle(Ink.sub).multilineTextAlignment(.center)
             }
         }
-        .disabled(phone.busy)
+        .disabled(busy)
         .confirmationDialog("Finita la giornata?", isPresented: $confirming, titleVisibility: .visible) {
-            Button("Salva la giornata") { phone.send(.finish) }
+            Button("Salva la giornata") { send(.finish) }
             Button("Annulla", role: .cancel) {}
         }
     }
