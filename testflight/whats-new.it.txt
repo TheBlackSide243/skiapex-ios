@@ -12,4 +12,7 @@ Ski Apex 0.2.0
 - Foto della giornata dalla tua libreria.
 - Apple Salute: giornata come allenamento con percorso, e battito dall Apple Watch.
 - Copia di sicurezza di tutte le giornate in un file zip.
+- Guida delle stazioni con la neve prevista per 8 giorni.
+- Diario con mappa dei posti, viaggi in programma e giornate scritte a mano.
+- Mappa di calore delle tue discese.
 Da provare: una giornata vera sulla neve. Dimmi se i nomi delle piste sono giusti.

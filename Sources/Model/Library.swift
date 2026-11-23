@@ -8,10 +8,16 @@ import Observation
     private(set) var days: [DaySummary] = []
     /// Goes up at every save: an open day reads itself again when it changes.
     private(set) var saves = 0
+    /// The trips planned, soonest first.
+    private(set) var trips: [Trip] = []
+    /// The ski areas kept in the guide.
+    private(set) var favorites: [Resort] = []
     /// The days being looked up on the internet right now.
     @ObservationIgnored private var enriching: Set<UUID> = []
     private let dir: URL
     private var index: URL { dir.appendingPathComponent("indice.json") }
+    private var tripsFile: URL { dir.appendingPathComponent("viaggi.json") }
+    private var favoritesFile: URL { dir.appendingPathComponent("stazioni.json") }
 
     init(directory: URL? = nil) {
         dir = directory ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -21,6 +27,54 @@ import Observation
             days = saved
         } else {
             rebuildIndex()
+        }
+        // The index of the first versions had no place for the pins: made again, once.
+        let marker = dir.appendingPathComponent(".indice-2")
+        if !FileManager.default.fileExists(atPath: marker.path) {
+            if days.contains(where: { $0.lat == nil }) { rebuildIndex() }
+            FileManager.default.createFile(atPath: marker.path, contents: nil)
+        }
+        let decoder = JSONDecoder()
+        if let data = try? Data(contentsOf: tripsFile), let saved = try? decoder.decode([Trip].self, from: data) { trips = saved }
+        if let data = try? Data(contentsOf: favoritesFile), let saved = try? decoder.decode([Resort].self, from: data) { favorites = saved }
+    }
+
+    // MARK: Trips and favorite ski areas
+
+    /// The trips not over yet, soonest first.
+    var upcomingTrips: [Trip] {
+        let today = Calendar.current.startOfDay(for: Date())
+        return trips.filter { $0.end >= today }.sorted { $0.start < $1.start }
+    }
+
+    func saveTrip(_ trip: Trip) {
+        trips.removeAll { $0.id == trip.id }
+        trips.append(trip)
+        trips.sort { $0.start < $1.start }
+        if let data = try? JSONEncoder().encode(trips) { try? data.write(to: tripsFile, options: .atomic) }
+    }
+
+    func deleteTrip(_ id: UUID) {
+        trips.removeAll { $0.id == id }
+        if let data = try? JSONEncoder().encode(trips) { try? data.write(to: tripsFile, options: .atomic) }
+    }
+
+    func isFavorite(_ resort: Resort) -> Bool { favorites.contains { $0.id == resort.id } }
+
+    func toggleFavorite(_ resort: Resort) {
+        if isFavorite(resort) {
+            favorites.removeAll { $0.id == resort.id }
+        } else {
+            favorites.append(resort)
+        }
+        if let data = try? JSONEncoder().encode(favorites) { try? data.write(to: favoritesFile, options: .atomic) }
+    }
+
+    /// The days recorded within a few kilometers of a place.
+    func days(near resort: Resort, within meters: Double = 12_000) -> [DaySummary] {
+        days.filter {
+            guard let lat = $0.lat, let lon = $0.lon else { return false }
+            return Geo.distance(lat1: lat, lon1: lon, lat2: resort.lat, lon2: resort.lon) <= meters
         }
     }
 
@@ -74,7 +128,7 @@ import Observation
     /// piste e meteo" is off in Settings.
     @MainActor func enrich(_ id: UUID) async {
         let allowed = UserDefaults.standard.object(forKey: Prefs.online) as? Bool ?? true
-        guard allowed, !Demo.isOn, !enriching.contains(id), let before = day(id) else { return }
+        guard allowed, !Demo.isOn, !enriching.contains(id), let before = day(id), !before.points.isEmpty else { return }
         guard before.place == nil || before.mapped != true || before.weather == nil else { return }
         enriching.insert(id)
         defer { enriching.remove(id) }
@@ -151,7 +205,7 @@ import Observation
     private func rebuildIndex() {
         let files = (try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)) ?? []
         let decoder = JSONDecoder()
-        days = files.filter { $0.pathExtension == "json" && $0.lastPathComponent != "indice.json" }
+        days = files.filter { $0.pathExtension == "json" && UUID(uuidString: $0.deletingPathExtension().lastPathComponent) != nil }
             .compactMap { try? decoder.decode(SkiDay.self, from: Data(contentsOf: $0)).summary }
             .sorted { $0.start > $1.start }
         writeIndex()

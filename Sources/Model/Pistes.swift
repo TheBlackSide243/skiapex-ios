@@ -99,6 +99,11 @@ enum Pistes {
 
     static func fetch(around points: [TrackPoint]) async throws -> ResortMap {
         guard let query = query(for: points) else { return ResortMap() }
+        return try parse(try await ask(query))
+    }
+
+    /// Sends a question to Overpass: the first server that answers.
+    static func ask(_ query: String) async throws -> Data {
         var last: Error = URLError(.badServerResponse)
         for server in servers {
             var request = URLRequest(url: server, timeoutInterval: 45)
@@ -110,7 +115,7 @@ enum Pistes {
             do {
                 let (data, response) = try await URLSession.shared.data(for: request)
                 guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw URLError(.badServerResponse) }
-                return try parse(data)
+                return data
             } catch {
                 last = error
             }

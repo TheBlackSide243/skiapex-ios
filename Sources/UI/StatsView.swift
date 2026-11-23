@@ -8,6 +8,7 @@ struct StatsView: View {
     /// nil: every season together.
     @State private var season: Season?
     @State private var all = false
+    @State private var heat = Demo.screen == "heat"
 
     var body: some View {
         NavigationStack {
@@ -19,6 +20,8 @@ struct StatsView: View {
                         scope
                         totals
                         records
+                        Button { heat = true } label: { Label("Mappa di calore", systemImage: "flame") }
+                            .buttonStyle(SecondaryButtonStyle())
                         if days.count > 1 { charts }
                     }
                 }
@@ -27,6 +30,7 @@ struct StatsView: View {
             .screen()
             .navigationTitle("Statistiche")
             .navigationDestination(for: UUID.self) { DayDetailView(id: $0) }
+            .navigationDestination(isPresented: $heat) { HeatmapView() }
         }
     }
 

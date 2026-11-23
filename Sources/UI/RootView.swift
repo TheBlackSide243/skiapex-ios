@@ -1,7 +1,7 @@
 import MapKit
 import SwiftUI
 
-/// Four tabs: the day under way, the days saved, the numbers and the settings.
+/// Five tabs: the day under way, the diary, the guide to the ski areas, the numbers, the settings.
 struct RootView: View {
     @AppStorage(Prefs.units) private var units = Units.metric.rawValue
     @State private var tab = Demo.tab
@@ -12,14 +12,17 @@ struct RootView: View {
                 .tabItem { Label("Registra", systemImage: "figure.skiing.downhill") }
                 .tag(0)
             DaysView()
-                .tabItem { Label("Giornate", systemImage: "calendar") }
+                .tabItem { Label("Giornate", systemImage: "book") }
                 .tag(1)
+            GuideView()
+                .tabItem { Label("Guida", systemImage: "map") }
+                .tag(2)
             StatsView()
                 .tabItem { Label("Statistiche", systemImage: "chart.bar.xaxis") }
-                .tag(2)
+                .tag(3)
             SettingsView()
                 .tabItem { Label("Impostazioni", systemImage: "gearshape") }
-                .tag(3)
+                .tag(4)
         }
         // Every number again in the new units.
         .id(units)

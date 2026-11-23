@@ -82,6 +82,9 @@ import Observation
 
     var denied: Bool { authorization == .denied || authorization == .restricted }
 
+    /// Where the iPhone last was, when the location is allowed: for the ski areas nearby.
+    var here: CLLocation? { canRecord ? manager.location : nil }
+
     // MARK: What the buttons do
 
     func start() {

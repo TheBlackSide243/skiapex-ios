@@ -5,6 +5,7 @@ import Foundation
 enum Shared {
     static let library: Library = Demo.isOn ? Demo.library() : Library()
     static let recorder: Recorder = Demo.isOn ? Demo.recorder() : Recorder()
+    static let guide = Guide(demo: Demo.isOn ? Demo.resorts : [])
 }
 
 /// The end of a day, from the Fine button or from a Siri command.

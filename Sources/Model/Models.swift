@@ -170,6 +170,8 @@ struct SkiDay: Codable, Identifiable {
     /// Beats a minute during the day, from Apple Health: the average and the highest.
     var heartAvg: Double?
     var heartMax: Double?
+    /// Written by hand, with no track: its numbers are the ones typed in.
+    var manual: Bool?
 
     /// A day made of the points recorded: cleaned up, then cut into runs and lifts.
     init(id: UUID = UUID(), points raw: [TrackPoint], place: String? = nil, sport: Sport? = nil) {
@@ -185,11 +187,36 @@ struct SkiDay: Codable, Identifiable {
         self.sport = sport
     }
 
+    /// A day written by hand: when, where and its numbers, with no track.
+    init(manual start: Date, duration: TimeInterval, place: String?, sport: Sport, runs: Int, vertical: Double,
+         distance: Double, maxSpeed: Double) {
+        id = UUID()
+        self.start = start
+        end = start.addingTimeInterval(max(0, duration))
+        self.place = place
+        points = []
+        segments = []
+        var numbers = DayStats()
+        numbers.runs = max(0, runs)
+        numbers.vertical = max(0, vertical)
+        numbers.runDistance = max(0, distance)
+        numbers.totalDistance = max(0, distance)
+        numbers.maxSpeed = max(0, maxSpeed)
+        numbers.totalTime = max(0, duration)
+        stats = numbers
+        self.sport = sport
+        manual = true
+        // Nothing to look for on the map.
+        mapped = true
+    }
+
     var runs: [Segment] { segments.filter { $0.kind == .run } }
     /// The name given by hand or the town; the ski area when there is neither.
     var title: String? { place ?? resort }
     var summary: DaySummary {
-        DaySummary(id: id, start: start, end: end, place: place, stats: stats, sport: sport, resort: resort)
+        let top = points.max { $0.alt < $1.alt }
+        return DaySummary(id: id, start: start, end: end, place: place, stats: stats, sport: sport, resort: resort,
+                          lat: top?.lat, lon: top?.lon, manual: manual)
     }
 }
 
@@ -202,9 +229,56 @@ struct DaySummary: Codable, Identifiable, Hashable {
     var stats: DayStats
     var sport: Sport?
     var resort: String?
+    /// Where it was, for the pin on the map: its highest point. nil for a day with no track.
+    var lat: Double?
+    var lon: Double?
+    var manual: Bool?
 
     var season: Season { Season(start) }
     var title: String? { place ?? resort }
+    var coordinate: CLLocationCoordinate2D? {
+        guard let lat, let lon else { return nil }
+        return CLLocationCoordinate2D(latitude: lat, longitude: lon)
+    }
+}
+
+/// A ski area, from OpenStreetMap.
+struct Resort: Codable, Identifiable, Hashable {
+    var id: String
+    var name: String
+    /// The region and the country, when known: "Valle d'Aosta, Italia".
+    var region: String?
+    var lat: Double
+    var lon: Double
+
+    var coordinate: CLLocationCoordinate2D { CLLocationCoordinate2D(latitude: lat, longitude: lon) }
+}
+
+/// One day of the forecast of a ski area, from Open-Meteo.
+struct ForecastDay: Codable, Hashable, Identifiable {
+    /// Midnight of the day at the resort, to be read in GMT.
+    var date: Date
+    /// Centimeters of snow expected in the day.
+    var snow: Double
+    var tempMin: Double
+    var tempMax: Double
+    /// km/h, the strongest of the day.
+    var wind: Double
+    var code: Int
+
+    var id: Date { date }
+    var symbol: String { DayWeather(tempMin: tempMin, tempMax: tempMax, snowfall: snow, windMax: wind, code: code).symbol }
+    var windy: Bool { wind >= 40 }
+}
+
+/// A trip planned: where and when.
+struct Trip: Codable, Identifiable, Hashable {
+    var id = UUID()
+    var name: String
+    var start: Date
+    var end: Date
+    /// The ski area, when it was picked from the guide: for the forecast.
+    var resort: Resort?
 }
 
 /// A winter, from July to June: "2026/27".

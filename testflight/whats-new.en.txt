@@ -12,4 +12,7 @@ Ski Apex 0.2.0
 - Photos of the day from your library.
 - Apple Health: the day as a workout with its route, and heart rate from Apple Watch.
 - Backup of all your days in one zip file.
+- Guide to ski areas with the snow expected for 8 days.
+- Diary with the map of your places, planned trips and days written by hand.
+- Heat map of your runs.
 To test: a real day on the snow. Tell me whether the piste names are right.

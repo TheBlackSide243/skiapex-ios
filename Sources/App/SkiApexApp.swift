@@ -29,6 +29,7 @@ struct SkiApexApp: App {
             RootView()
                 .environment(library)
                 .environment(recorder)
+                .environment(Shared.guide)
                 .onChange(of: phase) { _, now in
                     recorder.setActive(now == .active)
                 }
@@ -52,7 +53,8 @@ enum Prefs {
 }
 
 /// Launched with `-demo`: made-up days and a day under way, for the screenshots. `-screen <name>`
-/// opens one screen: ready, live, days, day, timeline, run, replay, share, stats, settings, empty.
+/// opens one screen: ready, live, days, day, timeline, run, replay, share, manual, guide, stats,
+/// heat, settings, empty.
 enum Demo {
     static let isOn = ProcessInfo.processInfo.arguments.contains("-demo")
 
@@ -65,9 +67,10 @@ enum Demo {
     /// The tab the screen asked for is in.
     static var tab: Int {
         switch screen {
-        case "days", "day", "timeline", "run", "replay", "share", "empty": 1
-        case "stats": 2
-        case "settings": 3
+        case "days", "day", "timeline", "run", "replay", "share", "manual", "empty": 1
+        case "guide": 2
+        case "stats", "heat": 3
+        case "settings": 4
         default: 0
         }
     }
@@ -89,8 +92,22 @@ enum Demo {
             day.mapped = true
             try? library.save(day)
         }
+        // A day written by hand, a trip planned and a ski area kept.
+        let before = Calendar.current.date(byAdding: .day, value: -40, to: Date()) ?? Date()
+        try? library.save(SkiDay(manual: before, duration: 5 * 3600, place: "Madesimo", sport: .ski, runs: 12, vertical: 4300,
+                                 distance: 21_000, maxSpeed: 0))
+        let soon = Calendar.current.date(byAdding: .day, value: 5, to: Calendar.current.startOfDay(for: Date())) ?? Date()
+        library.saveTrip(Trip(name: resorts[0].name, start: soon, end: soon.addingTimeInterval(3 * 86_400), resort: resorts[0]))
+        if !library.isFavorite(resorts[1]) { library.toggleFavorite(resorts[1]) }
         return library
     }
+
+    /// Ski areas for the pictures of the guide: real places, made-up snow.
+    static let resorts = [
+        Resort(id: "demo1", name: "Breuil-Cervinia", region: "Valle d'Aosta, Italia", lat: 45.9336, lon: 7.6295),
+        Resort(id: "demo2", name: "Livigno", region: "Lombardia, Italia", lat: 46.5386, lon: 10.1357),
+        Resort(id: "demo3", name: "Courmayeur", region: "Valle d'Aosta, Italia", lat: 45.7969, lon: 6.9689),
+    ]
 
     /// Made-up names for the pistes and the lift, as OpenStreetMap would give them.
     private static func name(_ day: inout SkiDay) {

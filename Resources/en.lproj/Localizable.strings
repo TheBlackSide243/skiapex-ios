@@ -209,3 +209,70 @@
 "Un file è troppo grande per la copia (più di 4 GB)." = "A file is too large for the backup (more than 4 GB).";
 "Il file non è un archivio zip leggibile." = "The file is not a readable zip archive.";
 "Nell'archivio il file «%@» è rovinato." = "In the archive the file “%@” is damaged.";
+
+/* Diary, trips, guide, heat map */
+"Viaggio" = "Trip";
+"Attività manuale" = "Manual activity";
+"Importa da file" = "Import from file";
+"Aggiungi" = "Add";
+"Mappa dei posti dove hai sciato" = "Map of the places where you skied";
+"giorni registrati" = "days recorded";
+"posti" = "places";
+"PROSSIMAMENTE" = "COMING UP";
+"Aggiungi il tuo prossimo viaggio" = "Add your next trip";
+"Registra una giornata dalla scheda Registra. Con il + in alto puoi scriverne una a mano o importare un file GPX. Per vedere com'è, in Impostazioni puoi crearne una di prova." = "Record a day from the Record tab. With the + at the top you can write one by hand or import a GPX file. To see what it looks like, you can make a sample one in Settings.";
+"Scritta a mano" = "Written by hand";
+"Questa giornata è stata scritta a mano: ha i numeri, ma non la traccia." = "This day was written by hand: it has its numbers, but no track.";
+
+"In corso" = "Under way";
+"Domani" = "Tomorrow";
+"Tra %lld giorni" = "In %lld days";
+"Dove" = "Where";
+"Località o stazione" = "Place or ski area";
+"Togli" = "Remove";
+"Per avere le previsioni della neve nel viaggio, crealo dalla pagina di una stazione nella Guida." = "To have the snow forecast in the trip, make it from the page of a ski area in the Guide.";
+"Quando" = "When";
+"Dal" = "From";
+"Al" = "To";
+"Salva il viaggio" = "Save the trip";
+"Elimina il viaggio" = "Delete the trip";
+"Nuovo viaggio" = "New trip";
+
+"Dove e quando" = "Where and when";
+"Inizio" = "Start";
+"Durata: %@ h" = "Duration: %@ h";
+"Numeri" = "Numbers";
+"Discese: %lld" = "Runs: %lld";
+"Dislivello (m)" = "Vertical (m)";
+"Dislivello (ft)" = "Vertical (ft)";
+"Chilometri sciati" = "Kilometers skied";
+"Miglia sciate" = "Miles skied";
+"Velocità max (km/h), se la sai" = "Top speed (km/h), if you know it";
+"Velocità max (mph), se la sai" = "Top speed (mph), if you know it";
+"Controlla i numeri: usa solo cifre." = "Check the numbers: use digits only.";
+
+"Guida" = "Guide";
+"Preferite" = "Favorites";
+"Vicine" = "Nearby";
+"Stazioni: © i contributori di OpenStreetMap. Previsioni: Open-Meteo.com." = "Ski areas: © OpenStreetMap contributors. Forecasts: Open-Meteo.com.";
+"Cerca una stazione o un paese" = "Search a ski area or a town";
+"Cancella" = "Clear";
+"Non ho trovato niente con questo nome. Controlla la connessione o prova con il nome del paese." = "Nothing found with this name. Check the connection or try the name of the town.";
+"Scrivi il nome e premi Cerca sulla tastiera." = "Type the name and tap Search on the keyboard.";
+"Qui trovi le stazioni che segui. Cercane una per nome o guarda quelle vicine, poi tocca la stella." = "Here are the ski areas you follow. Search one by name or look at the ones nearby, then tap the star.";
+"Per vedere le stazioni vicine serve sapere dove sei: permetti la posizione dalla scheda Registra, o registra una giornata." = "To see the ski areas nearby the app needs to know where you are: allow the location from the Record tab, or record a day.";
+"Non ho trovato stazioni nel raggio di 100 km." = "No ski areas found within 100 km.";
+"Non sono riuscito a chiedere le stazioni vicine. Controlla la connessione e riapri la scheda." = "Couldn't ask for the ski areas nearby. Check the connection and open the tab again.";
+"Tra le preferite" = "Among the favorites";
+"Neve prevista nei prossimi giorni: %@ in tutto" = "Snow expected in the next days: %@ in all";
+"Seguita" = "Following";
+"Neve in 3 giorni" = "Snow in 3 days";
+"Neve in 8 giorni" = "Snow in 8 days";
+"Previsioni" = "Forecast";
+"Le tue giornate qui" = "Your days here";
+"Apri in Mappe" = "Open in Maps";
+
+"Mappa di calore" = "Heat map";
+"La mappa di calore si riempie con le giornate registrate." = "The heat map fills up with the days you record.";
+"%lld giornate · %lld discese" = "%lld days · %lld runs";
+"Cambia posto" = "Change place";

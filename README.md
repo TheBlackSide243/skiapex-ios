@@ -17,6 +17,9 @@ Premi **Inizia** ai piedi della pista, metti l'iPhone in tasca e scia. Ski Apex 
 - **Velocità sulla mappa**: ogni discesa disegnata dal blu (lento) al rosso (veloce).
 - **Statistiche**: totali, medie al giorno, record e grafici per stagione.
 - **Immagine da condividere** con traccia e numeri; importazione ed esportazione **GPX**.
+- **Guida delle stazioni**: cerca una stazione, guarda quelle vicine e segui le tue, con la neve prevista per 8 giorni.
+- **Diario** con la mappa dei posti dove hai sciato, i **viaggi in programma** e le **giornate scritte a mano**.
+- **Mappa di calore**: tutte le tue discese in un posto, una sull'altra.
 - **Schermata di blocco e Dynamic Island**: la giornata in corso sempre sott'occhio (Live Activity).
 - **Siri e Comandi Rapidi**: inizia, metti in pausa e finisci la giornata a voce.
 - **Foto della giornata** dalla tua libreria, trovate dall'orario.
@@ -35,6 +38,8 @@ Premi **Inizia** ai piedi della pista, metti l'iPhone in tasca e scia. Ski Apex 
   <img src="docs/screenshots/iphone-timeline.jpg" width="190" alt="La cronologia della giornata">
   <img src="docs/screenshots/iphone-replay.jpg" width="190" alt="Rivivi la giornata">
   <img src="docs/screenshots/iphone-stats.jpg" width="190" alt="Statistiche e record">
+  <img src="docs/screenshots/iphone-guide.jpg" width="190" alt="La guida delle stazioni con la neve prevista">
+  <img src="docs/screenshots/iphone-heat.jpg" width="190" alt="La mappa di calore">
   <img src="docs/screenshots/iphone-share.jpg" width="190" alt="L'immagine da condividere">
 </p>
 
@@ -58,6 +63,9 @@ Tap **Start** at the bottom of the slope, put your iPhone in your pocket and ski
 - **Speed on the map**: every run drawn from blue (slow) to red (fast).
 - **Stats**: totals, averages per day, records and charts by season.
 - **Picture to share** with the track and the numbers; **GPX** import and export.
+- **Guide to ski areas**: search one, see the ones nearby and follow yours, with the snow expected for 8 days.
+- **Diary** with the map of the places you skied, your **planned trips** and **days written by hand**.
+- **Heat map**: all your runs in one place, one over the other.
 - **Lock screen and Dynamic Island**: the day under way always in sight (Live Activity).
 - **Siri and Shortcuts**: start, pause and finish the day by voice.
 - **Photos of the day** from your library, found by their time.

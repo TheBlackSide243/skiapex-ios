@@ -142,10 +142,83 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(state.maxSpeedText, "45 mph")
     }
 
+    func testSkiAreasOutOfTheAnswers() throws {
+        let features: [[String: Any]] = [
+            ["properties": ["name": "Livigno", "state": "Lombardia", "country": "Italia", "osm_type": "W", "osm_id": 42] as [String: Any],
+             "geometry": ["coordinates": [10.1357, 46.5386]]],
+            ["properties": ["name": "Livigno", "osm_type": "W", "osm_id": 42] as [String: Any], "geometry": ["coordinates": [10.1357, 46.5386]]],
+            ["properties": ["state": "Nowhere"], "geometry": ["coordinates": [1.0, 2.0]]],
+        ]
+        let found = try Resorts.parsePhoton(JSONSerialization.data(withJSONObject: ["features": features]))
+        XCTAssertEqual(found.count, 1, "the same place once, and nothing without a name")
+        XCTAssertEqual(found.first?.region, "Lombardia, Italia")
+        XCTAssertEqual(found.first?.lat ?? 0, 46.5386, accuracy: 0.0001)
+
+        let elements: [[String: Any]] = [
+            ["type": "relation", "id": 7, "tags": ["site": "piste", "name": "Lontana"], "center": ["lat": 46.9, "lon": 7.6]],
+            ["type": "way", "id": 8, "tags": ["landuse": "winter_sports", "name": "Vicina"], "center": ["lat": 45.94, "lon": 7.63]],
+            ["type": "way", "id": 9, "tags": ["landuse": "winter_sports", "name": "Vicina"], "center": ["lat": 45.95, "lon": 7.64]],
+            ["type": "node", "id": 10, "tags": ["landuse": "winter_sports"], "lat": 45.9, "lon": 7.6],
+        ]
+        let near = try Resorts.parseOverpass(JSONSerialization.data(withJSONObject: ["elements": elements]), lat: 45.93, lon: 7.63)
+        XCTAssertEqual(near.map(\.name), ["Vicina", "Lontana"])
+        XCTAssertEqual(near.first?.id, "W8")
+    }
+
+    func testForecastDayByDay() throws {
+        // Two days at a resort one hour ahead of GMT.
+        let midnight = 1_800_000_000.0 - 3600
+        let daily: [String: Any] = [
+            "time": [midnight, midnight + 86_400], "snowfall_sum": [12.5, NSNull()] as [Any], "temperature_2m_min": [-8.0, -3.0],
+            "temperature_2m_max": [-1.0, 2.0], "wind_speed_10m_max": [20.0, 55.0], "weather_code": [73, 3]]
+        let answer: [String: Any] = ["utc_offset_seconds": 3600, "daily": daily]
+        let data = try JSONSerialization.data(withJSONObject: answer)
+        let days = try Resorts.parseForecast(data)
+        XCTAssertEqual(days.count, 2)
+        XCTAssertEqual(days[0].date.timeIntervalSince1970, 1_800_000_000, "read in GMT, it is the date at the resort")
+        XCTAssertEqual(days[0].snow, 12.5)
+        XCTAssertEqual(days[0].symbol, "cloud.snow")
+        XCTAssertFalse(days[0].windy)
+        XCTAssertEqual(days[1].snow, 0, "no number is no snow")
+        XCTAssertTrue(days[1].windy)
+    }
+
+    func testManualDaysTripsAndFavoritesAreKept() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let library = Library(directory: dir)
+        let manual = SkiDay(manual: Date(timeIntervalSinceNow: -86_400), duration: 4 * 3600, place: "A mano", sport: .snowboard,
+                            runs: 9, vertical: 3000, distance: 15_000, maxSpeed: 0)
+        try library.save(manual)
+        try library.save(SkiDay(points: SkiSim.day(laps: 1, seed: 41), place: "Con traccia"))
+        let resort = Resort(id: "W1", name: "Prova", region: nil, lat: 45.9336, lon: 7.6295)
+        library.toggleFavorite(resort)
+        library.saveTrip(Trip(name: "Passato", start: Date(timeIntervalSinceNow: -10 * 86_400), end: Date(timeIntervalSinceNow: -8 * 86_400)))
+        library.saveTrip(Trip(name: "Futuro", start: Date(timeIntervalSinceNow: 5 * 86_400), end: Date(timeIntervalSinceNow: 7 * 86_400), resort: resort))
+
+        let again = Library(directory: dir)
+        XCTAssertEqual(again.days.count, 2)
+        let written = try XCTUnwrap(again.days.first { $0.manual == true })
+        XCTAssertEqual(written.stats.runs, 9)
+        XCTAssertNil(written.coordinate, "no track, no pin")
+        XCTAssertNotNil(again.days.first { $0.manual != true }?.coordinate)
+        XCTAssertEqual(again.day(manual.id)?.sport, .snowboard)
+        XCTAssertTrue(again.isFavorite(resort))
+        XCTAssertEqual(again.upcomingTrips.map(\.name), ["Futuro"])
+        XCTAssertEqual(again.trips.count, 2)
+        XCTAssertEqual(again.days(near: resort).count, 1, "the made-up day is at this very place")
+        again.toggleFavorite(resort)
+        again.deleteTrip(again.trips[0].id)
+        XCTAssertFalse(Library(directory: dir).isFavorite(resort))
+        XCTAssertEqual(Library(directory: dir).trips.count, 1)
+        XCTAssertEqual(ManualDayView.number("12,5"), 12.5)
+        XCTAssertEqual(ManualDayView.number(""), 0)
+        XCTAssertNil(ManualDayView.number("tanti"))
+    }
+
     func testDaysSavedByTheFirstVersionStillOpen() throws {
         let day = SkiDay(points: SkiSim.day(laps: 1, seed: 17), place: "Vecchia")
         var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(day)) as? [String: Any])
-        for key in ["sport", "resort", "weather", "mapped", "inHealth", "heartAvg", "heartMax"] { json[key] = nil }
+        for key in ["sport", "resort", "weather", "mapped", "inHealth", "heartAvg", "heartMax", "manual"] { json[key] = nil }
         json["segments"] = (json["segments"] as? [[String: Any]])?.map { segment in
             segment.filter { $0.key != "name" && $0.key != "difficulty" }
         }

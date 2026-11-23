@@ -125,7 +125,7 @@ struct DayDetailView: View {
         day = loaded
         tracks = MapTrack.build(points: loaded.points, segments: loaded.segments)
         profile = ProfilePoint.make(loaded)
-        gpx = try? GPX.file(loaded)
+        gpx = loaded.points.isEmpty ? nil : (try? GPX.file(loaded))
         if !Demo.isOn { photos = DayPhotos.assets(from: loaded.start, to: loaded.end).map { PhotoItem(asset: $0) } }
         guard first else { return }
         switch Demo.screen {
@@ -150,19 +150,21 @@ struct DayDetailView: View {
     @ViewBuilder private func content(_ day: SkiDay) -> some View {
         VStack(spacing: 14) {
             ErrorBanner(error: $error)
-            ZStack(alignment: .topTrailing) {
-                Map(initialPosition: .automatic) {
-                    TrackMapContent(tracks: tracks)
+            if !day.points.isEmpty {
+                ZStack(alignment: .topTrailing) {
+                    Map(initialPosition: .automatic) {
+                        TrackMapContent(tracks: tracks)
+                    }
+                    .mapStyle(look.style)
+                    .frame(height: 320)
+                    .clipShape(Theme.round)
+                    .overlay(Theme.round.strokeBorder(Theme.line, lineWidth: 1))
+                    MapButton(symbol: look == .standard ? "globe.europe.africa" : "map",
+                              label: look == .standard ? "Satellite" : "Mappa") {
+                        mapLook = (look == .standard ? MapLook.satellite : MapLook.standard).rawValue
+                    }
+                    .padding(10)
                 }
-                .mapStyle(look.style)
-                .frame(height: 320)
-                .clipShape(Theme.round)
-                .overlay(Theme.round.strokeBorder(Theme.line, lineWidth: 1))
-                MapButton(symbol: look == .standard ? "globe.europe.africa" : "map",
-                          label: look == .standard ? "Satellite" : "Mappa") {
-                    mapLook = (look == .standard ? MapLook.satellite : MapLook.standard).rawValue
-                }
-                .padding(10)
             }
 
             VStack(alignment: .leading, spacing: 8) {
@@ -172,6 +174,9 @@ struct DayDetailView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         Chip(symbol: (day.sport ?? .ski).symbol, text: String(localized: String.LocalizationValue((day.sport ?? .ski).label)), color: Theme.accent)
+                        if day.manual == true {
+                            Chip(symbol: "square.and.pencil", text: String(localized: "Scritta a mano"))
+                        }
                         if let resort = day.resort, resort != day.place {
                             Chip(symbol: "mountain.2", text: resort, color: Theme.accent)
                         }
@@ -192,8 +197,10 @@ struct DayDetailView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack(spacing: 10) {
-                Button { replaying = true } label: { Label("Rivivi", systemImage: "play.fill") }
-                    .buttonStyle(PrimaryButtonStyle())
+                if !day.points.isEmpty {
+                    Button { replaying = true } label: { Label("Rivivi", systemImage: "play.fill") }
+                        .buttonStyle(PrimaryButtonStyle())
+                }
                 Button { sharing = true } label: { Label("Condividi", systemImage: "square.and.arrow.up") }
                     .buttonStyle(SecondaryButtonStyle())
             }
@@ -248,7 +255,11 @@ struct DayDetailView: View {
                 }
             }
 
-            if day.runs.isEmpty {
+            if day.points.isEmpty {
+                Text("Questa giornata è stata scritta a mano: ha i numeri, ma non la traccia.")
+                    .prose().font(.caption).foregroundStyle(Theme.sub)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else if day.runs.isEmpty {
                 Panel {
                     Text("Nessuna discesa riconosciuta: servono almeno \(Int(Segmenter.minRunDrop)) m di dislivello in movimento.")
                         .prose().font(.subheadline).foregroundStyle(Theme.sub)
