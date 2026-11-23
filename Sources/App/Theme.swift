@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// The look of Carve: a night-blue mountain under glass. Surfaces have round corners and a thin
+/// The look of Ski Apex: a night-blue mountain under glass. Surfaces have round corners and a thin
 /// outline; what floats on the map is glass (the Liquid Glass of iOS 26 and later, a frosted
 /// material before); the things you press are pills. Titles, numbers and labels are set in the
 /// monospaced face, sentences in the plain one (see `prose()`).

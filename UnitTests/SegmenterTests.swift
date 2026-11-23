@@ -1,5 +1,5 @@
 import XCTest
-@testable import Carve
+@testable import SkiApex
 
 final class SegmenterTests: XCTestCase {
     func testMadeUpDayHasEveryRunAndLift() {

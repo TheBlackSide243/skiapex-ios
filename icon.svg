@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-  <!-- Carve: a snowy peak at night with a glacier-blue ski track winding down from the top. iOS rounds the corners itself. -->
+  <!-- Ski Apex: a snowy peak at night with a glacier-blue ski track winding down from the top. iOS rounds the corners itself. -->
   <defs>
     <radialGradient id="sky" cx="0.5" cy="0.22" r="0.95">
       <stop offset="0" stop-color="#1D3A5F"/>

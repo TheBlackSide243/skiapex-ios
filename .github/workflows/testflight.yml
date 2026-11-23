@@ -1,11 +1,11 @@
-# Carve on TestFlight: archive, sign in the cloud with an App Store Connect API key, upload.
+# SkiApex on TestFlight: archive, sign in the cloud with an App Store Connect API key, upload.
 # No certificates or Macs anywhere. The archive is built unsigned; the export signs it for the
 # App Store with Apple's cloud-managed distribution certificate (-allowProvisioningUpdates makes
 # the profile) and uploads it.
 #
 # Secrets: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8 (the .p8 file's text, Admin key) and APPLE_TEAM_ID.
-# The app on TestFlight has its own bundle ID, win.shadowbyte.carve, apart from the Feather
-# build (com.local.carve): the two install side by side and do not share the days.
+# The app on TestFlight has its own bundle ID, win.shadowbyte.skiapex, apart from the Feather
+# build (com.local.skiapex): the two install side by side and do not share the days.
 name: TestFlight
 
 on:
@@ -15,7 +15,7 @@ on:
     inputs:
       bundle:
         description: Bundle ID on App Store Connect
-        default: win.shadowbyte.carve
+        default: win.shadowbyte.skiapex
 
 permissions:
   contents: read
@@ -27,7 +27,7 @@ jobs:
     outputs:
       build: ${{ steps.number.outputs.build }}
     env:
-      BUNDLE: ${{ inputs.bundle || 'win.shadowbyte.carve' }}
+      BUNDLE: ${{ inputs.bundle || 'win.shadowbyte.skiapex' }}
       TEAM: ${{ secrets.APPLE_TEAM_ID }}
       ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
       ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
@@ -89,13 +89,13 @@ jobs:
       - name: Archive
         run: |
           set -o pipefail
-          xcodebuild -project Carve.xcodeproj -scheme Carve -configuration Release \
-            -destination 'generic/platform=iOS' -archivePath "$PWD/build/Carve.xcarchive" \
+          xcodebuild -project SkiApex.xcodeproj -scheme SkiApex -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath "$PWD/build/SkiApex.xcarchive" \
             APP_ID="$BUNDLE" DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             CURRENT_PROJECT_VERSION="$BUILD" \
             archive 2>&1 | tee build.log | grep -E "error:|warning: unre|BUILD|ARCHIVE|Signing" || true
-          test -d build/Carve.xcarchive/Products/Applications/Carve.app || { grep -E "error" build.log | head -60; exit 1; }
+          test -d build/SkiApex.xcarchive/Products/Applications/SkiApex.app || { grep -E "error" build.log | head -60; exit 1; }
 
       - name: Upload to TestFlight
         run: |
@@ -114,7 +114,7 @@ jobs:
           </dict>
           </plist>
           EOF
-          xcodebuild -exportArchive -archivePath "$PWD/build/Carve.xcarchive" \
+          xcodebuild -exportArchive -archivePath "$PWD/build/SkiApex.xcarchive" \
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$PWD/build/export" \
             -allowProvisioningUpdates \
             -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" \
@@ -135,7 +135,7 @@ jobs:
   # Then the build goes to the friends' group with the public link, and to beta review.
   amici:
     needs: testflight
-    if: ${{ (inputs.bundle || 'win.shadowbyte.carve') == 'win.shadowbyte.carve' }}
+    if: ${{ (inputs.bundle || 'win.shadowbyte.skiapex') == 'win.shadowbyte.skiapex' }}
     uses: ./.github/workflows/testflight-amici.yml
     with:
       build: ${{ needs.testflight.outputs.build }}

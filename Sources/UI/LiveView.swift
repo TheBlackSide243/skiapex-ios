@@ -117,9 +117,9 @@ struct LiveView: View {
 
     @ViewBuilder private var startPanel: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("CARVE").font(.display(.largeTitle)).tracking(-0.5).foregroundStyle(Theme.accent)
+            Text("SKI APEX").font(.display(.largeTitle)).tracking(-0.5).foregroundStyle(Theme.accent)
             Text(recorder.denied
-                 ? LocalizedStringKey("Per registrare serve la posizione: permettila in Impostazioni → Carve → Posizione.")
+                 ? LocalizedStringKey("Per registrare serve la posizione: permettila in Impostazioni → Ski Apex → Posizione.")
                  : LocalizedStringKey("Premi Inizia ai piedi della pista, metti l'iPhone in tasca e scia: discese e risalite le riconosce da sola."))
                 .prose().font(.subheadline).foregroundStyle(Theme.sub)
                 .fixedSize(horizontal: false, vertical: true)

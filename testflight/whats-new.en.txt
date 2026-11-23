@@ -1,4 +1,4 @@
-First version of Carve, the diary of your days on skis.
+First version of Ski Apex, the diary of your days on skis.
 - Tap Start at the bottom of the slope and put your iPhone in your pocket: it records with the screen off too.
 - It recognizes runs and lifts on its own, with top speed, vertical, distance and altitude.
 - In Days you find the map of each day, the altitude chart and the details of every run.

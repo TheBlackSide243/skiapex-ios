@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct CarveApp: App {
+struct SkiApexApp: App {
     @Environment(\.scenePhase) private var phase
     @State private var library: Library
     @State private var recorder: Recorder
@@ -43,7 +43,7 @@ enum Demo {
     static let isOn = ProcessInfo.processInfo.arguments.contains("-demo")
 
     static func library() -> Library {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("carve-demo", isDirectory: true)
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("skiapex-demo", isDirectory: true)
         try? FileManager.default.removeItem(at: dir)
         let library = Library(directory: dir)
         let places = ["Breuil-Cervinia", "Courmayeur", "Livigno"]

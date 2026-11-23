@@ -33,7 +33,7 @@ jobs:
           set -o pipefail
           SIM=$(xcrun simctl list devices available | grep -E "^\s+iPhone" | grep -v -i duo | tail -1 | sed -E 's/^ +(.*) \([0-9A-F-]+\).*/\1/')
           echo "Simulator: $SIM"
-          xcodebuild test -project Carve.xcodeproj -scheme Carve -only-testing:CarveTests \
+          xcodebuild test -project SkiApex.xcodeproj -scheme SkiApex -only-testing:SkiApexTests \
             -destination "platform=iOS Simulator,name=$SIM" CODE_SIGNING_ALLOWED=NO 2>&1 \
             | tee test.log | grep -E "Test Case|error:|XCTAssert|TEST (SUCCEEDED|FAILED)|\*\* "
 

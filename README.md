@@ -1,4 +1,4 @@
-# Carve
+# Ski Apex
 
 **🇮🇹 Il diario delle tue giornate sugli sci, per iPhone.** · **🇬🇧 The diary of your days on skis, for iPhone.**
 
@@ -6,7 +6,7 @@
 
 ## Italiano
 
-Premi **Inizia** ai piedi della pista, metti l'iPhone in tasca e scia. Carve registra il GPS anche a schermo spento, misura la quota con il barometro e riconosce da sola **discese** e **risalite**: niente da toccare durante la giornata.
+Premi **Inizia** ai piedi della pista, metti l'iPhone in tasca e scia. Ski Apex registra il GPS anche a schermo spento, misura la quota con il barometro e riconosce da sola **discese** e **risalite**: niente da toccare durante la giornata.
 
 - Velocità massima e media, dislivello, chilometri sciati, quota massima, tempo in pista e in risalita.
 - Mappa della giornata con ogni discesa nel suo colore e le risalite tratteggiate (mappa o satellite).
@@ -25,7 +25,7 @@ Richiede iOS 17 o successivo. Velocità, distanze e quote sono stime del GPS e d
 
 ## English
 
-Tap **Start** at the bottom of the slope, put your iPhone in your pocket and ski. Carve records the GPS with the screen off, measures altitude with the barometer and recognizes **runs** and **lifts** on its own: nothing to touch during the day.
+Tap **Start** at the bottom of the slope, put your iPhone in your pocket and ski. Ski Apex records the GPS with the screen off, measures altitude with the barometer and recognizes **runs** and **lifts** on its own: nothing to touch during the day.
 
 - Top and average speed, vertical, distance skied, top altitude, time on runs and on lifts.
 - Map of the day with each run in its own color and dashed lifts (map or satellite).
@@ -46,6 +46,6 @@ Requires iOS 17 or later. Speeds, distances and altitudes are estimates from GPS
 
 ### Build
 
-SwiftUI, no dependencies. `xcodegen generate`, then open `Carve.xcodeproj`. The `.ipa` is built by GitHub Actions (`.github/workflows/ipa.yml`); the tests run with `unittests.yml`.
+SwiftUI, no dependencies. `xcodegen generate`, then open `SkiApex.xcodeproj`. The `.ipa` is built by GitHub Actions (`.github/workflows/ipa.yml`); the tests run with `unittests.yml`.
 
 © 2026 TheBlackSide243. All rights reserved: see [LICENSE](LICENSE).
