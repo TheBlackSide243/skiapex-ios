@@ -1,4 +1,4 @@
-Prima versione di Apex, il diario delle tue giornate sugli sci.
+Prima versione di Carve, il diario delle tue giornate sugli sci.
 - Premi Inizia ai piedi della pista e metti l'iPhone in tasca: registra anche a schermo spento.
 - Riconosce da sola discese e risalite, con velocità massima, dislivello, chilometri e quota.
 - In Giornate trovi la mappa di ogni giornata, il grafico della quota e il dettaglio di ogni discesa.

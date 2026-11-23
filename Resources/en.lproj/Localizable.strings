@@ -1,4 +1,4 @@
-/* Apex in English. The keys are the Italian texts of the app. */
+/* Carve in English. The keys are the Italian texts of the app. */
 
 "Registra" = "Record";
 "Giornate" = "Days";
@@ -15,7 +15,7 @@
 "Satellite" = "Satellite";
 "Mappa" = "Map";
 "Dove sono" = "My location";
-"Per registrare serve la posizione: permettila in Impostazioni → Apex → Posizione." = "Recording needs your location: allow it in Settings → Apex → Location.";
+"Per registrare serve la posizione: permettila in Impostazioni → Carve → Posizione." = "Recording needs your location: allow it in Settings → Carve → Location.";
 "Premi Inizia ai piedi della pista, metti l'iPhone in tasca e scia: discese e risalite le riconosce da sola." = "Tap Start at the bottom of the slope, put your iPhone in your pocket and ski: runs and lifts are recognized on their own.";
 "Apri Impostazioni" = "Open Settings";
 "Inizia la giornata" = "Start the day";
@@ -92,8 +92,8 @@
 "Sì, per il dislivello" = "Yes, for the vertical";
 "No, quota dal GPS" = "No, altitude from GPS";
 "Come funziona" = "How it works";
-"Apex registra il GPS circa una volta al secondo, anche a schermo spento, e misura la quota con il barometro. Una discesa è quando scendi muovendoti per almeno %lld m di dislivello; una risalita quando sali di almeno %lld m. Le soste brevi in pista restano dentro la discesa." = "Apex records the GPS about once a second, even with the screen off, and measures altitude with the barometer. A run is when you go down while moving for at least %lld m of vertical; a lift when you go up at least %lld m. Short stops on the slope stay inside the run.";
-"Consigli: carica l'iPhone prima di partire, con il freddo la batteria scende in fretta. Tienilo in una tasca interna. Le giornate restano solo su questo iPhone e le trovi anche nell'app File, nella cartella Apex." = "Tips: charge your iPhone before you go, the cold drains the battery fast. Keep it in an inside pocket. Your days stay only on this iPhone, and you can also find them in the Files app, in the Apex folder.";
+"Carve registra il GPS circa una volta al secondo, anche a schermo spento, e misura la quota con il barometro. Una discesa è quando scendi muovendoti per almeno %lld m di dislivello; una risalita quando sali di almeno %lld m. Le soste brevi in pista restano dentro la discesa." = "Carve records the GPS about once a second, even with the screen off, and measures altitude with the barometer. A run is when you go down while moving for at least %lld m of vertical; a lift when you go up at least %lld m. Short stops on the slope stay inside the run.";
+"Consigli: carica l'iPhone prima di partire, con il freddo la batteria scende in fretta. Tienilo in una tasca interna. Le giornate restano solo su questo iPhone e le trovi anche nell'app File, nella cartella Carve." = "Tips: charge your iPhone before you go, the cold drains the battery fast. Keep it in an inside pocket. Your days stay only on this iPhone, and you can also find them in the Files app, in the Carve folder.";
 "Prova" = "Try it";
 "Una giornata inventata, con risalite e discese, per vedere l'app senza andare sulla neve." = "A made-up day with lifts and runs, to see the app without going to the snow.";
 "Crea una giornata di prova" = "Make a sample day";

@@ -87,7 +87,7 @@ enum GPX {
         let iso = ISO8601DateFormatter()
         var s = """
         <?xml version="1.0" encoding="UTF-8"?>
-        <gpx version="1.1" creator="Apex" xmlns="http://www.topografix.com/GPX/1/1">
+        <gpx version="1.1" creator="Carve" xmlns="http://www.topografix.com/GPX/1/1">
         <metadata><name>\(escape(title(day)))</name><time>\(iso.string(from: day.start))</time></metadata>
         <trk><name>\(escape(title(day)))</name><type>skiing</type>
 
@@ -117,7 +117,7 @@ enum GPX {
     static func file(_ day: SkiDay) throws -> URL {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("Apex \(f.string(from: day.start)).gpx")
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("Carve \(f.string(from: day.start)).gpx")
         try document(day).write(to: url, atomically: true, encoding: .utf8)
         return url
     }
