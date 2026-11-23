@@ -32,6 +32,7 @@ struct LiveFriendsPanel: View {
     @Environment(Recorder.self) private var recorder
     @AppStorage(Prefs.shareLive) private var sharing = false
     @AppStorage(Prefs.nearAlerts) private var alerts = true
+    @AppStorage(Prefs.bluetooth) private var bluetooth = false
     @AppStorage(Prefs.mapLook) private var mapLook = MapLook.standard.rawValue
 
     private var look: MapLook { MapLook(rawValue: mapLook) ?? .standard }
@@ -59,6 +60,16 @@ struct LiveFriendsPanel: View {
                 if on { Task { _ = await Nearby.allow() } }
             }
             Text("Acceso, mentre registri una giornata i tuoi amici vedono dove sei, e ricevi un avviso quando uno di loro è a meno di 300 metri o scia nella tua zona. Passa da internet (rete del telefono), quindi serve campo. Il server tiene solo l'ultima posizione, non la salva, e la dimentica dieci minuti dopo l'ultimo aggiornamento, o subito quando metti in pausa o finisci.")
+                .prose().font(.caption).foregroundStyle(Theme.sub)
+                .fixedSize(horizontal: false, vertical: true)
+            Toggle(isOn: $bluetooth) {
+                Text("Cerca gli amici anche con il Bluetooth").font(.subheadline).foregroundStyle(Theme.text)
+            }
+            .tint(Theme.accent)
+            .onChange(of: bluetooth) { _, on in
+                if on, alerts { Task { _ = await Nearby.allow() } }
+            }
+            Text("Mentre registri, l'iPhone riconosce gli amici a pochi passi anche dove non c'è campo. Funziona se anche loro lo hanno acceso e stanno registrando. Non passa nessuna posizione: solo un codice che cambia ogni giorno e che solo i tuoi amici sanno leggere.")
                 .prose().font(.caption).foregroundStyle(Theme.sub)
                 .fixedSize(horizontal: false, vertical: true)
             if friends.isEmpty {

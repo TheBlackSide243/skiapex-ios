@@ -74,6 +74,20 @@ enum Nearby {
         }
     }
 
+    /// A friend heard over Bluetooth (see `Proximity`): a few steps away, with or without signal.
+    /// Said once, like a friend met through the positions, and not again for twenty minutes.
+    static func heard(_ friend: Friend) {
+        guard enabled, !Demo.isOn else { return }
+        let key = friend.id + ":close"
+        if let last = told[key], Date().timeIntervalSince(last) < 20 * 60 { return }
+        told[key] = Date()
+        let content = UNMutableNotificationContent()
+        content.title = String(localized: "\(friend.name) è vicino a te")
+        content.body = String(localized: "È a pochi passi da te.")
+        content.sound = .default
+        UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: key, content: content, trigger: nil))
+    }
+
     /// Asks to send notifications, the first time. True when they are allowed.
     static func allow() async -> Bool {
         (try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])) ?? false

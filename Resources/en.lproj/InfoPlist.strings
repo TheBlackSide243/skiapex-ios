@@ -4,3 +4,4 @@
 "NSPhotoLibraryUsageDescription" = "To show you, inside a day, the pictures you took on the snow. They stay in your library.";
 "NSHealthUpdateUsageDescription" = "To save your ski days in Health as workouts, with their route.";
 "NSHealthShareUsageDescription" = "To show you the heart rate of your ski days.";
+"NSBluetoothAlwaysUsageDescription" = "To recognize the friends a few steps from you while you record, even where there is no signal. Only if you turn it on.";

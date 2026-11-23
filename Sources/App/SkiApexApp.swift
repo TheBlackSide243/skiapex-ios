@@ -66,6 +66,8 @@ enum Prefs {
     static let shareLive = "shareLive"
     /// Say when a friend who shares is close. On unless set off.
     static let nearAlerts = "nearAlerts"
+    /// Look for the friends a few steps away over Bluetooth too. Off unless set on.
+    static let bluetooth = "bluetoothNear"
     /// `Look.rawValue`: the colors of the app.
     static let theme = "theme"
 }

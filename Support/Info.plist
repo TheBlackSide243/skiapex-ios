@@ -50,6 +50,8 @@
 	<string>Per salvare le tue giornate sugli sci in Salute come allenamenti, con il percorso.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>Per mostrarti il battito cardiaco delle tue giornate sugli sci.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Per riconoscere gli amici a pochi passi da te mentre registri, anche dove non c'è campo. Solo se lo accendi.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>NSMotionUsageDescription</key>
@@ -57,6 +59,8 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>
+		<string>bluetooth-central</string>
+		<string>bluetooth-peripheral</string>
 	</array>
 	<key>UIFileSharingEnabled</key>
 	<true/>

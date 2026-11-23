@@ -91,6 +91,8 @@ enum LiveShare {
 
     static func update(state: Recorder.State, point: TrackPoint?, phase: SegmentKind) {
         let social = Shared.social
+        // The friends a few steps away, over Bluetooth: with or without signal.
+        Proximity.shared.update(recording: state == .recording)
         let on = UserDefaults.standard.bool(forKey: Prefs.shareLive) && social.signedIn
         if on, state == .recording, let point, Date().timeIntervalSince(point.t) < 90 {
             guard Date().timeIntervalSince(lastSent) >= 25 else { return }
@@ -202,6 +204,17 @@ enum SocialError: LocalizedError {
     @ObservationIgnored private let demo: Bool
 
     private static let accountKey = "socialAccount"
+    private static let friendsKey = "socialFriends"
+
+    /// The friends as last read from the server: to know them where there is no signal.
+    static func keptFriends() -> [Friend] {
+        guard let data = UserDefaults.standard.data(forKey: friendsKey) else { return [] }
+        return (try? JSONDecoder().decode([Friend].self, from: data)) ?? []
+    }
+
+    private func keepFriends() {
+        if let data = try? JSONEncoder().encode(friends) { UserDefaults.standard.set(data, forKey: Self.friendsKey) }
+    }
 
     init(demo: Bool = false) {
         self.demo = demo
@@ -282,6 +295,7 @@ enum SocialError: LocalizedError {
         inviteCode = nil
         Keychain.set(nil, for: "token")
         UserDefaults.standard.removeObject(forKey: Self.accountKey)
+        UserDefaults.standard.removeObject(forKey: Self.friendsKey)
     }
 
     // MARK: Friends
@@ -309,6 +323,7 @@ enum SocialError: LocalizedError {
         await run {
             _ = try await self.call("DELETE", "/v1/friends/\(friend.id)")
             self.friends.removeAll { $0.id == friend.id }
+            self.keepFriends()
             self.rows.removeAll { $0.id == friend.id }
         }
     }
@@ -335,6 +350,7 @@ enum SocialError: LocalizedError {
             struct Friends: Decodable { let friends: [Friend] }
             let friendsData = try await self.call("GET", "/v1/friends")
             self.friends = try JSONDecoder().decode(Friends.self, from: friendsData).friends
+            self.keepFriends()
             struct Board: Decodable { let rows: [BoardRow] }
             let boardData = try await self.call("GET", "/v1/board?season=\(season.year)")
             self.rows = try JSONDecoder().decode(Board.self, from: boardData).rows

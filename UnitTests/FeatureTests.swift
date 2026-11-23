@@ -366,6 +366,21 @@ final class FeatureTests: XCTestCase {
         XCTAssertTrue(Terrain.query(lat: 46, lon: 7).contains("alpine_hut"))
     }
 
+    func testTheBluetoothCodeTellsFriendsOnly() {
+        let day = Date(timeIntervalSince1970: 1_800_000_000)
+        let friends = [Friend(id: "a1", name: "Giulia"), Friend(id: "b2", name: "Luca")]
+        let code = Proximity.code(id: "b2", day: day)
+        XCTAssertEqual(code.count, 8)
+        XCTAssertEqual(code, Proximity.code(id: "b2", day: day), "the same all day")
+        XCTAssertNotEqual(code, Proximity.code(id: "b2", day: day.addingTimeInterval(3 * 86_400)), "another one each day")
+        XCTAssertNotEqual(code, Proximity.code(id: "a1", day: day))
+        XCTAssertEqual(Proximity.friend(for: code, among: friends, day: day)?.name, "Luca")
+        // A phone whose clock is already in tomorrow is still recognized; a stranger is not.
+        XCTAssertEqual(Proximity.friend(for: Proximity.code(id: "a1", day: day.addingTimeInterval(86_400)), among: friends, day: day)?.name, "Giulia")
+        XCTAssertNil(Proximity.friend(for: Proximity.code(id: "zz", day: day), among: friends, day: day))
+        XCTAssertNil(Proximity.friend(for: code, among: friends, day: day.addingTimeInterval(5 * 86_400)))
+    }
+
     func testDaysSavedByTheFirstVersionStillOpen() throws {
         let day = SkiDay(points: SkiSim.day(laps: 1, seed: 17), place: "Vecchia")
         var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(day)) as? [String: Any])

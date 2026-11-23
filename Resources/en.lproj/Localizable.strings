@@ -375,3 +375,8 @@
 "Rosse" = "Red";
 "Tutte" = "All";
 "Tempi indicativi. Controlla sempre i cartelli e le piste aperte." = "Times are a guess. Always check the signs and which pistes are open.";
+
+/* 0.4.0: friends close by over Bluetooth */
+"Cerca gli amici anche con il Bluetooth" = "Look for friends over Bluetooth too";
+"Mentre registri, l'iPhone riconosce gli amici a pochi passi anche dove non c'è campo. Funziona se anche loro lo hanno acceso e stanno registrando. Non passa nessuna posizione: solo un codice che cambia ogni giorno e che solo i tuoi amici sanno leggere." = "While you record, the iPhone recognizes the friends a few steps away even where there is no signal. It works if they turned it on too and are recording. No position is sent: only a code that changes every day and that only your friends can read.";
+"È a pochi passi da te." = "A few steps from you.";
