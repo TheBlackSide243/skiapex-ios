@@ -16,9 +16,16 @@ Premi **Inizia** ai piedi della pista, metti l'iPhone in tasca e scia. Ski Apex 
 - Le giornate restano sull'iPhone (visibili anche nell'app File). Nessun account, nessun server.
 - Niente neve? In Impostazioni si crea una giornata di prova.
 
+<p>
+  <img src="docs/screenshots/iphone-live.jpg" width="190" alt="Registrazione in corso: mappa, velocità e numeri della giornata">
+  <img src="docs/screenshots/iphone-days.jpg" width="190" alt="Giornate e totali della stagione">
+  <img src="docs/screenshots/iphone-day.jpg" width="190" alt="Una giornata: mappa e numeri">
+  <img src="docs/screenshots/iphone-run.jpg" width="190" alt="Il dettaglio di una discesa">
+</p>
+
 ### Installazione
 
-- **TestFlight**: con il link di invito.
+- **TestFlight**: [link di invito](https://testflight.apple.com/join/Kszu8FAj).
 - **Feather / AltStore / Sideloadly**: la `.ipa` non firmata delle [release](../../releases), oppure la sorgente Feather `https://raw.githubusercontent.com/TheBlackSide243/feather-repo/main/apps.json`.
 
 Richiede iOS 17 o successivo. Velocità, distanze e quote sono stime del GPS e del barometro: non usarle per la sicurezza.
@@ -37,7 +44,7 @@ Tap **Start** at the bottom of the slope, put your iPhone in your pocket and ski
 
 ### Install
 
-- **TestFlight**: with the invite link.
+- **TestFlight**: [invite link](https://testflight.apple.com/join/Kszu8FAj).
 - **Feather / AltStore / Sideloadly**: the unsigned `.ipa` from the [releases](../../releases), or the Feather source `https://raw.githubusercontent.com/TheBlackSide243/feather-repo/main/apps.json`.
 
 Requires iOS 17 or later. Speeds, distances and altitudes are estimates from GPS and the barometer: do not rely on them for safety.
@@ -46,6 +53,6 @@ Requires iOS 17 or later. Speeds, distances and altitudes are estimates from GPS
 
 ### Build
 
-SwiftUI, no dependencies. `xcodegen generate`, then open `SkiApex.xcodeproj`. The `.ipa` is built by GitHub Actions (`.github/workflows/ipa.yml`); the tests run with `unittests.yml`.
+SwiftUI, no dependencies. `xcodegen generate`, then open `SkiApex.xcodeproj`. The `.ipa` is built by GitHub Actions (`.github/workflows/ipa.yml`); the tests run with `unittests.yml`, the pictures above come from `screenshots.yml`.
 
 © 2026 TheBlackSide243. All rights reserved: see [LICENSE](LICENSE).

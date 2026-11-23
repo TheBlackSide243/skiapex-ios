@@ -145,12 +145,21 @@ def main():
         internal = next((g for g in theirs if g["attributes"].get("isInternalGroup")), None)
         if internal:
             testers = need(*call("GET", f"betaGroups/{internal['id']}/betaTesters?limit=50"), "testers")["data"]
-            if testers:
-                done = soft(*call("POST", f"betaGroups/{by_name[INTERNAL]['id']}/relationships/betaTesters",
-                                  {"data": [{"type": "betaTesters", "id": t["id"]} for t in testers]}),
-                            "internal testers")
-                if done is not None:
-                    print(f"Internal testers: {len(testers)} added")
+            # A tester belongs to one app: the same people are invited again here, by address.
+            group_id = by_name[INTERNAL]["id"]
+            here = need(*call("GET", f"betaGroups/{group_id}/betaTesters?limit=50"), "testers here")["data"]
+            known = {t["attributes"].get("email") for t in here}
+            added = 0
+            for tester in testers:
+                a = tester["attributes"]
+                if not a.get("email") or a["email"] in known:
+                    continue
+                done = soft(*call("POST", "betaTesters", {"data": {"type": "betaTesters", "attributes": {
+                    "email": a["email"], "firstName": a.get("firstName"), "lastName": a.get("lastName")},
+                    "relationships": {"betaGroups": {"data": [{"type": "betaGroups", "id": group_id}]}}}}),
+                    "internal tester")
+                added += done is not None
+            print(f"Internal testers: {len(here)} already there, {added} added")
 
     # The TestFlight description, and the feedback address of the other app.
     feedback = None
