@@ -1,7 +1,17 @@
 import SwiftUI
+import UIKit
+
+/// The app is used upright, in a pocket and on a lift. App Store Connect wants every orientation
+/// declared in Info.plist, so the limit is set here.
+final class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
+        .portrait
+    }
+}
 
 @main
 struct SkiApexApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @Environment(\.scenePhase) private var phase
     @State private var library: Library
     @State private var recorder: Recorder
