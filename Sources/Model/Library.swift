@@ -12,6 +12,17 @@ import Observation
     private(set) var trips: [Trip] = []
     /// The ski areas kept in the guide.
     private(set) var favorites: [Resort] = []
+    /// The day just ended, to ask how the snow was: remembered until it is asked, also when the
+    /// day arrived from the watch with the app closed.
+    private(set) var asking: UUID?
+    @ObservationIgnored private var keepsAsking = false
+
+    /// Sets the day to ask about, or nil once it was asked.
+    func ask(_ id: UUID?) {
+        asking = id
+        if keepsAsking { UserDefaults.standard.set(id?.uuidString, forKey: "askSnow") }
+    }
+
     /// The days being looked up on the internet right now.
     @ObservationIgnored private var enriching: Set<UUID> = []
     private let dir: URL
@@ -33,6 +44,14 @@ import Observation
         if !FileManager.default.fileExists(atPath: marker.path) {
             if days.contains(where: { $0.lat == nil }) { rebuildIndex() }
             FileManager.default.createFile(atPath: marker.path, contents: nil)
+        }
+        // Only the library of the app remembers what to ask: the ones made for a test or the demo do not.
+        if directory == nil {
+            keepsAsking = true
+            if let id = UserDefaults.standard.string(forKey: "askSnow").flatMap({ UUID(uuidString: $0) }),
+               days.contains(where: { $0.id == id }) {
+                asking = id
+            }
         }
         let decoder = JSONDecoder()
         if let data = try? Data(contentsOf: tripsFile), let saved = try? decoder.decode([Trip].self, from: data) { trips = saved }
@@ -100,6 +119,14 @@ import Observation
         days.sort { $0.start > $1.start }
         writeIndex()
         saves += 1
+    }
+
+    /// How the snow was, said at the end of the day or later. nil takes it off.
+    func setSnow(_ id: UUID, to snow: Snow?, told: Bool) {
+        guard var day = day(id) else { return }
+        day.snow = snow
+        day.told = told ? true : nil
+        try? save(day)
     }
 
     func setSport(_ id: UUID, to sport: Sport) {

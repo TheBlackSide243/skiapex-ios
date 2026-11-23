@@ -29,6 +29,8 @@ enum Session {
             throw error
         }
         recorder.forget()
+        // Asked as soon as the app is looked at: how was the snow?
+        Shared.library.ask(day.id)
         // The friends' leaderboard hears about the new day.
         Task { await Shared.social.refresh(season: Season(day.start), days: Shared.library.days) }
         if UserDefaults.standard.bool(forKey: Prefs.healthAuto) {

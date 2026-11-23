@@ -379,6 +379,45 @@ enum SocialError: LocalizedError {
         }
     }
 
+    // MARK: Ski areas
+
+    /// Tells who skis there about a day: where it was (to the kilometer), how the snow was, its
+    /// numbers for the averages, and whether your friends may see you were there. Only what the
+    /// switches of the question allow. Silent: a day is not worth an error.
+    @MainActor func tell(_ day: DaySummary, snow: Snow?, numbers: Bool, friends: Bool) async -> Bool {
+        guard signedIn, !demo, let lat = day.lat, let lon = day.lon else { return false }
+        var body: [String: Any] = ["date": PlaceInfo.dayFormat.string(from: day.start), "lat": lat, "lon": lon, "friends": friends]
+        if let snow { body["snow"] = snow.rawValue }
+        if numbers, day.manual != true {
+            body["stats"] = ["vertical": day.stats.vertical, "distance": day.stats.runDistance, "runTime": day.stats.runTime,
+                             "liftTime": day.stats.liftTime, "avgSpeed": day.stats.avgRunSpeed, "runs": day.stats.runs]
+        }
+        return (try? await call("PUT", "/v1/places/visits", body)) != nil
+    }
+
+    /// Takes back what was told of a day.
+    @MainActor func untell(_ day: DaySummary) async {
+        guard signedIn, !demo else { return }
+        _ = try? await call("DELETE", "/v1/places/visits", ["date": PlaceInfo.dayFormat.string(from: day.start)])
+    }
+
+    /// What is known of a ski area: the snow as people found it, the average day, the friends.
+    func place(lat: Double, lon: Double) async -> PlaceInfo? {
+        if demo { return Self.demoPlace }
+        guard signedIn, let data = try? await call("GET", String(format: "/v1/places?lat=%.4f&lon=%.4f", lat, lon)) else { return nil }
+        return try? JSONDecoder().decode(PlaceInfo.self, from: data)
+    }
+
+    /// For the pictures.
+    private static var demoPlace: PlaceInfo {
+        let today = PlaceInfo.dayFormat.string(from: Date())
+        return PlaceInfo(snow: [.init(kind: "powder", count: 5), .init(kind: "wind", count: 2)],
+                         latest: .init(kind: "powder", date: today), reports: 7,
+                         averages: .init(days: 38, vertical: 4360, distance: 25_200, runTime: 4920, liftTime: 4260, avgSpeed: 9.97, runs: 9),
+                         friends: [.init(id: "a", name: "Giulia", photo: nil, days: 3, last: today),
+                                   .init(id: "b", name: "Luca", photo: nil, days: 1, last: today)], mine: 2)
+    }
+
     // MARK: Leaderboards
 
     /// What is sent of a day: when, and its numbers. Not where.

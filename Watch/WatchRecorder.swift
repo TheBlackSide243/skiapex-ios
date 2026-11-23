@@ -34,6 +34,9 @@ enum WatchFmt {
 @Observable final class WatchRecorder: NSObject, CLLocationManagerDelegate, HKWorkoutSessionDelegate, HKLiveWorkoutBuilderDelegate {
     enum State { case idle, recording, paused }
 
+    /// The one recorder of the watch app: the screens, the iPhone's orders and the system use it.
+    static let shared = WatchRecorder()
+
     private(set) var state: State = .idle
     private(set) var startDate: Date?
     private(set) var analysis = Segmenter.Result.empty

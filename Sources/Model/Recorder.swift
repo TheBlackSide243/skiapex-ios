@@ -23,6 +23,10 @@ import Observation
     private(set) var pointCount = 0
     /// The recording was found at launch, left from before.
     private(set) var recovered = false
+    /// The day went on to the Apple Watch: what was recorded here waits, paused, to be joined
+    /// with what the watch records (see `WatchBridge`).
+    private(set) var handed = false
+    private static let handedKey = "handedOff"
     let hasBarometer = CMAltimeter.isRelativeAltitudeAvailable()
 
     /// The numbers are worked out only when someone can see them: see `setActive(_:)`.
@@ -59,9 +63,34 @@ import Observation
             pointCount = saved.count
             state = .paused
             recovered = true
+            handed = UserDefaults.standard.bool(forKey: Self.handedKey)
             journal?.reopen()
             refresh()
         }
+    }
+
+    // MARK: The day on the watch
+
+    /// The day goes on on the Apple Watch: here it stops, keeping its points.
+    func handOff() {
+        if state == .recording { pause() }
+        handed = true
+        if journal != nil { UserDefaults.standard.set(true, forKey: Self.handedKey) }
+    }
+
+    /// The day comes back to the iPhone, to go on here.
+    func takeBack() {
+        handed = false
+        UserDefaults.standard.removeObject(forKey: Self.handedKey)
+        if state == .paused { resume() }
+    }
+
+    /// The points recorded here before the day went to the watch: given to be joined with the
+    /// watch's, and cleared from here.
+    func surrender() -> [TrackPoint] {
+        let all = stop()
+        forget()
+        return all
     }
 
     /// For the demo: a day under way, without sensors.
@@ -152,6 +181,8 @@ import Observation
         analysis = .empty
         tracks = []
         recovered = false
+        handed = false
+        UserDefaults.standard.removeObject(forKey: Self.handedKey)
         journal?.finish()
         if journal != nil { LiveStatus.end() }
     }

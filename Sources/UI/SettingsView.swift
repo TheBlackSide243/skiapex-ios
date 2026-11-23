@@ -4,7 +4,7 @@ import UniformTypeIdentifiers
 
 /// The pages the settings open.
 enum SettingsPage: String, Hashable {
-    case profile, look, recording, integrations, backup, help, news, privacy, credits
+    case profile, look, recording, integrations, maps, backup, help, news, privacy, credits
 }
 
 /// Settings: your profile at the top, then a short list of pages, each with its own things, and
@@ -39,6 +39,7 @@ struct SettingsView: View {
                                 detail: String(localized: String.LocalizationValue(Looks.shared.look.label)))
                         MenuRow(page: .recording, symbol: "slider.horizontal.3", color: Color(hex: 0x3b82f6), title: "Registrazione")
                         MenuRow(page: .integrations, symbol: "arrow.left.arrow.right", color: Color(hex: 0x6366f1), title: "Integrazioni")
+                        MenuRow(page: .maps, symbol: "map.fill", color: Color(hex: 0x14b8a6), title: "Mappe scaricate")
                         MenuRow(page: .backup, symbol: "archivebox.fill", color: Color(hex: 0x22a55b), title: "Copia di sicurezza", last: true)
                     }
                     MenuGroup {
@@ -67,6 +68,7 @@ struct SettingsView: View {
                 case .look: LookPage()
                 case .recording: RecordingPage()
                 case .integrations: IntegrationsPage()
+                case .maps: MapsPage()
                 case .backup: BackupPage()
                 case .help: HelpPage()
                 case .news: NewsPage()
@@ -319,6 +321,16 @@ private struct IntegrationsPage: View {
     }
 }
 
+/// The ski areas kept on the iPhone.
+private struct MapsPage: View {
+    var body: some View {
+        SettingsPageBody(title: "Mappe scaricate") {
+            SavedMapsPanel()
+            Words("La mappa di sfondo resta quella di Apple, che tiene in memoria solo le zone già guardate: prima di partire apri la mappa della stazione una volta con il campo.", small: true)
+        }
+    }
+}
+
 /// All the days in one file, and back.
 private struct BackupPage: View {
     @Environment(Library.self) private var library
@@ -406,6 +418,11 @@ private struct HelpPage: View {
 /// What came with this version.
 private struct NewsPage: View {
     private static let news: [(symbol: String, title: String, text: String)] = [
+        ("snowflake", "Com'era la neve?", "A fine giornata dici com'era la neve: chi apre la stazione lo vede, insieme alla giornata media di chi ha sciato lì."),
+        ("applewatch.radiowaves.left.and.right", "Continua sul Watch", "Inizi dall'iPhone, passi la giornata al Watch e metti via il telefono: a fine giornata arriva tutto qui."),
+        ("mountain.2", "La pagina della stazione", "Piste, impianti, quote, la neve di oggi ora per ora e quella dell'ultima settimana."),
+        ("arrow.down.circle", "Mappe scaricate", "Piste e impianti di una stazione sull'iPhone, per quando non c'è campo. E il nome della pista mentre scii."),
+        ("square.and.arrow.up", "Riepilogo della stagione", "I numeri della stagione in un'immagine da condividere. Da Statistiche."),
         ("applewatch", "Il Watch registra da solo", "Con il GPS dell'orologio, senza iPhone: la giornata arriva qui quando finisci."),
         ("point.topleft.down.to.point.bottomright.curvepath", "Mappa delle piste e percorsi", "Piste, impianti e rifugi di una stazione, e la strada da un punto all'altro. Dalla Guida."),
         ("person.crop.circle", "Foto del profilo", "I tuoi amici ti vedono in classifica e sulla mappa con la tua foto."),
@@ -448,6 +465,7 @@ private struct PrivacyPage: View {
                 Words("Amici: il nome, la foto se la metti e i totali della stagione. Se accedi con Apple o Google, al server arriva solo un identificativo: niente email.")
                 Words("Posizione in diretta: solo se la accendi e solo mentre registri. Il server tiene l'ultima, non la salva e la dimentica dopo dieci minuti.")
                 Words("Bluetooth: solo se lo accendi. Passa un codice che cambia ogni giorno, non la posizione.")
+                Words("Com'era la neve: solo se lo dici a fine giornata. Parte la zona della stazione al chilometro, com'era la neve e i numeri della giornata, senza nomi; agli amici il tuo nome solo se lo lasci acceso.")
             }
             Panel("Mai") {
                 Words("Niente pubblicità, niente tracciamento, niente dati venduti. Eliminando l'account dal Profilo, il server cancella tutto quello che aveva.")

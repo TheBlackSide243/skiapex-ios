@@ -1,14 +1,17 @@
+import HealthKit
 import Observation
 import SwiftUI
 import WatchConnectivity
+import WatchKit
 
 /// Ski Apex on the Apple Watch. It records a day by itself, with the GPS of the watch, and sends
 /// it to the iPhone when it ends; or, when the iPhone is the one recording, it shows its numbers
 /// and commands it: start, pause, end.
 @main
 struct SkiApexWatchApp: App {
+    @WKApplicationDelegateAdaptor(WatchDelegate.self) private var delegate
     @State private var phone = PhoneLink()
-    @State private var recorder = WatchRecorder()
+    @State private var recorder = WatchRecorder.shared
 
     var body: some Scene {
         WindowGroup {
@@ -20,6 +23,13 @@ struct SkiApexWatchApp: App {
                     recorder.deliver = { [phone] file in phone.queue(file) }
                 }
         }
+    }
+}
+
+/// The iPhone can open the watch app for a workout ("Continua sul Watch"): the day starts here.
+final class WatchDelegate: NSObject, WKApplicationDelegate {
+    func handle(_ workoutConfiguration: HKWorkoutConfiguration) {
+        DispatchQueue.main.async { WatchRecorder.shared.start() }
     }
 }
 
@@ -89,6 +99,11 @@ enum Ink {
     }
 
     private func take(_ packed: [String: Any]) {
+        // "Record": the iPhone passed the day to the watch. Only if it was just said.
+        if packed[WatchLink.commandKey] as? String == WatchLink.record,
+           let at = packed[WatchLink.atKey] as? Date, Date().timeIntervalSince(at) < 600 {
+            DispatchQueue.main.async { WatchRecorder.shared.start() }
+        }
         guard let state = WatchState(packed: packed) else { return }
         DispatchQueue.main.async { self.take(state) }
     }
@@ -146,6 +161,10 @@ enum Ink {
 
     func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
         take(message)
+    }
+
+    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+        take(userInfo)
     }
 
     func session(_ session: WCSession, didFinish fileTransfer: WCSessionFileTransfer, error: Error?) {

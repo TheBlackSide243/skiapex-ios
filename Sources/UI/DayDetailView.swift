@@ -14,6 +14,7 @@ struct PhotoItem: Identifiable {
 struct DayDetailView: View {
     let id: UUID
     @Environment(Library.self) private var library
+    @Environment(Social.self) private var social
     @Environment(\.dismiss) private var dismiss
     @AppStorage(Prefs.mapLook) private var mapLook = MapLook.standard.rawValue
     @State private var day: SkiDay?
@@ -61,6 +62,7 @@ struct DayDetailView: View {
                         newName = day?.place ?? ""
                         renaming = true
                     } label: { Label("Rinomina", systemImage: "pencil") }
+                    Button { library.ask(id) } label: { Label("Com'era la neve", systemImage: "snowflake") }
                     Menu {
                         ForEach(Sport.allCases) { sport in
                             Button {
@@ -97,6 +99,11 @@ struct DayDetailView: View {
         }
         .confirmationDialog("Eliminare questa giornata?", isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("Elimina", role: .destructive) {
+                // What was told of it to who skis there goes with it.
+                if let day, day.told == true {
+                    let summary = day.summary
+                    Task { await social.untell(summary) }
+                }
                 library.delete(id)
                 dismiss()
             }
@@ -186,6 +193,9 @@ struct DayDetailView: View {
                                 Chip(symbol: "snowflake", text: Fmt.snow(weather.snowfall), color: Theme.accent)
                             }
                             Chip(symbol: "wind", text: Fmt.wind(weather.windMax), color: Theme.accent)
+                        }
+                        if let snow = day.snow {
+                            Chip(symbol: snow.symbol, text: String(localized: String.LocalizationValue(snow.label)), color: Theme.accent)
                         }
                         if day.inHealth == true {
                             Chip(symbol: "heart.fill", text: String(localized: "In Salute"), color: Theme.bad)

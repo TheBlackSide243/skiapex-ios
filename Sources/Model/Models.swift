@@ -92,6 +92,10 @@ struct SkiDay: Codable, Identifiable {
     var heartMax: Double?
     /// Written by hand, with no track: its numbers are the ones typed in.
     var manual: Bool?
+    /// How the snow was, as you said at the end of the day.
+    var snow: Snow?
+    /// The day was told to who skis there (see `Social.tell`).
+    var told: Bool?
 
     /// A day made of the points recorded: cleaned up, then cut into runs and lifts.
     init(id: UUID = UUID(), points raw: [TrackPoint], place: String? = nil, sport: Sport? = nil) {

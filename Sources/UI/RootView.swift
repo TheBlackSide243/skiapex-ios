@@ -5,8 +5,11 @@ import SwiftUI
 /// friends, the settings.
 struct RootView: View {
     @Environment(Social.self) private var social
+    @Environment(Library.self) private var library
     @AppStorage(Prefs.units) private var units = Units.metric.rawValue
     @State private var tab = Demo.tab
+    /// The day just ended, to ask how the snow was.
+    @State private var asked: AskedDay?
 
     var body: some View {
         TabView(selection: $tab) {
@@ -44,6 +47,11 @@ struct RootView: View {
                 break
             }
         }
+        // A day ended, here or on the watch: how was the snow?
+        .onChange(of: library.asking, initial: true) { _, id in
+            if let id { asked = AskedDay(id: id) }
+        }
+        .sheet(item: $asked, onDismiss: { library.ask(nil) }) { SnowSheet(id: $0.id) }
         // An invitation opened from its link goes to the friends.
         .onChange(of: social.pendingCode) { _, code in
             if code != nil { tab = 3 }

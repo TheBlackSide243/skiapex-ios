@@ -67,6 +67,10 @@ enum Prefs {
     static let shareLive = "shareLive"
     /// Say when a friend who shares is close. On unless set off.
     static let nearAlerts = "nearAlerts"
+    /// Tell who skis there how the snow was, with the numbers of the day. On unless set off.
+    static let tellSnow = "tellSnow"
+    /// Let friends see the ski areas you told about. On unless set off.
+    static let tellFriends = "tellFriends"
     /// Look for the friends a few steps away over Bluetooth too. Off unless set on.
     static let bluetooth = "bluetoothNear"
     /// `Look.rawValue`: the colors of the app.
@@ -75,7 +79,7 @@ enum Prefs {
 
 /// Launched with `-demo`: made-up days and a day under way, for the screenshots. `-screen <name>`
 /// opens one screen: ready, live, days, day, timeline, run, replay, share, manual, stats, heat,
-/// guide, explore, friends, settings, looks, profile, empty.
+/// recap, snow, guide, resort, explore, friends, settings, looks, profile, empty.
 enum Demo {
     static let isOn = ProcessInfo.processInfo.arguments.contains("-demo")
 
@@ -88,8 +92,8 @@ enum Demo {
     /// The tab the screen asked for is in.
     static var tab: Int {
         switch screen {
-        case "days", "day", "timeline", "run", "replay", "share", "manual", "stats", "heat", "empty": 1
-        case "guide", "explore": 2
+        case "days", "day", "timeline", "run", "replay", "share", "manual", "stats", "heat", "recap", "snow", "empty": 1
+        case "guide", "explore", "resort": 2
         case "friends": 3
         case "settings", "looks", "profile": 4
         default: 0
@@ -121,6 +125,8 @@ enum Demo {
         let soon = Calendar.current.date(byAdding: .day, value: 5, to: Calendar.current.startOfDay(for: Date())) ?? Date()
         library.saveTrip(Trip(name: resorts[0].name, start: soon, end: soon.addingTimeInterval(3 * 86_400), resort: resorts[0]))
         if !library.isFavorite(resorts[1]) { library.toggleFavorite(resorts[1]) }
+        // For the picture of the question asked at the end of a day.
+        if screen == "snow", let last = library.days.first { library.ask(last.id) }
         return library
     }
 
