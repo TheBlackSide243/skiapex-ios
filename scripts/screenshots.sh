@@ -44,7 +44,7 @@ xcrun simctl status_bar "$udid" override --time "9:41" --batteryState charged --
   --cellularMode active --cellularBars 4 --wifiBars 3 || true
 xcrun simctl install "$udid" "$APP"
 
-for s in ${SCREENS:-ready live days day run settings empty}; do
+for s in ${SCREENS:-ready live days day timeline run replay share manual stats heat guide friends settings empty}; do
   xcrun simctl terminate "$udid" "$BUNDLE" 2>/dev/null || true
   tries=0
   until xcrun simctl launch "$udid" "$BUNDLE" -demo -screen "$s" ${ARGS:-} -AppleLanguages "(${LANG_CODE:-it})" -AppleLocale "${LOCALE_CODE:-it_IT}" >/dev/null; do

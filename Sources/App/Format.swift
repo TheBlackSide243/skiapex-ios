@@ -75,4 +75,19 @@ enum Fmt {
     static func day(_ d: Date) -> String { d.formatted(.dateTime.weekday(.wide).day().month(.wide)) }
 
     static func dayShort(_ d: Date) -> String { d.formatted(.dateTime.day().month(.abbreviated).year()) }
+
+    /// From degrees Celsius.
+    static func temperature(_ c: Double) -> String {
+        metric ? "\(number(c))°" : "\(number(c * 9 / 5 + 32))°F"
+    }
+
+    /// Fresh snow, from centimeters.
+    static func snow(_ cm: Double) -> String {
+        metric ? "\(number(cm)) cm" : "\(number(cm / 2.54, decimals: 1)) in"
+    }
+
+    /// Wind, from km/h.
+    static func wind(_ kmh: Double) -> String {
+        metric ? "\(number(kmh)) km/h" : "\(number(kmh / 1.609_344)) mph"
+    }
 }

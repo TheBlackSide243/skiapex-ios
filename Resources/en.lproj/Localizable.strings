@@ -22,7 +22,6 @@
 "Discese" = "Runs";
 "Dislivello" = "Vertical";
 "Max %@" = "Max %@";
-"Sci" = "Skied";
 "Risalite" = "Lifts";
 "Quota max" = "Top altitude";
 "Pausa" = "Pause";
@@ -103,3 +102,225 @@
 "Versione" = "Version";
 "Giornate salvate" = "Days saved";
 "Velocità, distanze e quote sono stime del GPS e del barometro: non usarle per la sicurezza." = "Speeds, distances and altitudes are estimates from GPS and the barometer: don't rely on them for safety.";
+
+/* 0.2.0 */
+"Statistiche" = "Stats";
+"Importa GPX" = "Import GPX";
+"Registra una giornata dalla scheda Registra, o importa un file GPX con il pulsante in alto. Per vedere com'è, in Impostazioni puoi crearne una di prova." = "Record a day from the Record tab, or import a GPX file with the button at the top. To see what it looks like, you can make a sample one in Settings.";
+"Nel file non c'è una traccia con gli orari: non posso ricavarne una giornata." = "The file has no track with times: a day can't be made from it.";
+"Questa giornata c'è già." = "This day is already here.";
+"Condividi immagine" = "Share picture";
+"Attività" = "Activity";
+"Rivivi" = "Replay";
+"Condividi" = "Share";
+"Elenco" = "List";
+"Cronologia" = "Timeline";
+"Risalita %lld" = "Lift %lld";
+"Sosta" = "Break";
+"Pista %@" = "Piste %@";
+"Lento" = "Slow";
+"Colori della velocità, da lento a veloce" = "Speed colors, from slow to fast";
+
+"Principianti" = "Beginner";
+"Facile" = "Easy";
+"Media" = "Intermediate";
+"Difficile" = "Advanced";
+"Esperti" = "Expert";
+"Fuoripista" = "Off-piste";
+
+"Sci" = "Ski";
+"Snowboard" = "Snowboard";
+"Telemark" = "Telemark";
+"Slittino" = "Sled";
+
+"Sereno" = "Clear";
+"Poco nuvoloso" = "Partly cloudy";
+"Coperto" = "Overcast";
+"Nebbia" = "Fog";
+"Pioggia" = "Rain";
+"Neve" = "Snow";
+"Temporale" = "Thunderstorm";
+"Nuvoloso" = "Cloudy";
+
+"Rivivi la giornata" = "Replay the day";
+"Vista dall'alto" = "Overview";
+"Segui" = "Follow";
+"Momento della giornata" = "Moment of the day";
+"Riproduci" = "Play";
+"Velocità del replay" = "Replay speed";
+
+"Immagine della giornata con la traccia e i numeri" = "Picture of the day with the track and the numbers";
+"Condividi la giornata" = "Share the day";
+
+"Sempre" = "All time";
+"In media al giorno" = "Average per day";
+"Record" = "Records";
+"Più dislivello in un giorno" = "Most vertical in a day";
+"Più discese in un giorno" = "Most runs in a day";
+"Discesa più lunga" = "Longest run";
+"Più chilometri in un giorno" = "Most distance in a day";
+"Quota più alta" = "Highest altitude";
+"Dislivello per giornata" = "Vertical per day";
+"Velocità max per giornata" = "Top speed per day";
+"Ancora nessun numero" = "No numbers yet";
+"Totali, medie e record compaiono qui dopo la prima giornata." = "Totals, averages and records appear here after your first day.";
+
+"Le nuove giornate vengono salvate così. Puoi cambiarlo per ogni giornata dal suo menu." = "New days are saved as this. You can change it for each day from its menu.";
+"Internet" = "Internet";
+"Nomi delle piste e meteo" = "Piste names and weather";
+"Quando apri una giornata, Ski Apex chiede a OpenStreetMap i nomi delle piste e degli impianti della zona e a Open-Meteo il meteo di quel giorno. Viene inviata solo la zona della giornata, senza account e senza il tuo nome. Spento, non esce niente dall'iPhone." = "When you open a day, Ski Apex asks OpenStreetMap for the names of the pistes and lifts of the area and Open-Meteo for the weather of that day. Only the area of the day is sent, with no account and without your name. When off, nothing leaves the iPhone.";
+"Nomi di piste e impianti: © i contributori di OpenStreetMap (ODbL). Meteo: Open-Meteo.com." = "Piste and lift names: © OpenStreetMap contributors (ODbL). Weather: Open-Meteo.com.";
+
+/* Siri, photos, Health, backup */
+"Avvia la registrazione della giornata sugli sci, o la riprende se è in pausa." = "Starts recording the ski day, or resumes it if it is paused.";
+"La registrazione è già in corso." = "Recording is already under way.";
+"Registrazione ripresa." = "Recording resumed.";
+"Registrazione avviata. Buone discese!" = "Recording started. Have a great day!";
+"Metti in pausa la giornata" = "Pause the day";
+"Mette in pausa la registrazione in corso." = "Pauses the recording under way.";
+"Non c'è una registrazione in corso." = "There is no recording under way.";
+"Registrazione in pausa." = "Recording paused.";
+"Finisci la giornata" = "Finish the day";
+"Ferma la registrazione e salva la giornata." = "Stops recording and saves the day.";
+"Troppo pochi punti GPS: non c'era niente da salvare." = "Too few GPS points: there was nothing to save.";
+"Giornata salvata: %lld discese, %@ di dislivello." = "Day saved: %lld runs, %@ of vertical.";
+
+"Foto della giornata" = "Photos of the day";
+"Mostra le foto di questa giornata" = "Show the photos of this day";
+"Foto delle %@" = "Photo taken at %@";
+
+"Salute" = "Health";
+"In Salute" = "In Health";
+"Salva in Salute" = "Save to Health";
+"Aggiorna il battito da Salute" = "Update heart rate from Health";
+"Battito medio" = "Average heart rate";
+"Battito max" = "Top heart rate";
+"Salva le giornate in Salute" = "Save days to Health";
+"Ogni giornata finita viene salvata in Salute come allenamento di sci o snowboard, con il percorso, e se portavi un Apple Watch ne leggo il battito. Puoi farlo anche a mano dal menu di una giornata. Con l'app installata da Feather può non essere disponibile." = "Every finished day is saved to Health as a skiing or snowboarding workout, with its route, and if you wore an Apple Watch its heart rate is read. You can also do it by hand from the menu of a day. With the app installed from Feather it may not be available.";
+"Salute non è disponibile su questo dispositivo." = "Health is not available on this device.";
+"Non sono riuscito a usare Salute. Con l'app installata da Feather può non essere disponibile: usa la versione di TestFlight. (%@)" = "Couldn't use Health. With the app installed from Feather it may not be available: use the TestFlight version. (%@)";
+
+"Copia di sicurezza" = "Backup";
+"Tutte le giornate in un file zip, da tenere su iCloud Drive o da portare su un altro iPhone. Ripristinando, le giornate che ci sono già non vengono toccate." = "All your days in one zip file, to keep on iCloud Drive or to move to another iPhone. When restoring, the days already here are left as they are.";
+"Prepara la copia" = "Make the backup";
+"Salva o invia la copia" = "Save or send the backup";
+"Ripristina da una copia" = "Restore from a backup";
+"Giornate aggiunte: %lld." = "Days added: %lld.";
+"Un file è troppo grande per la copia (più di 4 GB)." = "A file is too large for the backup (more than 4 GB).";
+"Il file non è un archivio zip leggibile." = "The file is not a readable zip archive.";
+"Nell'archivio il file «%@» è rovinato." = "In the archive the file “%@” is damaged.";
+
+/* Diary, trips, guide, heat map */
+"Viaggio" = "Trip";
+"Attività manuale" = "Manual activity";
+"Importa da file" = "Import from file";
+"Aggiungi" = "Add";
+"Mappa dei posti dove hai sciato" = "Map of the places where you skied";
+"giorni" = "days";
+"posti" = "places";
+"PROSSIMAMENTE" = "COMING UP";
+"Aggiungi il tuo prossimo viaggio" = "Add your next trip";
+"Registra una giornata dalla scheda Registra. Con il + in alto puoi scriverne una a mano o importare un file GPX. Per vedere com'è, in Impostazioni puoi crearne una di prova." = "Record a day from the Record tab. With the + at the top you can write one by hand or import a GPX file. To see what it looks like, you can make a sample one in Settings.";
+"Scritta a mano" = "Written by hand";
+"Questa giornata è stata scritta a mano: ha i numeri, ma non la traccia." = "This day was written by hand: it has its numbers, but no track.";
+
+"In corso" = "Under way";
+"Domani" = "Tomorrow";
+"Tra %lld giorni" = "In %lld days";
+"Dove" = "Where";
+"Località o stazione" = "Place or ski area";
+"Togli" = "Remove";
+"Per avere le previsioni della neve nel viaggio, crealo dalla pagina di una stazione nella Guida." = "To have the snow forecast in the trip, make it from the page of a ski area in the Guide.";
+"Quando" = "When";
+"Dal" = "From";
+"Al" = "To";
+"Salva il viaggio" = "Save the trip";
+"Elimina il viaggio" = "Delete the trip";
+"Nuovo viaggio" = "New trip";
+
+"Dove e quando" = "Where and when";
+"Inizio" = "Start";
+"Durata: %@ h" = "Duration: %@ h";
+"Numeri" = "Numbers";
+"Discese: %lld" = "Runs: %lld";
+"Dislivello (m)" = "Vertical (m)";
+"Dislivello (ft)" = "Vertical (ft)";
+"Chilometri sciati" = "Kilometers skied";
+"Miglia sciate" = "Miles skied";
+"Velocità max (km/h), se la sai" = "Top speed (km/h), if you know it";
+"Velocità max (mph), se la sai" = "Top speed (mph), if you know it";
+"Controlla i numeri: usa solo cifre." = "Check the numbers: use digits only.";
+
+"Guida" = "Guide";
+"Preferite" = "Favorites";
+"Vicine" = "Nearby";
+"Stazioni: © i contributori di OpenStreetMap. Previsioni: Open-Meteo.com." = "Ski areas: © OpenStreetMap contributors. Forecasts: Open-Meteo.com.";
+"Cerca una stazione o un paese" = "Search a ski area or a town";
+"Cancella" = "Clear";
+"Non ho trovato niente con questo nome. Controlla la connessione o prova con il nome del paese." = "Nothing found with this name. Check the connection or try the name of the town.";
+"Scrivi il nome e premi Cerca sulla tastiera." = "Type the name and tap Search on the keyboard.";
+"Qui trovi le stazioni che segui. Cercane una per nome o guarda quelle vicine, poi tocca la stella." = "Here are the ski areas you follow. Search one by name or look at the ones nearby, then tap the star.";
+"Per vedere le stazioni vicine serve sapere dove sei: permetti la posizione dalla scheda Registra, o registra una giornata." = "To see the ski areas nearby the app needs to know where you are: allow the location from the Record tab, or record a day.";
+"Non ho trovato stazioni nel raggio di 100 km." = "No ski areas found within 100 km.";
+"Non sono riuscito a chiedere le stazioni vicine. Controlla la connessione e riapri la scheda." = "Couldn't ask for the ski areas nearby. Check the connection and open the tab again.";
+"Tra le preferite" = "Among the favorites";
+"Neve prevista nei prossimi giorni: %@ in tutto" = "Snow expected in the next days: %@ in all";
+"Seguita" = "Following";
+"Neve in 3 giorni" = "Snow in 3 days";
+"Neve in 8 giorni" = "Snow in 8 days";
+"Previsioni" = "Forecast";
+"Le tue giornate qui" = "Your days here";
+"Apri in Mappe" = "Open in Maps";
+
+"Mappa di calore" = "Heat map";
+"La mappa di calore si riempie con le giornate registrate." = "The heat map fills up with the days you record.";
+"%lld giornate · %lld discese" = "%lld days · %lld runs";
+"Cambia posto" = "Change place";
+
+/* Friends */
+"Amici" = "Friends";
+"Statistiche, record e mappa di calore" = "Stats, records and heat map";
+"Con gli amici condividi solo il nome e i totali della stagione: giorni, discese, dislivello, chilometri, tempo e velocità massima. Tracce, posti e posizione restano sul tuo iPhone." = "With friends you share only your name and the totals of the season: days, runs, vertical, distance, time and top speed. Tracks, places and location stay on your iPhone.";
+"Codice dell'invito" = "Invitation code";
+"Codice di 8 caratteri" = "8-character code";
+"Scrivi il codice che ti ha mandato il tuo amico." = "Type the code your friend sent you.";
+"Eliminare l'account?" = "Delete the account?";
+"Password" = "Password";
+"Il nome, gli amici e i totali condivisi vengono cancellati dal server. Le giornate sul tuo iPhone restano." = "Your name, friends and shared totals are deleted from the server. The days on your iPhone stay.";
+"Giorni sulla neve" = "Days on the snow";
+"Chilometri" = "Distance";
+"tu" = "you";
+"Per ora ci sei solo tu: invita un amico per iniziare la classifica." = "For now it's only you: invite a friend to start the leaderboard.";
+"Invita un amico" = "Invite a friend";
+"Sfidami su Ski Apex: apri il link per diventare amici." = "Challenge me on Ski Apex: open the link to become friends.";
+"Manda il link" = "Send the link";
+"Il link vale una settimana e può usarlo più di una persona." = "The link is good for a week and more than one person can use it.";
+"Crea il link di invito" = "Make the invitation link";
+"Ho un codice" = "I have a code";
+"I tuoi amici" = "Your friends";
+"Togli dagli amici" = "Remove from friends";
+"Account" = "Account";
+"Nome" = "Name";
+"Esci" = "Sign out";
+"Elimina l'account" = "Delete the account";
+"Sfida i tuoi amici" = "Challenge your friends";
+"Chi ha fatto più giorni sulla neve, più dislivello, più chilometri? Crea un account, manda il link a un amico e confrontate la stagione." = "Who has more days on the snow, more vertical, more distance? Make an account, send the link to a friend and compare your seasons.";
+"Crea un account" = "Make an account";
+"Accedi" = "Sign in";
+"Nome (lo vedono i tuoi amici)" = "Name (your friends see it)";
+"Password (almeno 8 caratteri)" = "Password (at least 8 characters)";
+"Crea l'account" = "Make the account";
+"Ho già un account" = "I already have an account";
+"Non ho un account" = "I don't have an account";
+"Non riesco a raggiungere il server degli amici. Controlla la connessione e riprova." = "Can't reach the friends' server. Check the connection and try again.";
+"Il nome deve avere da 3 a 20 caratteri: lettere, cifre, punto, trattino." = "The name must be 3 to 20 characters: letters, digits, dot, dash.";
+"La password deve avere almeno 8 caratteri." = "The password must be at least 8 characters.";
+"Questo nome è già preso: scegline un altro." = "This name is taken: choose another one.";
+"Nome o password sbagliati." = "Wrong name or password.";
+"Password sbagliata." = "Wrong password.";
+"Troppi tentativi: riprova tra un quarto d'ora." = "Too many tries: try again in a quarter of an hour.";
+"Questo invito non è valido o è scaduto." = "This invitation is not valid or has expired.";
+"Questo è il tuo invito: mandalo a un amico." = "This is your own invitation: send it to a friend.";
+"Uno dei due ha già troppi amici." = "One of you already has too many friends.";
+"Devi accedere di nuovo." = "You need to sign in again.";
+"Il server degli amici ha risposto con un errore. Riprova tra poco." = "The friends' server answered with an error. Try again shortly.";

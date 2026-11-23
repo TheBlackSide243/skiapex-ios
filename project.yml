@@ -7,8 +7,8 @@ options:
   developmentLanguage: it
 settings:
   base:
-    MARKETING_VERSION: "0.1.0"
-    CURRENT_PROJECT_VERSION: "1"
+    MARKETING_VERSION: "0.2.0"
+    CURRENT_PROJECT_VERSION: "2"
     SWIFT_VERSION: "5.0"
     TARGETED_DEVICE_FAMILY: "1"
     CODE_SIGN_STYLE: Manual
@@ -20,7 +20,10 @@ targets:
     platform: iOS
     sources:
       - path: Sources
+      - path: Shared
       - path: Resources
+    dependencies:
+      - target: SkiApexLive
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(APP_ID)
@@ -32,6 +35,21 @@ targets:
     scheme:
       testTargets:
         - SkiApexTests
+  # The day under way on the lock screen and in the Dynamic Island.
+  SkiApexLive:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: LiveWidget
+      - path: Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(APP_ID).live
+        PRODUCT_NAME: SkiApexLive
+        INFOPLIST_FILE: LiveWidget/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        SKIP_INSTALL: YES
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks"
   SkiApexTests:
     type: bundle.unit-test
     platform: iOS

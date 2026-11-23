@@ -25,6 +25,17 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>win.shadowbyte.skiapex.friend</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>skiapex</string>
+			</array>
+		</dict>
+	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
@@ -33,6 +44,14 @@
 	<string>Per registrare le tue discese, le risalite e la velocità mentre scii. La posizione resta sul tuo iPhone.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Per continuare a registrare la giornata con l'iPhone in tasca e lo schermo spento. La posizione resta sul tuo iPhone.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Per mostrarti nella giornata le foto che hai scattato sulla neve. Restano nella tua libreria.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Per salvare le tue giornate sugli sci in Salute come allenamenti, con il percorso.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Per mostrarti il battito cardiaco delle tue giornate sugli sci.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>NSMotionUsageDescription</key>
 	<string>Per misurare il dislivello con il barometro dell'iPhone, molto più preciso del GPS.</string>
 	<key>UIBackgroundModes</key>
