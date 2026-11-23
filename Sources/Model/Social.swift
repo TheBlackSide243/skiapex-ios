@@ -346,8 +346,14 @@ enum SocialError: LocalizedError {
     /// Tells the friends where you are. Silent: a recording must not show errors for this.
     @MainActor func sendPosition(_ point: TrackPoint, phase: String) async {
         guard signedIn, !demo else { return }
-        _ = try? await call("PUT", "/v1/me/position", ["lat": point.lat, "lon": point.lon, "alt": point.alt,
-                                                         "speed": max(0, point.speed), "phase": phase])
+        struct Answer: Decodable { let friends: [LiveFriend] }
+        // The answer has the friends who share: with the iPhone in a pocket this is the only
+        // moment they are asked for, and the moment to say that one is close.
+        guard let data = try? await call("PUT", "/v1/me/position", ["lat": point.lat, "lon": point.lon, "alt": point.alt,
+                                                                      "speed": max(0, point.speed), "phase": phase]),
+              let answer = try? JSONDecoder().decode(Answer.self, from: data) else { return }
+        live = answer.friends
+        Nearby.check(lat: point.lat, lon: point.lon, friends: live)
     }
 
     /// Takes your position back from the server.
@@ -363,6 +369,11 @@ enum SocialError: LocalizedError {
         guard let data = try? await call("GET", "/v1/friends/positions"),
               let answer = try? JSONDecoder().decode(Answer.self, from: data) else { return }
         live = answer.friends
+        // While a day is recorded: is anyone close?
+        let recorder = Shared.recorder
+        if recorder.state == .recording, let me = recorder.lastPoint, Date().timeIntervalSince(me.t) < 120 {
+            Nearby.check(lat: me.lat, lon: me.lon, friends: live)
+        }
     }
 
     // MARK: The server

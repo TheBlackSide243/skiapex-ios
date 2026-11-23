@@ -29,7 +29,9 @@ struct FriendMarker: View {
 /// share your own position while a day is recorded.
 struct LiveFriendsPanel: View {
     @Environment(Social.self) private var social
+    @Environment(Recorder.self) private var recorder
     @AppStorage(Prefs.shareLive) private var sharing = false
+    @AppStorage(Prefs.nearAlerts) private var alerts = true
     @AppStorage(Prefs.mapLook) private var mapLook = MapLook.standard.rawValue
 
     private var look: MapLook { MapLook(rawValue: mapLook) ?? .standard }
@@ -42,10 +44,21 @@ struct LiveFriendsPanel: View {
             }
             .tint(Theme.accent)
             .onChange(of: sharing) { _, on in
-                // Off: what the server has is taken back at once.
-                if !on { Task { await social.stopSharing() } }
+                // Off: what the server has is taken back at once. On: the notifications are asked for.
+                if on {
+                    if alerts { Task { _ = await Nearby.allow() } }
+                } else {
+                    Task { await social.stopSharing() }
+                }
             }
-            Text("Acceso, mentre registri una giornata i tuoi amici vedono dove sei. Il server tiene solo l'ultima posizione, non la salva, e la dimentica dieci minuti dopo l'ultimo aggiornamento, o subito quando metti in pausa o finisci.")
+            Toggle(isOn: $alerts) {
+                Text("Avvisami quando un amico è vicino").font(.subheadline).foregroundStyle(Theme.text)
+            }
+            .tint(Theme.accent)
+            .onChange(of: alerts) { _, on in
+                if on { Task { _ = await Nearby.allow() } }
+            }
+            Text("Acceso, mentre registri una giornata i tuoi amici vedono dove sei, e ricevi un avviso quando uno di loro è a meno di 300 metri o scia nella tua zona. Passa da internet (rete del telefono), quindi serve campo. Il server tiene solo l'ultima posizione, non la salva, e la dimentica dieci minuti dopo l'ultimo aggiornamento, o subito quando metti in pausa o finisci.")
                 .prose().font(.caption).foregroundStyle(Theme.sub)
                 .fixedSize(horizontal: false, vertical: true)
             if friends.isEmpty {
@@ -71,6 +84,10 @@ struct LiveFriendsPanel: View {
                                 Text(LocalizedStringKey(friend.phaseLabel)).foregroundStyle(FriendMarker.color(friend.phase))
                                 Text("·").foregroundStyle(Theme.sub)
                                 Text(friend.date, style: .relative).foregroundStyle(Theme.sub)
+                                if let me {
+                                    Text("·").foregroundStyle(Theme.sub)
+                                    Text(Fmt.distance(Nearby.distance(from: me.latitude, me.longitude, to: friend))).foregroundStyle(Theme.sub)
+                                }
                             }
                             .font(.caption)
                         }
@@ -91,6 +108,12 @@ struct LiveFriendsPanel: View {
                 try? await Task.sleep(for: .seconds(30))
             }
         }
+    }
+
+    /// Where you are, for the distance of each friend: the day under way, or the iPhone.
+    private var me: CLLocationCoordinate2D? {
+        if recorder.state == .recording, let point = recorder.lastPoint { return point.coordinate }
+        return recorder.here?.coordinate
     }
 
     /// Everyone in view, with room around: never closer than a couple of kilometers.

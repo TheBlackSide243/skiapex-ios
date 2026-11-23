@@ -1,4 +1,5 @@
 Ski Apex 0.3.0
 - Amici in diretta: mentre registri una giornata vedi sulla mappa gli amici che stanno sciando, e loro vedono te.
 - Si accende dalla scheda Amici, con l'interruttore "Fatti vedere dagli amici mentre registri". Spento, la posizione non esce dall'iPhone.
+- Avviso quando un amico e a meno di 300 metri da te, o scia nella tua zona.
 Da provare: in due, sulla neve o anche solo camminando, con la registrazione avviata su entrambi i telefoni.

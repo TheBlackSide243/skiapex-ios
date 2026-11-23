@@ -203,6 +203,13 @@ test('a position shared live reaches friends only, and does not last', async () 
   assert.deepEqual((await call('GET', '/v1/friends/positions', { token: a.token })).body.friends, [], 'not yourself');
   assert.ok(!JSON.stringify([...data.entries()]).includes('45.9336'), 'never written to storage');
 
+  // Sending yours answers with theirs.
+  const mine = await call('PUT', '/v1/me/position', { token: b.token, body: { ...here, lat: 45.94 } });
+  assert.deepEqual(mine.body.friends.map(f => f.name), ['Alessio']);
+  assert.deepEqual((await call('PUT', '/v1/me/position', { token: c.token, body: here })).body.friends, []);
+  await call('DELETE', '/v1/me/position', { token: b.token });
+  await call('DELETE', '/v1/me/position', { token: c.token });
+
   // Ten minutes without news and it is gone.
   object.positions.get(a.id).at -= 11 * 60 * 1000;
   assert.deepEqual((await call('GET', '/v1/friends/positions', { token: b.token })).body.friends, []);

@@ -18,7 +18,7 @@ Premi **Inizia** ai piedi della pista, metti l'iPhone in tasca e scia. Ski Apex 
 - **Statistiche**: totali, medie al giorno, record e grafici per stagione.
 - **Immagine da condividere** con traccia e numeri; importazione ed esportazione **GPX**.
 - **Amici**: classifiche della stagione con gli amici che inviti (giorni sulla neve, dislivello, chilometri, discese, velocità).
-- **Amici in diretta**: mentre registri vedi sulla mappa gli amici che stanno sciando, e loro vedono te, se lo accendi.
+- **Amici in diretta**: mentre registri vedi sulla mappa gli amici che stanno sciando, e loro vedono te, se lo accendi. Un avviso ti dice quando uno è a meno di 300 metri o scia nella tua zona.
 - **Guida delle stazioni**: cerca una stazione, guarda quelle vicine e segui le tue, con la neve prevista per 8 giorni.
 - **Diario** con la mappa dei posti dove hai sciato, i **viaggi in programma** e le **giornate scritte a mano**.
 - **Mappa di calore**: tutte le tue discese in un posto, una sull'altra.
@@ -67,7 +67,7 @@ Tap **Start** at the bottom of the slope, put your iPhone in your pocket and ski
 - **Stats**: totals, averages per day, records and charts by season.
 - **Picture to share** with the track and the numbers; **GPX** import and export.
 - **Friends**: season leaderboards with the friends you invite (days on the snow, vertical, distance, runs, speed).
-- **Friends live**: while you record you see on the map the friends who are skiing, and they see you, if you turn it on.
+- **Friends live**: while you record you see on the map the friends who are skiing, and they see you, if you turn it on. A notice tells you when one is within 300 meters or skiing in your area.
 - **Guide to ski areas**: search one, see the ones nearby and follow yours, with the snow expected for 8 days.
 - **Diary** with the map of the places you skied, your **planned trips** and **days written by hand**.
 - **Heat map**: all your runs in one place, one over the other.

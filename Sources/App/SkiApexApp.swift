@@ -1,11 +1,22 @@
 import SwiftUI
 import UIKit
+import UserNotifications
 
 /// The app is used upright, in a pocket and on a lift. App Store Connect wants every orientation
 /// declared in Info.plist, so the limit is set here.
-final class AppDelegate: NSObject, UIApplicationDelegate {
+final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
         .portrait
+    }
+
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        UNUserNotificationCenter.current().delegate = self
+        return true
+    }
+
+    /// "A friend is close" is shown also with the app on screen.
+    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
+        [.banner, .sound]
     }
 }
 
@@ -59,6 +70,8 @@ enum Prefs {
     static let healthAuto = "healthAuto"
     /// Tell the friends where you are while a day is recorded. Off unless set on.
     static let shareLive = "shareLive"
+    /// Say when a friend who shares is close. On unless set off.
+    static let nearAlerts = "nearAlerts"
 }
 
 /// Launched with `-demo`: made-up days and a day under way, for the screenshots. `-screen <name>`

@@ -250,6 +250,32 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(friends[0].coordinate.latitude, 45.9336, accuracy: 0.00001)
     }
 
+    func testAFriendCloseIsAnnouncedOnce() {
+        let now = Date()
+        func friend(_ id: String, metersNorth: Double, secondsAgo: Double = 10) -> LiveFriend {
+            LiveFriend(id: id, name: id, lat: 46.0 + metersNorth / 111_320, lon: 7.0, alt: 2000, speed: 5, phase: "run",
+                       at: (now.timeIntervalSince1970 - secondsAgo) * 1000)
+        }
+        XCTAssertEqual(Nearby.range(120), .close)
+        XCTAssertEqual(Nearby.range(2500), .area)
+        XCTAssertEqual(Nearby.range(40_000), .far)
+        let friends = [friend("vicino", metersNorth: 150), friend("zona", metersNorth: 3000), friend("lontano", metersNorth: 50_000),
+                       friend("vecchio", metersNorth: 100, secondsAgo: 600)]
+        let first = Nearby.notices(lat: 46.0, lon: 7.0, friends: friends, now: now, told: [:])
+        XCTAssertEqual(first.map(\.key), ["vicino:close", "zona:area"], "the far one and the stale one say nothing")
+        XCTAssertEqual(first[0].meters, 150, accuracy: 2)
+        // Told a moment ago: quiet. Twenty minutes later the close one is said again, the area one not yet.
+        var told: [String: Date] = [:]
+        for notice in first { told[notice.key] = now }
+        XCTAssertTrue(Nearby.notices(lat: 46.0, lon: 7.0, friends: friends, now: now.addingTimeInterval(60), told: told).isEmpty)
+        let later = now.addingTimeInterval(21 * 60)
+        let again = friends.filter { $0.id != "vecchio" }.map { friend($0.id, metersNorth: ($0.lat - 46.0) * 111_320, secondsAgo: -21 * 60 + 10) }
+        XCTAssertEqual(Nearby.notices(lat: 46.0, lon: 7.0, friends: again, now: later, told: told).map(\.key), ["vicino:close"])
+        // A friend announced as close who moves away is not announced as "in the area" right after.
+        let away = [friend("vicino", metersNorth: 2000)]
+        XCTAssertTrue(Nearby.notices(lat: 46.0, lon: 7.0, friends: away, now: now.addingTimeInterval(60), told: told).isEmpty)
+    }
+
     func testDaysSavedByTheFirstVersionStillOpen() throws {
         let day = SkiDay(points: SkiSim.day(laps: 1, seed: 17), place: "Vecchia")
         var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(day)) as? [String: Any])

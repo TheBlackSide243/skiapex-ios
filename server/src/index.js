@@ -303,8 +303,9 @@ export class Accounts {
 
   // Live positions
 
-  /// Where you are now, for your friends: the last one only, in memory.
-  place(user, b) {
+  /// Where you are now, for your friends: the last one only, in memory. The answer has the friends
+  /// who are sharing, so that a phone in a pocket asks once for both.
+  async place(user, b) {
     if (typeof b?.lat !== 'number' || typeof b?.lon !== 'number' || !(Math.abs(b.lat) <= 90) || !(Math.abs(b.lon) <= 180)) {
       return json({ error: 'bad position' }, 400);
     }
@@ -316,7 +317,7 @@ export class Accounts {
       phase: PHASES.includes(b.phase) ? b.phase : 'idle',
       at: Date.now(),
     });
-    return json({ ok: true });
+    return json({ ok: true, friends: await this.around(user) });
   }
 
   /// Your friends who are sharing right now; the ones not heard from for ten minutes are forgotten.

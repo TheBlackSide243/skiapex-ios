@@ -328,5 +328,10 @@
 "Con gli amici condividi il nome e i totali della stagione: giorni, discese, dislivello, chilometri, tempo e velocità massima. La posizione la vedono solo se accendi \"Fatti vedere dagli amici\", e solo mentre registri. Le tracce e i posti delle tue giornate restano sul tuo iPhone." = "With friends you share your name and the totals of the season: days, runs, vertical, distance, time and top speed. They see where you are only if you turn on \"Let friends see you\", and only while you record. The tracks and the places of your days stay on your iPhone.";
 "In diretta" = "Live";
 "Fatti vedere dagli amici mentre registri" = "Let friends see you while you record";
-"Acceso, mentre registri una giornata i tuoi amici vedono dove sei. Il server tiene solo l'ultima posizione, non la salva, e la dimentica dieci minuti dopo l'ultimo aggiornamento, o subito quando metti in pausa o finisci." = "When on, while you record a day your friends see where you are. The server holds only the last position, does not store it, and forgets it ten minutes after the last update, or at once when you pause or finish.";
 "Nessun amico sta sciando in questo momento." = "No friend is skiing right now.";
+"Acceso, mentre registri una giornata i tuoi amici vedono dove sei, e ricevi un avviso quando uno di loro è a meno di 300 metri o scia nella tua zona. Passa da internet (rete del telefono), quindi serve campo. Il server tiene solo l'ultima posizione, non la salva, e la dimentica dieci minuti dopo l'ultimo aggiornamento, o subito quando metti in pausa o finisci." = "When on, while you record a day your friends see where you are, and you get a notice when one of them is within 300 meters or skiing in your area. It goes over the internet (mobile data), so it needs signal. The server holds only the last position, does not store it, and forgets it ten minutes after the last update, or at once when you pause or finish.";
+"Avvisami quando un amico è vicino" = "Tell me when a friend is close";
+"%@ è vicino a te" = "%@ is close to you";
+"È a %@ da te." = "%@ away from you.";
+"%@ sta sciando nella tua zona" = "%@ is skiing in your area";
+"È a %@ da te: lo trovi sulla mappa." = "%@ away from you: find them on the map.";

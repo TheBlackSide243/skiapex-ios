@@ -1,4 +1,5 @@
 Ski Apex 0.3.0
 - Friends live: while you record a day you see on the map the friends who are skiing, and they see you.
 - Turn it on from the Friends tab, with the switch "Let friends see you while you record". When off, your location does not leave the iPhone.
+- A notice when a friend is within 300 meters of you, or skiing in your area.
 To test: two of you, on the snow or just walking, with the recording started on both phones.
