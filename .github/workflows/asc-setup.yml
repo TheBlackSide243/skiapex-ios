@@ -1,0 +1,30 @@
+# Prepares Ski Apex on App Store Connect for TestFlight: the App ID, the tester groups, the
+# description and the review contact (see scripts/asc_setup.py). Started by hand; safe to run again.
+name: App Store Connect setup
+
+on:
+  workflow_dispatch:
+    inputs:
+      copy_from:
+        description: Bundle ID of the app to copy the review contact and internal testers from
+        default: win.shadowbyte.shadowwear
+
+permissions:
+  contents: read
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install --quiet pyjwt cryptography
+      - name: App ID, groups, texts
+        run: python scripts/asc_setup.py
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          BUNDLE: win.shadowbyte.skiapex
+          NAME: Ski Apex
+          COPY_FROM: ${{ inputs.copy_from }}
