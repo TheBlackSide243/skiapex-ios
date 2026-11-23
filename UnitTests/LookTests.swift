@@ -98,6 +98,14 @@ final class LookTests: XCTestCase {
         XCTAssertNil(SnowMap.fit([]))
     }
 
+    /// The column of buttons takes its width from a screen, less the band the screen already
+    /// leaves free on its right edge.
+    func testTheRightEdgeOfTheSheet() {
+        XCTAssertEqual(Rail.reserved(band: 0), Rail.width)
+        XCTAssertEqual(Rail.reserved(band: 20), Rail.width - 20)
+        XCTAssertEqual(Rail.reserved(band: 73), 0)
+    }
+
     func testThePlacesBehindTheSheet() {
         func day(_ place: String, _ lat: Double?, _ lon: Double?, daysAgo: Double) -> DaySummary {
             DaySummary(id: UUID(), start: Date(timeIntervalSinceNow: -daysAgo * 86_400), end: Date(), place: place, stats: DayStats(),

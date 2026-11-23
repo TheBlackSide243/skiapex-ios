@@ -60,22 +60,33 @@ private struct SheetRoot: View {
     @State private var asked: AskedDay?
 
     var body: some View {
-        Group {
-            switch tab {
-            case 0: LiveView()
-            case 2: GuideView()
-            case 3: FriendsView()
-            case 4: SettingsView()
-            default: DaysView()
+        GeometryReader { box in
+            // Where the screen keeps something of its own on the right edge (the clock and the
+            // battery of an iPhone that opens), nothing of a screen may go there: the buttons do,
+            // lower down, and the screens take all the rest.
+            let band = box.safeAreaInsets.trailing
+            Group {
+                switch tab {
+                case 0: LiveView()
+                case 2: GuideView()
+                case 3: FriendsView()
+                case 4: SettingsView()
+                default: DaysView()
+                }
+            }
+            // The right edge is kept free for the buttons, and the bottom can be scrolled clear of them.
+            .environment(\.railInset, Rail.reserved(band: band))
+            .environment(\.railFoot, Rail.foot)
+            // Every number again in the new units, every color again in the new look.
+            .id("\(tab)" + units + Looks.shared.look.rawValue)
+            .overlay(alignment: .bottomTrailing) {
+                if Chrome.shared.hidden == 0 {
+                    Rail(tab: $tab, band: band).offset(x: band)
+                }
             }
         }
-        // The right edge is kept free for the buttons.
-        .environment(\.railInset, Rail.width)
-        // Every number again in the new units, every color again in the new look.
-        .id("\(tab)" + units + Looks.shared.look.rawValue)
-        .overlay(alignment: .bottomTrailing) {
-            if Chrome.shared.hidden == 0 { Rail(tab: $tab) }
-        }
+        // For the pictures: a band on the right edge, as on the iPhones that have one.
+        .safeAreaPadding(.trailing, Demo.band)
         .modifier(Dressed())
         .sensoryFeedback(.selection, trigger: tab)
         // A day ended, here or on the watch: how was the snow?
@@ -90,44 +101,62 @@ private struct SheetRoot: View {
     }
 }
 
-/// On the right edge of the sheet, at the bottom: your picture, which opens the settings, the
-/// three screens one over the other, and beside them the round button that records.
+/// On the right edge of the sheet, at the bottom: your picture, which opens the settings, and the
+/// three screens, each a round button, one over the other; beside them the button that records,
+/// white with a red dot as on a camera.
 struct Rail: View {
     @Binding var tab: Int
+    /// How wide the band is that the screen keeps free on its right edge: 0 on most iPhones.
+    var band: CGFloat = 0
     @Environment(Recorder.self) private var recorder
     @Environment(Social.self) private var social
 
-    /// The width kept free for it on every screen.
+    /// The width of the column of buttons.
     static let width: CGFloat = 64
+    /// How much of the bottom of a screen the round button covers: it can be scrolled clear of it.
+    static let foot: CGFloat = 84
+    /// The red of what records.
+    static let red = Color(hex: 0xff453a)
+
+    /// How much of the right edge of a screen the column takes: all of its width, less the band
+    /// the screen already leaves free there.
+    static func reserved(band: CGFloat) -> CGFloat { max(0, width - band) }
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 10) {
-            Button { tab = 0 } label: {
-                Image(systemName: recorder.state == .idle ? "record.circle" : "figure.skiing.downhill")
-                    .font(.system(size: 28, weight: .semibold))
-                    .foregroundStyle(Theme.onAccent)
-                    .frame(width: 66, height: 66)
-                    .background(Theme.accent, in: Circle())
-                    .overlay(Circle().strokeBorder(Color.white.opacity(tab == 0 ? 0.9 : 0), lineWidth: 3))
-                    .shadow(color: .black.opacity(0.35), radius: 10, y: 4)
-            }
-            .buttonStyle(PressStyle())
-            .accessibilityLabel(Text("Registra"))
-            VStack(spacing: 10) {
+            record
+            VStack(spacing: 8) {
                 profile
-                VStack(spacing: 4) {
-                    item(1, "book.closed.fill", "Giornate")
-                    item(2, "map.fill", "Guida")
-                    item(3, "person.2.fill", "Amici")
-                }
-                .padding(5)
-                .background(Theme.input, in: Capsule())
-                .overlay(Capsule().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
-                .shadow(color: .black.opacity(0.3), radius: 10, y: 4)
+                item(1, "calendar", "Giornate")
+                item(2, "mountain.2.fill", "Guida")
+                item(3, "person.2.fill", "Amici")
             }
+            // In the middle of the column, or of the band when it is wider.
+            .frame(width: max(Self.width, band))
         }
-        .padding(.trailing, (Self.width - 58) / 2)
         .padding(.bottom, 6)
+    }
+
+    /// The button that records: a red dot while nothing is recorded, then what the day is doing.
+    private var record: some View {
+        Button { tab = 0 } label: {
+            ZStack {
+                Circle().fill(Color.white)
+                switch recorder.state {
+                case .idle:
+                    Circle().fill(Self.red).frame(width: 26, height: 26)
+                case .recording:
+                    Image(systemName: "figure.skiing.downhill").font(.system(size: 27, weight: .semibold)).foregroundStyle(Self.red)
+                case .paused:
+                    Image(systemName: "pause.fill").font(.system(size: 24, weight: .semibold)).foregroundStyle(Self.red)
+                }
+            }
+            .frame(width: 66, height: 66)
+            .overlay(Circle().strokeBorder(tab == 0 ? Theme.accent : Color.black.opacity(0.1), lineWidth: tab == 0 ? 3.5 : 1))
+            .shadow(color: .black.opacity(0.35), radius: 10, y: 4)
+        }
+        .buttonStyle(PressStyle())
+        .accessibilityLabel(Text("Registra"))
     }
 
     /// Your picture: it opens the settings, with the profile at the top.
@@ -135,10 +164,10 @@ struct Rail: View {
         Button { tab = 4 } label: {
             Group {
                 if let me = social.account {
-                    Avatar(id: me.id, name: me.name, photo: me.photo, size: 46)
+                    Avatar(id: me.id, name: me.name, photo: me.photo, size: 50)
                 } else {
                     Image(systemName: "person.fill").font(.body.weight(.semibold)).foregroundStyle(Theme.text)
-                        .frame(width: 46, height: 46)
+                        .frame(width: 50, height: 50)
                         .background(Theme.input, in: Circle())
                 }
             }
@@ -152,10 +181,12 @@ struct Rail: View {
     private func item(_ index: Int, _ symbol: String, _ label: String) -> some View {
         Button { tab = index } label: {
             Image(systemName: symbol)
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(tab == index ? Theme.accent : Theme.text)
-                .frame(width: 48, height: 54)
-                .background(tab == index ? Theme.deep : Color.clear, in: Capsule())
+                .font(.system(size: 19, weight: .semibold))
+                .foregroundStyle(tab == index ? Theme.onAccent : Theme.text)
+                .frame(width: 50, height: 50)
+                .background(tab == index ? Theme.accent : Theme.input, in: Circle())
+                .overlay(Circle().strokeBorder(Color.white.opacity(tab == index ? 0 : 0.12), lineWidth: 1))
+                .shadow(color: .black.opacity(0.3), radius: 8, y: 3)
         }
         .buttonStyle(PressStyle())
         .accessibilityLabel(Text(LocalizedStringKey(label)))

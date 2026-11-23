@@ -1,4 +1,7 @@
-Ski Apex 0.6.0
+Ski Apex 0.6.1
+- Sugli iPhone con l'ora e la batteria sul bordo destro dello schermo la barra dei pulsanti sta in quella fascia: niente piu' vuoto a destra.
+- In fondo a ogni schermata c'e' spazio per scorrere oltre il pulsante tondo.
+- Sci, snowboard, telemark e slittino si vedono tutti, senza scorrere.
 - Interfaccia nuova: la mappa e' sempre dietro, e le schermate stanno su un pannello che tiri su e giu'. A destra la tua foto (Impostazioni), Giornate, Guida, Amici e il pulsante tondo per registrare.
 - Mappa invernale: neve, ombre e curve di livello, con le montagne di notte da lontano.
 - Cosa fai oggi? Sci, snowboard, telemark o slittino: lo scegli prima di iniziare.

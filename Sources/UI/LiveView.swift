@@ -161,14 +161,13 @@ struct LiveView: View {
     private var sportPicker: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Cosa fai oggi?").font(.headline).foregroundStyle(Theme.text)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(Sport.allCases) { one in
-                        Button { sport = one.rawValue } label: {
-                            ChoicePill(title: one.label, symbol: one.symbol, on: sport == one.rawValue)
-                        }
-                        .buttonStyle(PressStyle())
+            // All of them in sight, on as many lines as it takes: none is found by scrolling.
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 8, alignment: .leading)], alignment: .leading, spacing: 8) {
+                ForEach(Sport.allCases) { one in
+                    Button { sport = one.rawValue } label: {
+                        ChoicePill(title: one.label, symbol: one.symbol, on: sport == one.rawValue, wide: true)
                     }
+                    .buttonStyle(PressStyle())
                 }
             }
             .sensoryFeedback(.selection, trigger: sport)
@@ -212,7 +211,7 @@ struct LiveView: View {
     @ViewBuilder private var livePanel: some View {
         status
         HStack(alignment: .lastTextBaseline) {
-            FigureText("\(currentSpeed) \(Fmt.speedUnit)", big: .system(size: 84, weight: .heavy), small: .system(size: 18, weight: .bold))
+            FigureText("\(currentSpeed) \(Fmt.speedUnit)", big: .system(size: 84, weight: .heavy, design: .rounded), small: .system(size: 18, weight: .bold, design: .rounded))
                 .foregroundStyle(Theme.text)
                 .contentTransition(.numericText())
                 .animation(.snappy, value: currentSpeed)
@@ -289,7 +288,7 @@ private struct LiveCell: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            FigureText(value, big: .system(.title3, design: .default, weight: .bold), small: .system(.caption, design: .default, weight: .bold))
+            FigureText(value, big: .system(.title3, design: .rounded, weight: .bold), small: .system(.caption, design: .rounded, weight: .bold))
                 .foregroundStyle(Theme.text)
                 .lineLimit(1).minimumScaleFactor(0.6)
                 .contentTransition(.numericText())

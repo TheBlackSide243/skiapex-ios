@@ -36,7 +36,7 @@ private struct Fact: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            FigureText(value, big: .system(.title3, design: .default, weight: .bold), small: .system(.caption, design: .default, weight: .bold))
+            FigureText(value, big: .system(.title3, design: .rounded, weight: .bold), small: .system(.caption, design: .rounded, weight: .bold))
                 .foregroundStyle(Theme.text).lineLimit(1).minimumScaleFactor(0.6)
             HStack(spacing: 4) {
                 Image(systemName: symbol).font(.caption2.weight(.bold))

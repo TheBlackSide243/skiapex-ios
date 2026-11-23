@@ -16,8 +16,8 @@ struct FigureText: View {
     var big: Font
     var small: Font
 
-    init(_ value: String, big: Font = .system(.title2, design: .default, weight: .bold),
-         small: Font = .system(.footnote, design: .default, weight: .bold)) {
+    init(_ value: String, big: Font = .system(.title2, design: .rounded, weight: .bold),
+         small: Font = .system(.footnote, design: .rounded, weight: .bold)) {
         self.value = value
         self.big = big
         self.small = small
@@ -102,14 +102,17 @@ struct ChoicePill: View {
     let title: String
     var symbol: String?
     let on: Bool
+    /// As wide as the room it is given, for pills side by side of one width.
+    var wide = false
 
     var body: some View {
         HStack(spacing: 6) {
             if let symbol { Image(systemName: symbol).font(.footnote.weight(.semibold)) }
-            Text(LocalizedStringKey(title)).font(.subheadline.weight(.semibold)).lineLimit(1)
+            Text(LocalizedStringKey(title)).font(.subheadline.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.8)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
+        .frame(maxWidth: wide ? .infinity : nil)
         .foregroundStyle(on ? Theme.onAccent : Theme.accent)
         .background(on ? Theme.accent : Theme.accent.opacity(0.18), in: Capsule())
         .accessibilityAddTraits(on ? .isSelected : [])
