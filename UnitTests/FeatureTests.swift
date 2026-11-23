@@ -234,6 +234,22 @@ final class FeatureTests: XCTestCase {
         XCTAssertFalse(String(data: try JSONSerialization.data(withJSONObject: sent), encoding: .utf8)?.contains("segreto") ?? true)
     }
 
+    func testFriendsLiveAsTheServerSendsThem() throws {
+        struct Answer: Decodable { let friends: [LiveFriend] }
+        let json = """
+        {"friends":[{"id":"a","name":"Anna Rossi","lat":45.9336,"lon":7.6295,"alt":2500,"speed":12.5,"phase":"run","at":1800000000000},
+                    {"id":"b","name":"luca","lat":45.94,"lon":7.63,"alt":2100,"speed":0,"phase":"altro","at":1800000030000}]}
+        """
+        let friends = try JSONDecoder().decode(Answer.self, from: Data(json.utf8)).friends
+        XCTAssertEqual(friends.count, 2)
+        XCTAssertEqual(friends[0].initials, "AR")
+        XCTAssertEqual(friends[1].initials, "LU")
+        XCTAssertEqual(friends[0].phaseLabel, "In pista")
+        XCTAssertEqual(friends[1].phaseLabel, "Fermo", "anything unknown is standing")
+        XCTAssertEqual(friends[0].date.timeIntervalSince1970, 1_800_000_000)
+        XCTAssertEqual(friends[0].coordinate.latitude, 45.9336, accuracy: 0.00001)
+    }
+
     func testDaysSavedByTheFirstVersionStillOpen() throws {
         let day = SkiDay(points: SkiSim.day(laps: 1, seed: 17), place: "Vecchia")
         var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(day)) as? [String: Any])

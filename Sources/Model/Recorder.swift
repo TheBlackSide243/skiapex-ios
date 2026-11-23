@@ -170,7 +170,11 @@ import Observation
         analysis = Segmenter.analyze(clean)
         tracks = MapTrack.build(points: clean, segments: analysis.segments)
         // The lock screen and the Dynamic Island, for a real recording only.
-        if journal != nil { LiveStatus.update(state: state, analysis: analysis, start: startDate) }
+        if journal != nil {
+            LiveStatus.update(state: state, analysis: analysis, start: startDate)
+            // And the friends, when sharing is on.
+            LiveShare.update(state: state, point: lastPoint, phase: analysis.current)
+        }
     }
 
     // MARK: Sensors

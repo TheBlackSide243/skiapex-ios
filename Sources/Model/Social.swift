@@ -1,3 +1,4 @@
+import CoreLocation
 import Foundation
 import Observation
 import Security
@@ -47,6 +48,61 @@ struct BoardRow: Codable, Identifiable, Hashable {
     var distance: Double
     var time: Double
     var maxSpeed: Double
+}
+
+/// A friend who is skiing now and shares where: the last position the server heard of.
+struct LiveFriend: Codable, Identifiable, Hashable {
+    var id: String
+    var name: String
+    var lat: Double
+    var lon: Double
+    var alt: Double
+    /// m/s.
+    var speed: Double
+    /// run, lift or idle.
+    var phase: String
+    /// When it was sent, in milliseconds since 1970.
+    var at: Double
+
+    var coordinate: CLLocationCoordinate2D { CLLocationCoordinate2D(latitude: lat, longitude: lon) }
+    var date: Date { Date(timeIntervalSince1970: at / 1000) }
+
+    var phaseLabel: String {
+        switch phase {
+        case "run": "In pista"
+        case "lift": "In risalita"
+        default: "Fermo"
+        }
+    }
+
+    /// One or two letters for the pin on the map.
+    var initials: String {
+        let words = name.split(whereSeparator: { " ._-".contains($0) })
+        let letters = words.count > 1 ? words.prefix(2).compactMap(\.first) : Array(name.prefix(2))
+        return String(letters).uppercased()
+    }
+}
+
+/// Your position to your friends while a day is recorded, if you turned it on: sent every half
+/// minute at most, and taken back when the recording pauses or ends, or when you turn it off.
+enum LiveShare {
+    private static var lastSent = Date.distantPast
+    private static var active = false
+
+    static func update(state: Recorder.State, point: TrackPoint?, phase: SegmentKind) {
+        let social = Shared.social
+        let on = UserDefaults.standard.bool(forKey: Prefs.shareLive) && social.signedIn
+        if on, state == .recording, let point, Date().timeIntervalSince(point.t) < 90 {
+            guard Date().timeIntervalSince(lastSent) >= 25 else { return }
+            lastSent = Date()
+            active = true
+            Task { await social.sendPosition(point, phase: phase.rawValue) }
+        } else if active {
+            active = false
+            lastSent = .distantPast
+            Task { await social.stopSharing() }
+        }
+    }
 }
 
 /// What a leaderboard is sorted by.
@@ -132,6 +188,8 @@ enum SocialError: LocalizedError {
     private(set) var account: SocialAccount?
     private(set) var friends: [Friend] = []
     private(set) var rows: [BoardRow] = []
+    /// The friends skiing now who share where they are.
+    private(set) var live: [LiveFriend] = []
     private(set) var busy = false
     /// The code of the invitation link, once asked for.
     private(set) var inviteCode: String?
@@ -159,6 +217,11 @@ enum SocialError: LocalizedError {
                 BoardRow(id: "a", name: "Giulia", me: false, days: 12, vertical: 38_900, runs: 121, distance: 201_000, time: 70_000, maxSpeed: 18.9),
                 BoardRow(id: "b", name: "Luca", me: false, days: 6, vertical: 29_500, runs: 58, distance: 119_000, time: 39_000, maxSpeed: 23.1),
                 BoardRow(id: "c", name: "Sara", me: false, days: 4, vertical: 12_300, runs: 31, distance: 54_000, time: 21_000, maxSpeed: 16.2),
+            ]
+            let now = Date().timeIntervalSince1970 * 1000
+            live = [
+                LiveFriend(id: "a", name: "Giulia", lat: 45.9418, lon: 7.6392, alt: 2610, speed: 11.4, phase: "run", at: now - 20_000),
+                LiveFriend(id: "b", name: "Luca", lat: 45.9372, lon: 7.6318, alt: 2240, speed: 4.8, phase: "lift", at: now - 45_000),
             ]
             return
         }
@@ -215,6 +278,7 @@ enum SocialError: LocalizedError {
         token = nil
         friends = []
         rows = []
+        live = []
         inviteCode = nil
         Keychain.set(nil, for: "token")
         UserDefaults.standard.removeObject(forKey: Self.accountKey)
@@ -275,6 +339,30 @@ enum SocialError: LocalizedError {
             let boardData = try await self.call("GET", "/v1/board?season=\(season.year)")
             self.rows = try JSONDecoder().decode(Board.self, from: boardData).rows
         }
+    }
+
+    // MARK: Live positions
+
+    /// Tells the friends where you are. Silent: a recording must not show errors for this.
+    @MainActor func sendPosition(_ point: TrackPoint, phase: String) async {
+        guard signedIn, !demo else { return }
+        _ = try? await call("PUT", "/v1/me/position", ["lat": point.lat, "lon": point.lon, "alt": point.alt,
+                                                         "speed": max(0, point.speed), "phase": phase])
+    }
+
+    /// Takes your position back from the server.
+    @MainActor func stopSharing() async {
+        guard signedIn, !demo else { return }
+        _ = try? await call("DELETE", "/v1/me/position")
+    }
+
+    /// Where the friends who share are now. Silent too: it is asked again in half a minute.
+    @MainActor func loadLive() async {
+        guard signedIn, !demo else { return }
+        struct Answer: Decodable { let friends: [LiveFriend] }
+        guard let data = try? await call("GET", "/v1/friends/positions"),
+              let answer = try? JSONDecoder().decode(Answer.self, from: data) else { return }
+        live = answer.friends
     }
 
     // MARK: The server

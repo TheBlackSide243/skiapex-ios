@@ -10,7 +10,10 @@ Worker with one Durable Object (SQLite-backed: it runs on the free plan).
 - For each season an account shares: the **totals** only — days on the snow, vertical, runs,
   distance, time, top speed.
 
-It never receives tracks, places or positions. Deleting the account from the app deletes all of it.
+It never receives the tracks or the places of the days. A position shared live (off unless turned on in
+the app, sent only while a day is recorded) is held **in memory only**: the last one, never written to
+storage, forgotten ten minutes after its last update or as soon as the app takes it back. Deleting the
+account from the app deletes all of it.
 
 ## API
 
@@ -27,6 +30,8 @@ All under `/v1`, JSON in and out. Signed-in calls carry `Authorization: Bearer <
 | `GET /v1/friends` · `POST /v1/friends` `{code}` · `DELETE /v1/friends/<id>` | friends: list, accept an invitation, remove |
 | `PUT /v1/me/seasons/<year>` `{days: [{date, vertical, runs, distance, time, maxSpeed}]}` | the days of a season as the phone has them now; they replace what was there |
 | `GET /v1/board?season=<year>` | one row for you and each friend |
+| `PUT /v1/me/position` `{lat, lon, alt, speed, phase}` · `DELETE /v1/me/position` | where you are now, for your friends · take it back |
+| `GET /v1/friends/positions` | the friends sharing right now, with their last position |
 
 `/f/<code>` is the page of an invitation link: it opens the app with `skiapex://friend/<code>`.
 

@@ -57,6 +57,8 @@ enum Prefs {
     static let online = "online"
     /// Save every day in Apple Health as it ends. Off unless set on.
     static let healthAuto = "healthAuto"
+    /// Tell the friends where you are while a day is recorded. Off unless set on.
+    static let shareLive = "shareLive"
 }
 
 /// Launched with `-demo`: made-up days and a day under way, for the screenshots. `-screen <name>`

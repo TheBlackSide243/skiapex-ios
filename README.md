@@ -18,6 +18,7 @@ Premi **Inizia** ai piedi della pista, metti l'iPhone in tasca e scia. Ski Apex 
 - **Statistiche**: totali, medie al giorno, record e grafici per stagione.
 - **Immagine da condividere** con traccia e numeri; importazione ed esportazione **GPX**.
 - **Amici**: classifiche della stagione con gli amici che inviti (giorni sulla neve, dislivello, chilometri, discese, velocità).
+- **Amici in diretta**: mentre registri vedi sulla mappa gli amici che stanno sciando, e loro vedono te, se lo accendi.
 - **Guida delle stazioni**: cerca una stazione, guarda quelle vicine e segui le tue, con la neve prevista per 8 giorni.
 - **Diario** con la mappa dei posti dove hai sciato, i **viaggi in programma** e le **giornate scritte a mano**.
 - **Mappa di calore**: tutte le tue discese in un posto, una sull'altra.
@@ -28,7 +29,7 @@ Premi **Inizia** ai piedi della pista, metti l'iPhone in tasca e scia. Ski Apex 
 - **Copia di sicurezza** di tutte le giornate in un file zip, e ripristino.
 - Sci, snowboard, telemark o slittino; unità metriche o imperiali; italiano e inglese.
 - Se l'app viene chiusa a metà giornata, la registrazione si ritrova al prossimo avvio.
-- Le giornate restano sull'iPhone (visibili anche nell'app File). Per i nomi delle piste e il meteo viene chiesta solo la zona a OpenStreetMap e Open-Meteo, e si può spegnere. L'account serve solo per gli Amici, e lì arrivano solo il nome e i totali della stagione: mai tracce o posti.
+- Le giornate restano sull'iPhone (visibili anche nell'app File). Per i nomi delle piste e il meteo viene chiesta solo la zona a OpenStreetMap e Open-Meteo, e si può spegnere. L'account serve solo per gli Amici, e lì arrivano il nome e i totali della stagione: mai le tracce o i posti delle giornate. La posizione in diretta parte solo se la accendi, solo mentre registri, e il server non la salva.
 - Niente neve? In Impostazioni si crea una giornata di prova.
 
 <p>
@@ -66,6 +67,7 @@ Tap **Start** at the bottom of the slope, put your iPhone in your pocket and ski
 - **Stats**: totals, averages per day, records and charts by season.
 - **Picture to share** with the track and the numbers; **GPX** import and export.
 - **Friends**: season leaderboards with the friends you invite (days on the snow, vertical, distance, runs, speed).
+- **Friends live**: while you record you see on the map the friends who are skiing, and they see you, if you turn it on.
 - **Guide to ski areas**: search one, see the ones nearby and follow yours, with the snow expected for 8 days.
 - **Diary** with the map of the places you skied, your **planned trips** and **days written by hand**.
 - **Heat map**: all your runs in one place, one over the other.
@@ -76,7 +78,7 @@ Tap **Start** at the bottom of the slope, put your iPhone in your pocket and ski
 - **Backup** of all your days in one zip file, and restore.
 - Ski, snowboard, telemark or sled; metric or imperial units; Italian and English.
 - If the app is closed during the day, the recording comes back at the next launch.
-- Your days stay on the iPhone (also visible in the Files app). For piste names and weather only the area is asked to OpenStreetMap and Open-Meteo, and it can be turned off. An account is needed only for Friends, and only your name and the totals of the season go there: never tracks or places.
+- Your days stay on the iPhone (also visible in the Files app). For piste names and weather only the area is asked to OpenStreetMap and Open-Meteo, and it can be turned off. An account is needed only for Friends, and your name and the totals of the season go there: never the tracks or the places of your days. Your live position is sent only if you turn it on, only while you record, and the server does not store it.
 - No snow? Make a sample day in Settings.
 
 ### Install

@@ -55,7 +55,7 @@ function server() {
     const accepted = await call('POST', '/v1/friends', { token: b.token, body: { code: body.code } });
     assert.equal(accepted.status, 201);
   };
-  return { call, signUp, befriend, data: state.storage.data };
+  return { call, signUp, befriend, data: state.storage.data, object };
 }
 
 const day = (date, vertical, more = {}) => ({ date, vertical, runs: 10, distance: 20000, time: 7200, maxSpeed: 18, ...more });
@@ -180,6 +180,43 @@ test('the invitation page opens the app, and says so when the link is old', asyn
   const gone = await call('GET', '/f/AAAAAAAA');
   assert.equal(gone.status, 404);
   assert.ok(gone.body.includes('Invitation expired'));
+});
+
+test('a position shared live reaches friends only, and does not last', async () => {
+  const { call, signUp, befriend, data, object } = server();
+  const a = await signUp('Alessio');
+  const b = await signUp('Alex');
+  const c = await signUp('Estraneo');
+  await befriend(a, b);
+  const here = { lat: 45.9336, lon: 7.6295, alt: 2500, speed: 12.5, phase: 'run' };
+  assert.equal((await call('PUT', '/v1/me/position', { body: here })).status, 401);
+  assert.equal((await call('PUT', '/v1/me/position', { token: a.token, body: { lat: 'qui', lon: 7 } })).status, 400);
+  assert.equal((await call('PUT', '/v1/me/position', { token: a.token, body: { lat: 95, lon: 7 } })).status, 400);
+  assert.equal((await call('PUT', '/v1/me/position', { token: a.token, body: { ...here, phase: 'volo', speed: 900 } })).status, 200);
+  let seen = (await call('GET', '/v1/friends/positions', { token: b.token })).body.friends;
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0].name, 'Alessio');
+  assert.equal(seen[0].lat, 45.9336);
+  assert.equal(seen[0].phase, 'idle', 'an unknown phase is standing');
+  assert.equal(seen[0].speed, 70);
+  assert.deepEqual((await call('GET', '/v1/friends/positions', { token: c.token })).body.friends, [], 'not to strangers');
+  assert.deepEqual((await call('GET', '/v1/friends/positions', { token: a.token })).body.friends, [], 'not yourself');
+  assert.ok(!JSON.stringify([...data.entries()]).includes('45.9336'), 'never written to storage');
+
+  // Ten minutes without news and it is gone.
+  object.positions.get(a.id).at -= 11 * 60 * 1000;
+  assert.deepEqual((await call('GET', '/v1/friends/positions', { token: b.token })).body.friends, []);
+  assert.equal(object.positions.size, 0);
+
+  // Stopped by hand, and gone with the friendship and with the account.
+  await call('PUT', '/v1/me/position', { token: a.token, body: here });
+  assert.equal((await call('DELETE', '/v1/me/position', { token: a.token })).status, 200);
+  assert.deepEqual((await call('GET', '/v1/friends/positions', { token: b.token })).body.friends, []);
+  await call('PUT', '/v1/me/position', { token: a.token, body: here });
+  await call('DELETE', '/v1/friends/' + a.id, { token: b.token });
+  assert.deepEqual((await call('GET', '/v1/friends/positions', { token: b.token })).body.friends, []);
+  await call('DELETE', '/v1/me', { token: a.token, body: { password: 'neve-2026' } });
+  assert.equal(object.positions.size, 0);
 });
 
 test('too many wrong passwords stop the guessing', async () => {

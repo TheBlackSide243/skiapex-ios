@@ -26,13 +26,14 @@ struct FriendsView: View {
                     ErrorBanner(error: $social.error)
                     if social.signedIn {
                         board
+                        LiveFriendsPanel()
                         invite
                         people
                         accountPanel
                     } else {
                         SignInPanel()
                     }
-                    Text("Con gli amici condividi solo il nome e i totali della stagione: giorni, discese, dislivello, chilometri, tempo e velocità massima. Tracce, posti e posizione restano sul tuo iPhone.")
+                    Text("Con gli amici condividi il nome e i totali della stagione: giorni, discese, dislivello, chilometri, tempo e velocità massima. La posizione la vedono solo se accendi \"Fatti vedere dagli amici\", e solo mentre registri. Le tracce e i posti delle tue giornate restano sul tuo iPhone.")
                         .prose().font(.caption).foregroundStyle(Theme.sub)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }

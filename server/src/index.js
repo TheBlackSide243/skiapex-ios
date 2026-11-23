@@ -1,6 +1,8 @@
-// The Ski Apex server: accounts, friends and the leaderboards among friends, on Cloudflare Workers
-// with one Durable Object. It keeps a name, a password hash and, for each season, the totals of
-// the days an account chose to share. No tracks, no places, no positions ever reach it.
+// The Ski Apex server: accounts, friends, the leaderboards among friends and, for those who turn
+// it on, where each friend is while skiing. On Cloudflare Workers with one Durable Object. It
+// keeps a name, a password hash and, for each season, the totals of the days an account chose to
+// share. No tracks and no places are ever stored; a position shared live is held in memory only,
+// the last one, and forgotten ten minutes after its last update.
 
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const USERNAME = /^[A-Za-z0-9_.-]{3,20}$/;
@@ -15,6 +17,8 @@ const INVITE_TTL = 7 * 24 * 3600 * 1000;
 const MAX_FRIENDS = 200;
 const MAX_DAYS = 400;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
+const POSITION_TTL = 10 * 60 * 1000;
+const PHASES = ['run', 'lift', 'idle'];
 
 export default {
   async fetch(request, env) {
@@ -42,6 +46,8 @@ export class Accounts {
     this.env = env || {};
     this.failures = new Map();
     this.signups = new Map();
+    // Where the people sharing live are now: never written to storage.
+    this.positions = new Map();
   }
 
   async fetch(request) {
@@ -74,6 +80,7 @@ export class Accounts {
         if (other) await this.unfriend(user, other);
       }
       if (user.invite) await this.state.storage.delete('invite:' + user.invite);
+      this.positions.delete(user.id);
       const seasons = (user.seasons || []).map(year => `season:${user.id}:${year}`);
       await this.state.storage.delete([...user.tokens.map(t => 'token:' + t), ...seasons, 'user:' + user.name.toLowerCase(), 'id:' + user.id]);
       return json({ ok: true });
@@ -88,6 +95,12 @@ export class Accounts {
       await this.unfriend(user, other);
       return json({ ok: true });
     }
+    if (path === '/v1/me/position' && method === 'PUT') return this.place(user, await body(request));
+    if (path === '/v1/me/position' && method === 'DELETE') {
+      this.positions.delete(user.id);
+      return json({ ok: true });
+    }
+    if (path === '/v1/friends/positions' && method === 'GET') return json({ friends: await this.around(user) });
     const season = path.match(/^\/v1\/me\/seasons\/(\d{4})$/);
     if (season && method === 'PUT') return this.share(user, Number(season[1]), await body(request));
     if (path === '/v1/board' && method === 'GET') return this.board(user, Number(url.searchParams.get('season')));
@@ -286,6 +299,38 @@ export class Accounts {
       });
     }
     return json({ season: year, rows });
+  }
+
+  // Live positions
+
+  /// Where you are now, for your friends: the last one only, in memory.
+  place(user, b) {
+    if (typeof b?.lat !== 'number' || typeof b?.lon !== 'number' || !(Math.abs(b.lat) <= 90) || !(Math.abs(b.lon) <= 180)) {
+      return json({ error: 'bad position' }, 400);
+    }
+    this.positions.set(user.id, {
+      lat: b.lat,
+      lon: b.lon,
+      alt: number(b.alt, -500, 9000),
+      speed: number(b.speed, 0, 70),
+      phase: PHASES.includes(b.phase) ? b.phase : 'idle',
+      at: Date.now(),
+    });
+    return json({ ok: true });
+  }
+
+  /// Your friends who are sharing right now; the ones not heard from for ten minutes are forgotten.
+  async around(user) {
+    const now = Date.now();
+    for (const [id, p] of this.positions) if (now - p.at > POSITION_TTL) this.positions.delete(id);
+    const out = [];
+    for (const f of user.friends || []) {
+      const p = this.positions.get(f.id);
+      if (!p) continue;
+      const other = await this.byID(f.id);
+      if (other) out.push({ id: other.id, name: other.name, ...p });
+    }
+    return out;
   }
 
   // Too many tries
