@@ -88,10 +88,11 @@ enum Look: String, CaseIterable, Identifiable {
                 warn: Color(hex: 0xfbbf24), sky: Color(hex: sky))
     }
 
-    /// The night over the mountain: grey panels on a sheet that fades from night blue, and the blue
-    /// of the sky for what you can do.
-    private static let nightColors = darkLook(bg: 0x1a1b21, panel: 0x2a2b30, deep: 0x202126, input: 0x35373e, text: 0xffffff,
-                                              sub: 0xa2a5b1, accent: 0x5aa2ff, onAccent: 0xffffff, lift: 0xc4b5fd, sky: 0x3b4567)
+    /// The night over the mountain: grey panels on a sheet that fades from the blue of a glacier
+    /// in the shade, and the light blue of the ice (the line on the icon of the app) for what you
+    /// can do, with dark words on it.
+    private static let nightColors = darkLook(bg: 0x191b20, panel: 0x292b30, deep: 0x1f2126, input: 0x34373e, text: 0xffffff,
+                                              sub: 0xa2a7b1, accent: 0x5ccfff, onAccent: 0x06202e, lift: 0xc4b5fd, sky: 0x23455c)
     /// Northern lights: dark teal and mint.
     private static let auroraColors = darkLook(bg: 0x171c1d, panel: 0x272d2e, deep: 0x1d2324, input: 0x343c3d, text: 0xffffff,
                                                sub: 0xa0abab, accent: 0x4fdcc6, onAccent: 0x04201c, lift: 0xd8b4fe, sky: 0x2c4f52)
@@ -132,7 +133,8 @@ enum Look: String, CaseIterable, Identifiable {
 /// The look of Ski Apex: the map behind everything and a sheet over it, in the colors chosen in
 /// Settings (see `Look`). Cards are grey with very round corners and no outline; what floats on
 /// the map is glass (the Liquid Glass of iOS 26 and later, a frosted material before); the things
-/// you press are pills. Titles are heavy, numbers bold with their unit small beside them.
+/// you press are pills. Everything is set in the round face of the system: titles heavy, numbers
+/// bold with their unit small beside them.
 enum Theme {
     private static var colors: Palette { Looks.shared.look.palette }
 
@@ -189,16 +191,23 @@ enum Theme {
     /// The line of a day on the map: a color no piste has.
     static let track = Color(hex: 0xa23bf0)
 
-    /// The words of the segmented pickers a little heavier. Called once, before the first screen.
+    /// The round face of the app in the bars too, which are not SwiftUI's to dress: the titles of
+    /// the screens and the segmented pickers. Called once, before the first screen.
     @MainActor static func dressBars() {
-        UISegmentedControl.appearance().setTitleTextAttributes([.font: UIFont.systemFont(ofSize: 13, weight: .semibold)], for: .normal)
+        func round(_ size: CGFloat, _ weight: UIFont.Weight) -> UIFont {
+            let plain = UIFont.systemFont(ofSize: size, weight: weight)
+            return plain.fontDescriptor.withDesign(.rounded).map { UIFont(descriptor: $0, size: size) } ?? plain
+        }
+        UISegmentedControl.appearance().setTitleTextAttributes([.font: round(13, .semibold)], for: .normal)
+        UINavigationBar.appearance().largeTitleTextAttributes = [.font: round(UIFont.preferredFont(forTextStyle: .largeTitle).pointSize, .heavy)]
+        UINavigationBar.appearance().titleTextAttributes = [.font: round(UIFont.preferredFont(forTextStyle: .headline).pointSize, .bold)]
     }
 }
 
 extension Font {
     /// The big words and numbers of a screen.
     static func display(_ style: Font.TextStyle) -> Font {
-        .system(style, design: .default, weight: .bold)
+        .system(style, design: .rounded, weight: .bold)
     }
 }
 
@@ -281,6 +290,7 @@ struct Dressed: ViewModifier {
             .environment(\.railInset, 0)
             .environment(\.railFoot, 0)
             .tint(Theme.accent)
+            .fontDesign(.rounded)
             .preferredColorScheme(Theme.dark ? .dark : .light)
     }
 }

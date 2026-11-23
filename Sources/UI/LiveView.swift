@@ -211,7 +211,7 @@ struct LiveView: View {
     @ViewBuilder private var livePanel: some View {
         status
         HStack(alignment: .lastTextBaseline) {
-            FigureText("\(currentSpeed) \(Fmt.speedUnit)", big: .system(size: 84, weight: .heavy), small: .system(size: 18, weight: .bold))
+            FigureText("\(currentSpeed) \(Fmt.speedUnit)", big: .system(size: 84, weight: .heavy, design: .rounded), small: .system(size: 18, weight: .bold, design: .rounded))
                 .foregroundStyle(Theme.text)
                 .contentTransition(.numericText())
                 .animation(.snappy, value: currentSpeed)
@@ -288,7 +288,7 @@ private struct LiveCell: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            FigureText(value, big: .system(.title3, design: .default, weight: .bold), small: .system(.caption, design: .default, weight: .bold))
+            FigureText(value, big: .system(.title3, design: .rounded, weight: .bold), small: .system(.caption, design: .rounded, weight: .bold))
                 .foregroundStyle(Theme.text)
                 .lineLimit(1).minimumScaleFactor(0.6)
                 .contentTransition(.numericText())

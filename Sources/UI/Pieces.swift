@@ -16,8 +16,8 @@ struct FigureText: View {
     var big: Font
     var small: Font
 
-    init(_ value: String, big: Font = .system(.title2, design: .default, weight: .bold),
-         small: Font = .system(.footnote, design: .default, weight: .bold)) {
+    init(_ value: String, big: Font = .system(.title2, design: .rounded, weight: .bold),
+         small: Font = .system(.footnote, design: .rounded, weight: .bold)) {
         self.value = value
         self.big = big
         self.small = small
