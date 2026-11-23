@@ -1,7 +1,8 @@
 Ski Apex 0.4.0
+- Apple Watch: registra la giornata da solo con il suo GPS, e la manda all'iPhone quando finisci. Oppure fa da telecomando quando registra l'iPhone.
 - Mappa delle piste: piste, impianti e rifugi di una stazione, e il percorso da un punto all'altro (dalla Guida).
-- Apple Watch: i numeri della giornata al polso e i tasti per iniziare, mettere in pausa e finire.
+- Foto del profilo, e accesso con Apple.
+- Impostazioni nuove, con temi e icone dell'app (Impostazioni, Aspetto).
 - Widget: la neve in arrivo in una localita a scelta, e un tasto per registrare.
-- Temi e icone: sei aspetti per l'app e l'icona negli stessi colori (Impostazioni, Aspetto).
-- Amici in diretta sulla mappa mentre registri, con l'avviso quando uno e vicino; con il Bluetooth anche senza campo (scheda Amici).
-Da provare: l'app sul Watch con una registrazione avviata; gli amici in diretta in due, con la registrazione avviata su entrambi i telefoni.
+- Amici in diretta sulla mappa mentre registri, con l'avviso quando uno e vicino; con il Bluetooth anche senza campo.
+Da provare: una registrazione avviata dal Watch, fino a vederla arrivare in Giornate; gli amici in diretta in due.

@@ -1,7 +1,8 @@
 Ski Apex 0.4.0
+- Apple Watch: records the day by itself with its GPS, and sends it to the iPhone when you finish. Or works as a remote when the iPhone records.
 - Piste map: the pistes, lifts and huts of a ski area, and the way from one point to another (from the Guide).
-- Apple Watch: the numbers of the day on your wrist and the buttons to start, pause and finish.
+- Profile pictures, and Sign in with Apple.
+- New Settings, with looks and app icons (Settings, Look).
 - Widgets: the snow to come at a place of your choice, and a button to record.
-- Looks and icons: six looks for the app and the icon in the same colors (Settings, Look).
-- Friends live on the map while you record, with a notice when one is close; over Bluetooth even with no signal (Friends tab).
-To test: the Watch app with a recording started; friends live with two people, the recording started on both phones.
+- Friends live on the map while you record, with a notice when one is close; over Bluetooth even with no signal.
+To test: a recording started from the Watch, until it shows up in Days; friends live with two people.

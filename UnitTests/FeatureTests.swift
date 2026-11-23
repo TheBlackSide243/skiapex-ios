@@ -1,3 +1,4 @@
+import UIKit
 import XCTest
 @testable import SkiApex
 
@@ -398,6 +399,84 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(back, state)
         XCTAssertNil(WatchState(packed: [:]))
         XCTAssertEqual(WatchCommand(rawValue: "finish"), .finish)
+    }
+
+    func testAProfilePictureIsMadeSmall() throws {
+        let big = UIGraphicsImageRenderer(size: CGSize(width: 900, height: 500)).image { context in
+            UIColor.systemTeal.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 900, height: 500))
+        }
+        let data = try XCTUnwrap(Avatars.prepare(big))
+        XCTAssertLessThanOrEqual(data.count, Avatars.maxBytes)
+        XCTAssertEqual(Array(data.prefix(3)), [0xFF, 0xD8, 0xFF], "a JPEG, as the server wants")
+        let small = try XCTUnwrap(UIImage(data: data))
+        XCTAssertEqual(small.size.width * small.scale, 320)
+        XCTAssertEqual(small.size.height * small.scale, 320, "the square in the middle")
+        XCTAssertEqual(Avatars.initials(of: "Anna Rossi"), "AR")
+        XCTAssertEqual(Avatars.initials(of: "alessio.vitali"), "AV")
+        XCTAssertEqual(Avatars.initials(of: "luca"), "LU")
+        // Kept on the iPhone once seen, each picture by its version.
+        let id = "test-\(UUID().uuidString)"
+        XCTAssertNotNil(Avatars.keep(data, id: id, version: 1234))
+        XCTAssertNotNil(Avatars.image(id: id, version: 1234))
+        XCTAssertNil(Avatars.image(id: id, version: 99))
+        XCTAssertNil(Avatars.keep(data, id: id, version: 0), "no version, no picture")
+    }
+
+    func testSigningInWithGoogleAsksForTheNameOnly() throws {
+        // The example of RFC 7636.
+        XCTAssertEqual(GoogleSignIn.challenge(for: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"), "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM")
+        let client = "123-abc.apps.googleusercontent.com"
+        XCTAssertEqual(GoogleSignIn.scheme(for: client), "com.googleusercontent.apps.123-abc")
+        let page = try XCTUnwrap(GoogleSignIn.page(clientID: client, verifier: "secret", state: "word"))
+        let items = URLComponents(url: page, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        func value(_ name: String) -> String? { items.first { $0.name == name }?.value }
+        XCTAssertEqual(page.host, "accounts.google.com")
+        XCTAssertEqual(value("client_id"), client)
+        XCTAssertEqual(value("redirect_uri"), "com.googleusercontent.apps.123-abc:/oauth2redirect")
+        XCTAssertEqual(value("scope"), "openid profile", "no email")
+        XCTAssertEqual(value("code_challenge"), GoogleSignIn.challenge(for: "secret"))
+        XCTAssertEqual(value("state"), "word")
+    }
+
+    func testAnAccountAsTheServerSendsIt() throws {
+        let old = try JSONDecoder().decode(SocialAccount.self, from: Data(#"{"id":"a","name":"Anna"}"#.utf8))
+        XCTAssertNil(old.photo)
+        XCTAssertEqual(ProfileView.kindLabel(old.kind), "Accesso con nome e password")
+        let new = try JSONDecoder().decode(SocialAccount.self, from: Data(#"{"id":"a","name":"Anna","photo":1800000000000,"kind":"apple"}"#.utf8))
+        XCTAssertEqual(new.photo, 1_800_000_000_000)
+        XCTAssertEqual(ProfileView.kindLabel(new.kind), "Accesso con Apple")
+        let friend = try JSONDecoder().decode(Friend.self, from: Data(#"{"id":"b","name":"Luca","photo":0,"since":1}"#.utf8))
+        XCTAssertEqual(friend.photo, 0)
+    }
+
+    func testADayRecordedOnTheWatchIsKept() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("skiapex-watch-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let library = Library(directory: dir)
+        // The file as the watch writes it: one point a line.
+        let points = SkiSim.day(laps: 3, start: Date(timeIntervalSinceNow: -6 * 3600), seed: 4)
+        let encoder = JSONEncoder()
+        var file = Data()
+        for point in points {
+            file.append(try encoder.encode(point))
+            file.append(0x0A)
+        }
+        let read = WatchBridge.points(in: file)
+        XCTAssertEqual(read.count, points.count)
+        let id = UUID()
+        XCTAssertTrue(WatchBridge.keep(read, id: id, inHealth: true, in: library))
+        let day = try XCTUnwrap(library.day(id))
+        XCTAssertGreaterThan(day.stats.runs, 0)
+        XCTAssertEqual(day.inHealth, true, "the watch saved the workout: the iPhone does not save it again")
+        // The same file sent twice is one day; a handful of points is none.
+        XCTAssertFalse(WatchBridge.keep(read, id: id, inHealth: true, in: library))
+        XCTAssertFalse(WatchBridge.keep(Array(read.prefix(4)), id: UUID(), inHealth: false, in: library))
+        XCTAssertEqual(library.days.count, 1)
+        // The watch's own numbers of a day under way travel like the iPhone's.
+        let state = WatchState(state: "recording", phase: "run", start: nil, speed: "31", speedUnit: "km/h", runs: 2, vertical: "800 m",
+                               distance: "3.2 km", maxSpeed: "74 km/h", altitude: "2300 m", heart: "128")
+        XCTAssertEqual(WatchState(packed: state.packed)?.heart, "128")
     }
 
     func testDaysSavedByTheFirstVersionStillOpen() throws {

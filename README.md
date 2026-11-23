@@ -17,7 +17,7 @@ Premi **Inizia** ai piedi della pista, metti l'iPhone in tasca e scia. Ski Apex 
 - **Velocità sulla mappa**: ogni discesa disegnata dal blu (lento) al rosso (veloce).
 - **Statistiche**: totali, medie al giorno, record e grafici per stagione.
 - **Immagine da condividere** con traccia e numeri; importazione ed esportazione **GPX**.
-- **Amici**: classifiche della stagione con gli amici che inviti (giorni sulla neve, dislivello, chilometri, discese, velocità).
+- **Amici**: classifiche della stagione con gli amici che inviti (giorni sulla neve, dislivello, chilometri, discese, velocità), con la foto del profilo. Account con nome e password, con Apple o con Google.
 - **Amici in diretta**: mentre registri vedi sulla mappa gli amici che stanno sciando, e loro vedono te, se lo accendi. Un avviso ti dice quando uno è a meno di 300 metri o scia nella tua zona; con il Bluetooth, se lo accendi, anche dove non c'è campo.
 - **Guida delle stazioni**: cerca una stazione, guarda quelle vicine e segui le tue, con la neve prevista per 8 giorni.
 - **Mappa delle piste e percorsi**: piste nel colore della difficoltà, impianti e rifugi di una stazione; tocca da dove parti e dove vuoi arrivare e trova la strada, anche solo sulle piste blu o rosse.
@@ -25,7 +25,7 @@ Premi **Inizia** ai piedi della pista, metti l'iPhone in tasca e scia. Ski Apex 
 - **Mappa di calore**: tutte le tue discese in un posto, una sull'altra.
 - **Schermata di blocco e Dynamic Island**: la giornata in corso sempre sott'occhio (Live Activity).
 - **Siri e Comandi Rapidi**: inizia, metti in pausa e finisci la giornata a voce.
-- **Apple Watch**: velocità, discese, dislivello e chilometri al polso, e i tasti per iniziare, mettere in pausa e finire (nella versione TestFlight; la giornata la registra l'iPhone).
+- **Apple Watch**: registra la giornata da solo con il suo GPS, con battito, velocità, discese e dislivello al polso, e la manda all'iPhone quando finisci; oppure fa da telecomando quando registra l'iPhone (nella versione TestFlight).
 - **Widget**: la neve in arrivo in una località a scelta, e un tasto per registrare, sulla schermata Home e sulla schermata di blocco.
 - **Temi e icone**: sei aspetti per l'app (notte, aurora, alba, bosco, carbone e uno chiaro, neve) e l'icona negli stessi colori.
 - **Foto della giornata** dalla tua libreria, trovate dall'orario.
@@ -73,7 +73,7 @@ Tap **Start** at the bottom of the slope, put your iPhone in your pocket and ski
 - **Speed on the map**: every run drawn from blue (slow) to red (fast).
 - **Stats**: totals, averages per day, records and charts by season.
 - **Picture to share** with the track and the numbers; **GPX** import and export.
-- **Friends**: season leaderboards with the friends you invite (days on the snow, vertical, distance, runs, speed).
+- **Friends**: season leaderboards with the friends you invite (days on the snow, vertical, distance, runs, speed), with profile pictures. An account with a name and a password, with Apple or with Google.
 - **Friends live**: while you record you see on the map the friends who are skiing, and they see you, if you turn it on. A notice tells you when one is within 300 meters or skiing in your area. With Bluetooth, if you turn it on, also where there is no signal.
 - **Guide to ski areas**: search one, see the ones nearby and follow yours, with the snow expected for 8 days.
 - **Piste map and routes**: the pistes in the color of their difficulty, the lifts and the huts of a ski area; touch where you leave from and where you want to get and find the way, on blue or red pistes only if you like.
@@ -81,7 +81,7 @@ Tap **Start** at the bottom of the slope, put your iPhone in your pocket and ski
 - **Heat map**: all your runs in one place, one over the other.
 - **Lock screen and Dynamic Island**: the day under way always in sight (Live Activity).
 - **Siri and Shortcuts**: start, pause and finish the day by voice.
-- **Apple Watch**: speed, runs, vertical and distance on your wrist, and the buttons to start, pause and finish (in the TestFlight build; the iPhone records the day).
+- **Apple Watch**: records the day by itself with its GPS, with heart rate, speed, runs and vertical on your wrist, and sends it to the iPhone when you finish; or works as a remote when the iPhone records (in the TestFlight build).
 - **Widgets**: the snow to come at a place of your choice, and a button to record, on the Home Screen and the Lock Screen.
 - **Looks and icons**: six looks for the app (night, aurora, sunrise, forest, carbon and a light one, snow) and the icon in the same colors.
 - **Photos of the day** from your library, found by their time.
