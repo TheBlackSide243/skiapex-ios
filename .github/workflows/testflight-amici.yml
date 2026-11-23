@@ -1,0 +1,46 @@
+# Puts a TestFlight build in the external group "Amici" (public link) and sends it to beta review,
+# with "What to test" from testflight/whats-new.*.txt. The TestFlight workflow runs it after each
+# upload; by hand, give the build number (e.g. 5.12).
+name: TestFlight Amici
+
+on:
+  workflow_dispatch:
+    inputs:
+      build:
+        description: Build number on TestFlight (e.g. 5.12)
+        required: true
+      group:
+        description: External group
+        default: Amici
+  workflow_call:
+    inputs:
+      build:
+        type: string
+        required: true
+    secrets:
+      ASC_KEY_ID:
+        required: true
+      ASC_ISSUER_ID:
+        required: true
+      ASC_KEY_P8:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  amici:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install --quiet pyjwt cryptography
+      - name: Add to the group and send to review
+        run: python scripts/testflight_amici.py
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          BUNDLE: win.shadowbyte.apex
+          BUILD: ${{ inputs.build }}
+          GROUP: ${{ inputs.group || 'Amici' }}

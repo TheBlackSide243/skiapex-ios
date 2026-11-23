@@ -1,0 +1,3 @@
+"NSLocationWhenInUseUsageDescription" = "Per registrare le tue discese, le risalite e la velocità mentre scii. La posizione resta sul tuo iPhone.";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "Per continuare a registrare la giornata con l'iPhone in tasca e lo schermo spento. La posizione resta sul tuo iPhone.";
+"NSMotionUsageDescription" = "Per misurare il dislivello con il barometro dell'iPhone, molto più preciso del GPS.";

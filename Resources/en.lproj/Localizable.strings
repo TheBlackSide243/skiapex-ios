@@ -1,0 +1,105 @@
+/* Apex in English. The keys are the Italian texts of the app. */
+
+"Registra" = "Record";
+"Giornate" = "Days";
+"Impostazioni" = "Settings";
+
+/* Recording */
+"Pronto" = "Ready";
+"Posizione non permessa" = "Location not allowed";
+"Ripresa dopo la chiusura" = "Recovered after closing";
+"In pausa" = "Paused";
+"In pista" = "Skiing";
+"In risalita" = "On a lift";
+"Fermo" = "Standing";
+"Satellite" = "Satellite";
+"Mappa" = "Map";
+"Dove sono" = "My location";
+"Per registrare serve la posizione: permettila in Impostazioni → Apex → Posizione." = "Recording needs your location: allow it in Settings → Apex → Location.";
+"Premi Inizia ai piedi della pista, metti l'iPhone in tasca e scia: discese e risalite le riconosce da sola." = "Tap Start at the bottom of the slope, put your iPhone in your pocket and ski: runs and lifts are recognized on their own.";
+"Apri Impostazioni" = "Open Settings";
+"Inizia la giornata" = "Start the day";
+"Discese" = "Runs";
+"Dislivello" = "Vertical";
+"Max %@" = "Max %@";
+"Sci" = "Skied";
+"Risalite" = "Lifts";
+"Quota max" = "Top altitude";
+"Pausa" = "Pause";
+"Riprendi" = "Resume";
+"Fine" = "Finish";
+"Finita la giornata?" = "Done for the day?";
+"Salva la giornata" = "Save the day";
+"Scarta la registrazione" = "Discard the recording";
+"Continua a sciare" = "Keep skiing";
+"Salvandola trovi discese, risalite e numeri in Giornate." = "Once saved, you'll find runs, lifts and numbers in Days.";
+"Troppo pochi punti GPS: non c'è niente da salvare." = "Too few GPS points: there is nothing to save.";
+"Non sono riuscito a salvare la giornata: %@" = "Couldn't save the day: %@";
+"±%lld m" = "±%lld m";
+"Chiudi" = "Close";
+
+/* Days */
+"STAGIONE %@" = "SEASON %@";
+"Sciati" = "Skied";
+"Velocità max" = "Top speed";
+"Ancora nessuna giornata" = "No days yet";
+"Registra una giornata dalla scheda Registra. Per vedere com'è, in Impostazioni puoi crearne una di prova." = "Record a day from the Record tab. To see what it looks like, you can make a sample one in Settings.";
+"Giornata sulla neve" = "Day on the snow";
+"discese" = "runs";
+"dislivello" = "vertical";
+"max %@" = "max %@";
+"sciati" = "skied";
+
+/* A day */
+"Giornata" = "Day";
+"Questa giornata non si trova più." = "This day can't be found anymore.";
+"Esporta GPX" = "Export GPX";
+"Rinomina" = "Rename";
+"Elimina" = "Delete";
+"Altro" = "More";
+"Nome della giornata" = "Name of the day";
+"Località" = "Place";
+"Salva" = "Save";
+"Annulla" = "Cancel";
+"Eliminare questa giornata?" = "Delete this day?";
+"Non si può annullare." = "This can't be undone.";
+"Media in pista" = "Average on runs";
+"Tempo in pista" = "Time on runs";
+"Tempo in risalita" = "Time on lifts";
+"Quota durante la giornata" = "Altitude through the day";
+"Pause" = "Breaks";
+"Nessuna discesa riconosciuta: servono almeno %lld m di dislivello in movimento." = "No runs recognized: a run needs at least %lld m of vertical while moving.";
+
+/* A run */
+"Discesa %lld" = "Run %lld";
+"Velocità media" = "Average speed";
+"Lunghezza" = "Length";
+"Durata" = "Duration";
+"Pendenza media" = "Average slope";
+"Partenza" = "Start";
+"Arrivo" = "Finish";
+"Velocità" = "Speed";
+"Quota" = "Altitude";
+
+/* Settings */
+"Unità" = "Units";
+"Sensori" = "Sensors";
+"Posizione" = "Location";
+"Barometro" = "Barometer";
+"Permessa" = "Allowed";
+"Non permessa" = "Not allowed";
+"Da chiedere" = "Not asked yet";
+"Sì, per il dislivello" = "Yes, for the vertical";
+"No, quota dal GPS" = "No, altitude from GPS";
+"Come funziona" = "How it works";
+"Apex registra il GPS circa una volta al secondo, anche a schermo spento, e misura la quota con il barometro. Una discesa è quando scendi muovendoti per almeno %lld m di dislivello; una risalita quando sali di almeno %lld m. Le soste brevi in pista restano dentro la discesa." = "Apex records the GPS about once a second, even with the screen off, and measures altitude with the barometer. A run is when you go down while moving for at least %lld m of vertical; a lift when you go up at least %lld m. Short stops on the slope stay inside the run.";
+"Consigli: carica l'iPhone prima di partire, con il freddo la batteria scende in fretta. Tienilo in una tasca interna. Le giornate restano solo su questo iPhone e le trovi anche nell'app File, nella cartella Apex." = "Tips: charge your iPhone before you go, the cold drains the battery fast. Keep it in an inside pocket. Your days stay only on this iPhone, and you can also find them in the Files app, in the Apex folder.";
+"Prova" = "Try it";
+"Una giornata inventata, con risalite e discese, per vedere l'app senza andare sulla neve." = "A made-up day with lifts and runs, to see the app without going to the snow.";
+"Crea una giornata di prova" = "Make a sample day";
+"Giornata di prova" = "Sample day";
+"Fatto: la trovi in Giornate." = "Done: you'll find it in Days.";
+"Informazioni" = "About";
+"Versione" = "Version";
+"Giornate salvate" = "Days saved";
+"Velocità, distanze e quote sono stime del GPS e del barometro: non usarle per la sicurezza." = "Speeds, distances and altitudes are estimates from GPS and the barometer: don't rely on them for safety.";

@@ -1,0 +1,3 @@
+"NSLocationWhenInUseUsageDescription" = "To record your runs, lifts and speed while you ski. Your location stays on your iPhone.";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "To keep recording the day with the iPhone in your pocket and the screen off. Your location stays on your iPhone.";
+"NSMotionUsageDescription" = "To measure the vertical with the iPhone's barometer, much more precise than GPS.";

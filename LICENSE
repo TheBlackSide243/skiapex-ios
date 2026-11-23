@@ -1,0 +1,18 @@
+Copyright (c) 2026 TheBlackSide243. All rights reserved.
+
+The source code of Apex is published so that it can be read. Beyond reading it, you may only install
+and use the Apex app (from TestFlight, from the releases of this repository or from the author's
+Feather source) for your own personal use.
+
+Without written permission from the author you may not:
+
+- modify the code, or distribute it or a modified version, in whole or in part;
+- offer the app to other people as a service, paid or free, or use it commercially;
+- remove or change this notice.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE, INCLUDING THE LOSS OF DATA. Speeds, distances and altitudes are estimates
+from GPS and the barometer: do not rely on them for safety.
