@@ -380,3 +380,9 @@
 "Cerca gli amici anche con il Bluetooth" = "Look for friends over Bluetooth too";
 "Mentre registri, l'iPhone riconosce gli amici a pochi passi anche dove non c'è campo. Funziona se anche loro lo hanno acceso e stanno registrando. Non passa nessuna posizione: solo un codice che cambia ogni giorno e che solo i tuoi amici sanno leggere." = "While you record, the iPhone recognizes the friends a few steps away even where there is no signal. It works if they turned it on too and are recording. No position is sent: only a code that changes every day and that only your friends can read.";
 "È a pochi passi da te." = "A few steps from you.";
+
+/* 0.4.0: what the iPhone answers to the Apple Watch */
+"Apri Ski Apex sull'iPhone e consenti la posizione." = "Open Ski Apex on the iPhone and allow the location.";
+"Apri Ski Apex sull'iPhone, poi riprova." = "Open Ski Apex on the iPhone, then try again.";
+"Troppo pochi punti GPS: niente da salvare." = "Too few GPS points: nothing to save.";
+"Non riesco a salvare la giornata: apri Ski Apex sull'iPhone." = "Can't save the day: open Ski Apex on the iPhone.";

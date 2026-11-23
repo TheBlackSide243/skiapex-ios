@@ -9,7 +9,7 @@ BUNDLE=com.local.skiapex
 mkdir -p "$OUT"
 
 xcodebuild -project SkiApex.xcodeproj -scheme SkiApex -configuration Debug \
-  -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+  -destination 'generic/platform=iOS Simulator' \
   -derivedDataPath build/sim CODE_SIGNING_ALLOWED=NO build 2>&1 | tail -3
 APP="build/sim/Build/Products/Debug-iphonesimulator/SkiApex.app"
 test -d "$APP"

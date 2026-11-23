@@ -381,6 +381,25 @@ final class FeatureTests: XCTestCase {
         XCTAssertNil(Proximity.friend(for: code, among: friends, day: day.addingTimeInterval(5 * 86_400)))
     }
 
+    func testTheDayAsTheWatchHearsIt() throws {
+        let idle = WatchBridge.state(of: Recorder(journal: nil))
+        XCTAssertEqual(idle, WatchState.idle)
+        let points = Segmenter.clean(SkiSim.day(laps: 3, start: Date(timeIntervalSinceNow: -7200), seed: 9))
+        let recorder = Recorder.preview(points)
+        let state = WatchBridge.state(of: recorder)
+        XCTAssertEqual(state.state, "recording")
+        XCTAssertEqual(state.runs, recorder.analysis.stats.runs)
+        XCTAssertGreaterThan(state.runs, 0)
+        XCTAssertEqual(state.vertical, Fmt.height(recorder.analysis.stats.vertical))
+        XCTAssertEqual(state.start, points.first?.t)
+        XCTAssertEqual(state.speed, "0", "the last point is old: no speed to show")
+        // There and back, as it travels to the watch.
+        let back = try XCTUnwrap(WatchState(packed: state.packed))
+        XCTAssertEqual(back, state)
+        XCTAssertNil(WatchState(packed: [:]))
+        XCTAssertEqual(WatchCommand(rawValue: "finish"), .finish)
+    }
+
     func testDaysSavedByTheFirstVersionStillOpen() throws {
         let day = SkiDay(points: SkiSim.day(laps: 1, seed: 17), place: "Vecchia")
         var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(day)) as? [String: Any])

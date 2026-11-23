@@ -174,6 +174,8 @@ import Observation
             LiveStatus.update(state: state, analysis: analysis, start: startDate)
             // And the friends, when sharing is on.
             LiveShare.update(state: state, point: lastPoint, phase: analysis.current)
+            // And the Apple Watch.
+            WatchBridge.shared.push(WatchBridge.state(of: self))
         }
     }
 

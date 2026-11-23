@@ -97,7 +97,7 @@ def main():
     query = urllib.parse.urlencode({"filter[identifier]": bundle, "limit": 200})
     ids = {b["attributes"]["identifier"]: b["id"]
            for b in need(*call("GET", "bundleIds?" + query), "bundle IDs")["data"]}
-    for identifier, label in ((bundle, name), (bundle + ".live", name + " Live")):
+    for identifier, label in ((bundle, name), (bundle + ".live", name + " Live"), (bundle + ".watchkitapp", name + " Watch")):
         if identifier in ids:
             print(f"App ID {identifier}: already registered")
         else:

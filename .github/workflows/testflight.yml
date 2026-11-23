@@ -90,6 +90,7 @@ jobs:
             CURRENT_PROJECT_VERSION="$BUILD" \
             archive 2>&1 | tee build.log | grep -E "error:|warning: unre|BUILD|ARCHIVE|Signing" || true
           test -d build/SkiApex.xcarchive/Products/Applications/SkiApex.app || { grep -E "error" build.log | head -60; exit 1; }
+          test -d build/SkiApex.xcarchive/Products/Applications/SkiApex.app/Watch/SkiApexWatch.app || { echo "::error::The Apple Watch app is not inside the iPhone app"; exit 1; }
 
       # An unsigned archive has no entitlements, and the export would sign it without them. A
       # signature of its own carries them (Apple Health) to the export, which signs the app for
@@ -98,7 +99,7 @@ jobs:
         run: |
           set -eu
           APP=build/SkiApex.xcarchive/Products/Applications/SkiApex.app
-          for x in "$APP"/PlugIns/*.appex; do if [ -d "$x" ]; then codesign --force --sign - --timestamp=none "$x"; fi; done
+          for x in "$APP"/PlugIns/*.appex "$APP"/Watch/*.app; do if [ -d "$x" ]; then codesign --force --sign - --timestamp=none "$x"; fi; done
           codesign --force --sign - --timestamp=none --entitlements Support/SkiApex.entitlements "$APP"
           codesign -d --entitlements - "$APP" 2>&1 | tee "$RUNNER_TEMP/entitlements.txt"
           grep -q healthkit "$RUNNER_TEMP/entitlements.txt"
