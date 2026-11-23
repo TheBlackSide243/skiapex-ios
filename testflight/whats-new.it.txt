@@ -1,4 +1,8 @@
-Ski Apex 0.6.2
+Ski Apex 0.7.0
+- Il profilo della giornata: su con gli impianti, giu' per le piste nel colore dei cartelli. In ogni giornata dell'elenco e in testa alla sua pagina.
+- Bollini delle piste, con colore e numero come sui cartelli; sulla mappa le discese prendono il colore della pista, e i posti dove hai sciato sono segnati con la lente dell'icona.
+- La stazione sulla mappa: apri una stazione dalla Guida e la mappa dietro la mostra con tutte le piste e gli impianti.
+Da provare: cercare una stazione nella Guida e aprirla; aprire una giornata gia' salvata e guardare profilo e bollini.
 - Icona nuova: una maschera da sci con la vetta nella lente. In Impostazioni, Aspetto, scegli tra quattro disegni, e il primo anche negli altri colori.
 - Sugli iPhone con l'ora e la batteria sul bordo destro dello schermo la barra dei pulsanti sta in quella fascia: niente piu' vuoto a destra.
 - In fondo a ogni schermata c'e' spazio per scorrere oltre il pulsante tondo.

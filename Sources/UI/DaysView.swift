@@ -211,6 +211,20 @@ struct DayCard: View {
     }()
 
     var body: some View {
+        VStack(spacing: 12) {
+            row
+            if let legs = day.shape, legs.count > 1 {
+                DayProfile(legs: legs, lineWidth: 2)
+                    .frame(height: 34)
+            }
+        }
+        .padding(.vertical, 16)
+        .padding(.horizontal, 18)
+        .card()
+        .contentShape(Rectangle())
+    }
+
+    private var row: some View {
         HStack(spacing: 14) {
             VStack(spacing: 2) {
                 Text("\(Calendar.current.component(.day, from: day.start))").font(.title3.weight(.bold)).monospacedDigit().foregroundStyle(Theme.text)
@@ -236,9 +250,5 @@ struct DayCard: View {
             Spacer(minLength: 4)
             Image(systemName: "chevron.right").font(.subheadline.weight(.bold)).foregroundStyle(Theme.sub)
         }
-        .padding(.vertical, 16)
-        .padding(.horizontal, 18)
-        .card()
-        .contentShape(Rectangle())
     }
 }

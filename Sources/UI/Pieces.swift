@@ -118,3 +118,93 @@ struct ChoicePill: View {
         .accessibilityAddTraits(on ? .isSelected : [])
     }
 }
+
+/// The profile of a day: up with the lifts, thin and grey, and down each piste in the color of
+/// its signs. Small in the list of the days, big on the page of one.
+struct DayProfile: View {
+    let legs: [Leg]
+    var lineWidth: CGFloat = 2
+
+    /// The lowest and the highest altitude of the day.
+    static func range(_ legs: [Leg]) -> (low: Double, high: Double)? {
+        let all = legs.flatMap { [$0.a, $0.b] }
+        guard let low = all.min(), let high = all.max(), high > low else { return nil }
+        return (low, high)
+    }
+
+    var body: some View {
+        Canvas { context, size in
+            let total = legs.reduce(0.0) { $0 + max(1, $1.s) }
+            guard total > 0, let range = Self.range(legs) else { return }
+            let pad = lineWidth + 1
+            func y(_ alt: Double) -> CGFloat {
+                size.height - pad - CGFloat((alt - range.low) / (range.high - range.low)) * (size.height - pad * 2)
+            }
+            // Where each stretch begins and ends.
+            var spans: [(leg: Leg, from: CGPoint, to: CGPoint)] = []
+            var x: CGFloat = 0
+            for leg in legs {
+                let width = CGFloat(max(1, leg.s) / total) * size.width
+                spans.append((leg, CGPoint(x: x, y: y(leg.a)), CGPoint(x: x + width, y: y(leg.b))))
+                x += width
+            }
+            var ground = Path()
+            ground.move(to: CGPoint(x: 0, y: size.height))
+            for span in spans {
+                ground.addLine(to: span.from)
+                ground.addLine(to: span.to)
+            }
+            ground.addLine(to: CGPoint(x: size.width, y: size.height))
+            ground.closeSubpath()
+            context.fill(ground, with: .color(Theme.text.opacity(0.06)))
+            // The lifts and the stops first, the runs over them.
+            for span in spans where span.leg.k != 0 {
+                var line = Path()
+                line.move(to: span.from)
+                line.addLine(to: span.to)
+                context.stroke(line, with: .color(Theme.sub.opacity(span.leg.k == 1 ? 0.7 : 0.35)),
+                               style: StrokeStyle(lineWidth: lineWidth * 0.55, lineCap: .round))
+            }
+            for span in spans where span.leg.k == 0 {
+                var line = Path()
+                line.move(to: span.from)
+                line.addLine(to: span.to)
+                let dark = ["advanced", "expert"].contains(span.leg.d ?? "")
+                // A black piste is seen by a light edge around it.
+                if dark {
+                    context.stroke(line, with: .color(Theme.text.opacity(0.8)), style: StrokeStyle(lineWidth: lineWidth + 2, lineCap: .round))
+                }
+                context.stroke(line, with: .color(Theme.difficultyColor(span.leg.d) ?? Theme.accent),
+                               style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+/// A piste as on its signs: a disc in the color of its difficulty, with its number when it has
+/// one. Grey, with a skier, for a piste not known.
+struct PisteBadge: View {
+    let difficulty: String?
+    var ref: String?
+    var size: CGFloat = 26
+
+    var body: some View {
+        let color = Theme.difficultyColor(difficulty) ?? Theme.input
+        let dark = ["advanced", "expert"].contains(difficulty ?? "")
+        let ink: Color = ["freeride", "extreme"].contains(difficulty ?? "") ? Color(hex: 0x1a1500) : .white
+        ZStack {
+            Circle().fill(color)
+            if let ref, !ref.isEmpty, ref.count <= 3 {
+                Text(ref).font(.system(size: size * 0.46, weight: .bold, design: .rounded)).foregroundStyle(ink)
+                    .minimumScaleFactor(0.6).lineLimit(1).padding(.horizontal, 2)
+            } else {
+                Image(systemName: "figure.skiing.downhill").font(.system(size: size * 0.42, weight: .bold)).foregroundStyle(ink)
+            }
+        }
+        .frame(width: size, height: size)
+        .overlay(Circle().strokeBorder(Color.white.opacity(dark ? 0.75 : 0.22), lineWidth: dark ? 1.5 : 1))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(LocalizedStringKey(Theme.difficultyLabel(difficulty) ?? "Pista")))
+    }
+}

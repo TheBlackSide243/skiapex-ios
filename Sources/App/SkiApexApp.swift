@@ -112,7 +112,7 @@ enum Demo {
     /// to show, in the middle for the others, so that the map is seen behind.
     static var detent: PresentationDetent {
         switch screen {
-        case nil, "ready", "live", "days", "guide", "friends", "empty": RootView.middle
+        case nil, "ready", "live", "days", "guide", "resort", "friends", "empty": RootView.middle
         default: .large
         }
     }
@@ -156,13 +156,14 @@ enum Demo {
 
     /// Made-up names for the pistes and the lift, as OpenStreetMap would give them.
     private static func name(_ day: inout SkiDay) {
-        let pistes = [("Pista del Sole", "easy"), ("Gran Bosco", "intermediate"), ("Canalone", "advanced")]
+        let pistes = [("Pista del Sole", "easy", "3"), ("Gran Bosco", "intermediate", "7"), ("Canalone", "advanced", "5")]
         for i in day.segments.indices {
             switch day.segments[i].kind {
             case .run:
                 let piste = pistes[(day.segments[i].number - 1) % pistes.count]
                 day.segments[i].name = piste.0
                 day.segments[i].difficulty = piste.1
+                day.segments[i].ref = piste.2
             case .lift:
                 day.segments[i].name = "Seggiovia Cima Bianca"
             case .idle:

@@ -32,6 +32,10 @@ struct RootView: View {
                 .presentationBackground(Theme.bg)
                 .interactiveDismissDisabled()
         }
+        // A ski area put on the map: the sheet stands lower, to show it.
+        .onChange(of: Stage.shared.asks) { _, _ in
+            if detent == .large { detent = Self.middle }
+        }
         .onOpenURL { url in
             guard url.scheme == "skiapex" else { return }
             switch url.host {

@@ -19,7 +19,6 @@ struct DayDetailView: View {
     @AppStorage(Prefs.mapLook) private var mapLook = MapLook.standard.rawValue
     @State private var day: SkiDay?
     @State private var tracks: [MapTrack] = []
-    @State private var profile: [ProfilePoint] = []
     @State private var gpx: URL?
     @State private var confirmDelete = false
     @State private var renaming = false
@@ -131,7 +130,6 @@ struct DayDetailView: View {
         let first = day == nil
         day = loaded
         tracks = MapTrack.build(points: loaded.points, segments: loaded.segments)
-        profile = ProfilePoint.make(loaded)
         gpx = loaded.points.isEmpty ? nil : (try? GPX.file(loaded))
         if !Demo.isOn { photos = DayPhotos.assets(from: loaded.start, to: loaded.end).map { PhotoItem(asset: $0) } }
         guard first else { return }
@@ -204,6 +202,34 @@ struct DayDetailView: View {
                     .buttonStyle(SecondaryButtonStyle())
             }
 
+            if let legs = Leg.of(day), legs.count > 1, let range = DayProfile.range(legs) {
+                Panel("Profilo della giornata") {
+                    DayProfile(legs: legs, lineWidth: 2.8)
+                        .frame(height: 124)
+                    HStack {
+                        Text(Fmt.time(day.start))
+                        Spacer()
+                        Text("\(Fmt.height(range.low)) – \(Fmt.height(range.high))")
+                        Spacer()
+                        Text(Fmt.time(day.end))
+                    }
+                    .font(.caption).monospacedDigit().foregroundStyle(Theme.sub)
+                    HStack(spacing: 12) {
+                        ForEach(["easy", "intermediate", "advanced"], id: \.self) { grade in
+                            if legs.contains(where: { $0.k == 0 && Theme.difficultyLabel($0.d) == Theme.difficultyLabel(grade) }),
+                               let label = Theme.difficultyLabel(grade) {
+                                HStack(spacing: 5) {
+                                    DifficultyDot(difficulty: grade, size: 9)
+                                    Text(LocalizedStringKey(label)).font(.caption2).foregroundStyle(Theme.sub)
+                                }
+                            }
+                        }
+                        if legs.contains(where: { $0.k == 0 && Theme.difficultyColor($0.d) == nil }) { legend(Theme.accent, "Discese") }
+                        legend(Theme.sub, "Risalite")
+                    }
+                }
+            }
+
             let s = day.stats
             StatGrid {
                 StatTile(value: "\(s.runs)", label: "Discese", symbol: "figure.skiing.downhill")
@@ -240,18 +266,6 @@ struct DayDetailView: View {
                     }
                 } label: { Label("Mostra le foto di questa giornata", systemImage: "photo.on.rectangle") }
                     .buttonStyle(SecondaryButtonStyle())
-            }
-
-            if profile.count > 2 {
-                Panel("Quota durante la giornata") {
-                    AltitudeChart(points: profile)
-                        .frame(height: 180)
-                    HStack(spacing: 14) {
-                        legend(Theme.accent, "Discese")
-                        legend(Theme.lift, "Risalite")
-                        legend(Theme.sub, "Pause")
-                    }
-                }
             }
 
             if day.points.isEmpty {
@@ -303,17 +317,10 @@ struct RunRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Text("\(run.number)")
-                .font(.display(.subheadline))
-                .foregroundStyle(Theme.onAccent)
-                .frame(width: 34, height: 34)
-                .background(Theme.runColor(run.number), in: Circle())
+            PisteBadge(difficulty: run.difficulty, ref: run.ref, size: 34)
             VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
-                    DifficultyDot(difficulty: run.difficulty)
-                    Text(run.name ?? String(localized: "Discesa \(run.number)"))
-                        .font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text).lineLimit(1)
-                }
+                Text(run.name ?? String(localized: "Discesa \(run.number)"))
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text).lineLimit(1)
                 Text("\(Fmt.time(run.startTime)) · \(Fmt.duration(run.duration)) · \(Fmt.height(run.drop)) ↓")
                     .font(.caption).foregroundStyle(Theme.sub).lineLimit(1)
             }

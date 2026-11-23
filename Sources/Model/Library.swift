@@ -45,6 +45,12 @@ import Observation
             if days.contains(where: { $0.lat == nil }) { rebuildIndex() }
             FileManager.default.createFile(atPath: marker.path, contents: nil)
         }
+        // The index of the versions before 0.7.0 had no profile of the days: made again, once.
+        let shapes = dir.appendingPathComponent(".indice-3")
+        if !FileManager.default.fileExists(atPath: shapes.path) {
+            if days.contains(where: { $0.shape == nil && $0.lat != nil }) { rebuildIndex() }
+            FileManager.default.createFile(atPath: shapes.path, contents: nil)
+        }
         // Only the library of the app remembers what to ask: the ones made for a test or the demo do not.
         if directory == nil {
             keepsAsking = true
@@ -308,6 +314,8 @@ struct MapTrack: Identifiable {
     let kind: SegmentKind
     let number: Int
     let coordinates: [CLLocationCoordinate2D]
+    /// The difficulty of the piste of a run, when known: its color on the map.
+    var difficulty: String? = nil
 
     static func build(points: [TrackPoint], segments: [Segment], maxPoints: Int = 300) -> [MapTrack] {
         guard !points.isEmpty else { return [] }
@@ -328,7 +336,7 @@ struct MapTrack: Identifiable {
                 i += step
             }
             if (seg.end - seg.start) % step != 0 { coords.append(points[seg.end].coordinate) }
-            return MapTrack(id: seg.start, kind: seg.kind, number: seg.number, coordinates: coords)
+            return MapTrack(id: seg.start, kind: seg.kind, number: seg.number, coordinates: coords, difficulty: seg.difficulty)
         }
     }
 }

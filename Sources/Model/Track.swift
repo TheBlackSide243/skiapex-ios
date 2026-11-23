@@ -55,6 +55,8 @@ struct Segment: Codable, Hashable, Identifiable {
     var name: String? = nil
     /// The `piste:difficulty` of OpenStreetMap: novice, easy, intermediate, advanced, expert, freeride.
     var difficulty: String? = nil
+    /// The number of the piste as on its signs (the `ref` of OpenStreetMap), when it has one.
+    var ref: String? = nil
 
     var id: Int { start }
     var duration: TimeInterval { endTime.timeIntervalSince(startTime) }

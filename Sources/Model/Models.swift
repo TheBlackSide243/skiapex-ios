@@ -140,7 +140,32 @@ struct SkiDay: Codable, Identifiable {
     var summary: DaySummary {
         let top = points.max { $0.alt < $1.alt }
         return DaySummary(id: id, start: start, end: end, place: place, stats: stats, sport: sport, resort: resort,
-                          lat: top?.lat, lon: top?.lon, manual: manual)
+                          lat: top?.lat, lon: top?.lon, manual: manual, shape: Leg.of(self))
+    }
+}
+
+/// One stretch of a day as its profile draws it: up a lift, down a piste, or a stop. Short names,
+/// for it is written many times in the list of the days.
+struct Leg: Codable, Hashable {
+    /// 0 a run, 1 a lift, 2 a stop.
+    var k: Int
+    /// How long it took, in seconds.
+    var s: Double
+    /// The altitude it began and ended at.
+    var a: Double
+    var b: Double
+    /// The difficulty of the piste of a run, when known.
+    var d: String?
+
+    /// The stretches of a day, at most a hundred and twenty of them. nil for a day with no track.
+    static func of(_ day: SkiDay) -> [Leg]? {
+        guard !day.points.isEmpty, !day.segments.isEmpty else { return nil }
+        let legs: [Leg] = day.segments.compactMap { seg in
+            guard seg.start <= seg.end, seg.end < day.points.count else { return nil }
+            let kind = seg.kind == .run ? 0 : seg.kind == .lift ? 1 : 2
+            return Leg(k: kind, s: max(1, seg.duration), a: day.points[seg.start].alt, b: day.points[seg.end].alt, d: seg.difficulty)
+        }
+        return legs.isEmpty ? nil : Array(legs.prefix(120))
     }
 }
 
@@ -157,6 +182,9 @@ struct DaySummary: Codable, Identifiable, Hashable {
     var lat: Double?
     var lon: Double?
     var manual: Bool?
+    /// Its ups and downs, to draw its profile in the list. nil for a day with no track, and for
+    /// the days saved before there was one, until the list is made again.
+    var shape: [Leg]? = nil
 
     var season: Season { Season(start) }
     var title: String? { place ?? resort }

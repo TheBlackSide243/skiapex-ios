@@ -418,6 +418,9 @@ private struct HelpPage: View {
 /// What came with this version.
 private struct NewsPage: View {
     private static let news: [(symbol: String, title: String, text: String)] = [
+        ("chart.xyaxis.line", "Il profilo della giornata", "Su con gli impianti, giù per le piste nel colore dei cartelli: in ogni giornata dell'elenco e in testa alla sua pagina."),
+        ("circle.fill", "Bollini delle piste", "Ogni pista con il suo colore e il suo numero, come sui cartelli; sulla mappa le discese prendono il colore della pista."),
+        ("magnifyingglass", "La stazione sulla mappa", "Apri una stazione dalla Guida e la mappa dietro la mostra con tutte le piste e gli impianti."),
         ("eyeglasses", "Icona nuova", "Una maschera da sci con la vetta nella lente. Quattro disegni, e il primo anche negli altri colori: si scelgono in Aspetto."),
         ("map", "La mappa dietro a tutto", "Le schermate stanno su un pannello che tiri su e giù sopra la mappa; a destra la tua foto, Giornate, Guida, Amici e il pulsante per registrare."),
         ("mountain.2.fill", "Mappa invernale", "Neve, ombre e curve di livello disegnate dall'app, con le montagne di notte da lontano. Anche in giornata, discesa, Rivivi ed Esplora."),

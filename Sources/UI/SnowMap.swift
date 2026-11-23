@@ -59,13 +59,107 @@ final class PinAnnotation: NSObject, MKAnnotation {
     let glyph: String?
     let symbol: String?
     let color: UIColor
+    /// A place skied: drawn as the lens of the goggles of the icon, not as a pin.
+    let lens: Bool
 
-    init(coordinate: CLLocationCoordinate2D, title: String, glyph: String? = nil, symbol: String? = nil, color: UIColor) {
+    init(coordinate: CLLocationCoordinate2D, title: String, glyph: String? = nil, symbol: String? = nil, color: UIColor, lens: Bool = false) {
         self.coordinate = coordinate
         self.title = title
         self.glyph = glyph
         self.symbol = symbol
         self.color = color
+        self.lens = lens
+    }
+}
+
+/// A place skied on the map: the lens of the goggles of the icon, with the number of days in it
+/// and the name of the place under it.
+final class LensPinView: MKAnnotationView {
+    private let name = UILabel()
+    static let size = CGSize(width: 52, height: 34)
+
+    override init(annotation: MKAnnotation?, reuseIdentifier: String?) {
+        super.init(annotation: annotation, reuseIdentifier: reuseIdentifier)
+        frame = CGRect(origin: .zero, size: Self.size)
+        displayPriority = .required
+        name.font = UIFont.systemFont(ofSize: 11, weight: .semibold)
+        name.textColor = .white
+        name.textAlignment = .center
+        name.backgroundColor = UIColor.black.withAlphaComponent(0.55)
+        name.layer.cornerRadius = 8
+        name.layer.masksToBounds = true
+        addSubview(name)
+    }
+
+    required init?(coder: NSCoder) { nil }
+
+    func show(_ pin: PinAnnotation) {
+        image = Self.picture(text: pin.glyph ?? "", color: pin.color)
+        name.text = pin.title
+        name.isHidden = (pin.title ?? "").isEmpty
+        let fit = name.sizeThatFits(CGSize(width: 160, height: 20))
+        name.frame = CGRect(x: (Self.size.width - fit.width - 12) / 2, y: Self.size.height + 2, width: fit.width + 12, height: 17)
+    }
+
+    /// The outline of the lens of the icon, in a box.
+    static func outline(in box: CGRect) -> UIBezierPath {
+        func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
+            CGPoint(x: box.minX + (x - 150) / 724 * box.width, y: box.minY + (y - 300) / 424 * box.height)
+        }
+        let path = UIBezierPath()
+        path.move(to: p(150, 430))
+        path.addCurve(to: p(330, 300), controlPoint1: p(150, 330), controlPoint2: p(220, 300))
+        path.addLine(to: p(694, 300))
+        path.addCurve(to: p(874, 430), controlPoint1: p(804, 300), controlPoint2: p(874, 330))
+        path.addLine(to: p(874, 560))
+        path.addCurve(to: p(700, 724), controlPoint1: p(874, 664), controlPoint2: p(800, 724))
+        path.addCurve(to: p(512, 664), controlPoint1: p(620, 724), controlPoint2: p(580, 664))
+        path.addCurve(to: p(324, 724), controlPoint1: p(444, 664), controlPoint2: p(404, 724))
+        path.addCurve(to: p(150, 560), controlPoint1: p(224, 724), controlPoint2: p(150, 664))
+        path.close()
+        return path
+    }
+
+    private static var drawn: [String: UIImage] = [:]
+
+    static func picture(text: String, color: UIColor) -> UIImage {
+        let key = text + "|" + color.description
+        if let kept = drawn[key] { return kept }
+        let made = UIGraphicsImageRenderer(size: size).image { context in
+            let lens = outline(in: CGRect(origin: .zero, size: size).insetBy(dx: 4, dy: 4))
+            let cg = context.cgContext
+            cg.setShadow(offset: CGSize(width: 0, height: 1.5), blur: 3, color: UIColor.black.withAlphaComponent(0.45).cgColor)
+            UIColor(red: 0.04, green: 0.09, blue: 0.15, alpha: 1).setStroke()
+            lens.lineWidth = 5
+            lens.lineJoinStyle = .round
+            lens.stroke()
+            cg.setShadow(offset: .zero, blur: 0, color: nil)
+            color.setFill()
+            lens.fill()
+            // The light on the glass.
+            cg.saveGState()
+            lens.addClip()
+            UIColor.white.withAlphaComponent(0.3).setFill()
+            let shine = UIBezierPath()
+            shine.move(to: CGPoint(x: 8, y: 0))
+            shine.addLine(to: CGPoint(x: 20, y: 0))
+            shine.addLine(to: CGPoint(x: 10, y: size.height))
+            shine.addLine(to: CGPoint(x: -2, y: size.height))
+            shine.close()
+            shine.fill()
+            cg.restoreGState()
+            UIColor.white.withAlphaComponent(0.55).setStroke()
+            lens.lineWidth = 1
+            lens.stroke()
+            let words = NSAttributedString(string: text, attributes: [
+                .font: UIFont.systemFont(ofSize: 14, weight: .heavy),
+                .foregroundColor: UIColor(red: 0.02, green: 0.13, blue: 0.18, alpha: 1),
+            ])
+            let box = words.size()
+            words.draw(at: CGPoint(x: (size.width - box.width) / 2, y: (size.height - box.height) / 2 - 2.5))
+        }
+        drawn[key] = made
+        return made
     }
 }
 
@@ -213,8 +307,8 @@ struct SnowMap: UIViewRepresentable {
 
         static func annotations(_ view: SnowMap) -> [PinAnnotation] {
             let places = view.pins.map {
-                PinAnnotation(coordinate: $0.coordinate, title: $0.name, glyph: $0.days > 0 ? "\($0.days)" : nil,
-                              symbol: $0.days > 0 ? nil : "mountain.2.fill", color: UIColor(Theme.accent))
+                PinAnnotation(coordinate: $0.coordinate, title: $0.name, glyph: $0.days > 0 ? "\($0.days)" : "▲",
+                              color: UIColor(Theme.accent), lens: true)
             }
             let friends = view.friends.map {
                 PinAnnotation(coordinate: $0.coordinate, title: $0.name, glyph: String($0.name.prefix(2)).uppercased(),
@@ -226,8 +320,9 @@ struct SnowMap: UIViewRepresentable {
             return places + friends + marks
         }
 
-        /// The pistes under, thin and in their colors; the lifts dark; over them the day, and
-        /// over the day what a screen draws of its own.
+        /// The pistes under, thin and in their colors; the lifts dark; over them the day, each run
+        /// in the color of its piste (or in the color of the day, when the piste is not known)
+        /// with a white edge; and over the day what a screen draws of its own.
         static func lines(terrain: Terrain?, tracks: [MapTrack], dimmed: Bool = false, more: [MapLine] = []) -> [StyledLine] {
             var out: [StyledLine] = []
             func add(_ points: [CLLocationCoordinate2D], _ color: UIColor, _ width: CGFloat, _ dash: [NSNumber]? = nil) {
@@ -242,16 +337,20 @@ struct SnowMap: UIViewRepresentable {
             for way in terrain?.ways ?? [] {
                 let points = zip(way.lats, way.lons).map { CLLocationCoordinate2D(latitude: $0, longitude: $1) }
                 if way.kind == .piste {
-                    add(points, UIColor(Theme.difficultyColor(way.difficulty) ?? Color(hex: 0x4f9dff)), 2.5)
+                    add(points, UIColor(Theme.difficultyColor(way.difficulty) ?? Color(hex: 0x4f9dff)), 3)
                 } else {
-                    add(points, UIColor(red: 0.14, green: 0.16, blue: 0.23, alpha: 1), 1.6)
+                    add(points, UIColor(red: 0.14, green: 0.16, blue: 0.23, alpha: 1), 2)
                 }
             }
             let ink = UIColor(Theme.track)
             let fade: CGFloat = dimmed ? 0.3 : 1
             for track in tracks {
                 switch track.kind {
-                case .run: add(track.coordinates, ink.withAlphaComponent(fade), dimmed ? 3.5 : 5)
+                case .run:
+                    let width: CGFloat = dimmed ? 3.5 : 5
+                    let color = track.difficulty.flatMap { Theme.difficultyColor($0) }.map { UIColor($0) } ?? ink
+                    add(track.coordinates, UIColor.white.withAlphaComponent(0.92 * fade), width + 3.5)
+                    add(track.coordinates, color.withAlphaComponent(fade), width)
                 case .lift: add(track.coordinates, ink.withAlphaComponent(0.55 * fade), 2.5, [6, 6])
                 case .idle: add(track.coordinates, ink.withAlphaComponent(0.4 * fade), 2)
                 }
@@ -286,6 +385,13 @@ struct SnowMap: UIViewRepresentable {
                 return view
             }
             guard let pin = annotation as? PinAnnotation else { return nil }
+            if pin.lens {
+                let view = mapView.dequeueReusableAnnotationView(withIdentifier: "lens") as? LensPinView
+                    ?? LensPinView(annotation: pin, reuseIdentifier: "lens")
+                view.annotation = pin
+                view.show(pin)
+                return view
+            }
             let view = mapView.dequeueReusableAnnotationView(withIdentifier: "pin") as? MKMarkerAnnotationView
                 ?? MKMarkerAnnotationView(annotation: pin, reuseIdentifier: "pin")
             view.annotation = pin
@@ -382,13 +488,17 @@ struct Backdrop: View {
     var body: some View {
         let pins = PlacePin.of(library.days)
         let live = tab == 0
+        // A ski area a screen asked to show: alone, with all its pistes and lifts.
+        let shown = live ? nil : Stage.shared.place
+        let shownTerrain = Stage.shared.terrain
         GeometryReader { box in
-            SnowMap(pins: live ? [] : pins,
+            SnowMap(pins: live ? [] : (shown.map { [$0] } ?? pins),
                     friends: live || tab == 3 ? social.live : [],
                     tracks: live ? recorder.tracks : [],
-                    terrain: terrain,
-                    region: region(pins: pins, live: live),
-                    regionKey: live ? "live\(recorder.lastPoint == nil ? 0 : 1)" : "places\(pins.count)",
+                    terrain: shown == nil ? terrain : (shownTerrain ?? terrain),
+                    region: shown.map { Stage.region(of: $0, terrain: shownTerrain) } ?? region(pins: pins, live: live),
+                    regionKey: shown.map { "stage\($0.id)|\(shownTerrain?.ways.count ?? 0)" }
+                        ?? (live ? "live\(recorder.lastPoint == nil ? 0 : 1)" : "places\(pins.count)"),
                     recenter: recenter,
                     bottomInset: box.size.height * covered,
                     onMove: { center, span in moved(to: center, span: span) })
@@ -417,6 +527,36 @@ struct Backdrop: View {
                 terrain = loaded
             }
         }
+    }
+}
+
+/// What a screen asks the map behind the sheet to show: a ski area, with all its pistes and lifts,
+/// while its page is open.
+@Observable final class Stage {
+    static let shared = Stage()
+    private(set) var place: PlacePin?
+    private(set) var terrain: Terrain?
+    /// Counts the times a ski area was put on the map: the sheet then stands lower, to show it.
+    private(set) var asks = 0
+
+    func show(_ place: PlacePin, terrain: Terrain?) {
+        if self.place?.id != place.id { asks += 1 }
+        self.place = place
+        self.terrain = terrain
+    }
+
+    func leave(_ id: String) {
+        guard place?.id == id else { return }
+        place = nil
+        terrain = nil
+    }
+
+    /// All the pistes and the lifts of a ski area with a little room around them; before they
+    /// are known, about nine kilometers around it.
+    static func region(of place: PlacePin, terrain: Terrain?) -> MKCoordinateRegion {
+        let all = (terrain?.ways ?? []).flatMap { way in zip(way.lats, way.lons).map { CLLocationCoordinate2D(latitude: $0, longitude: $1) } }
+        return SnowMap.fit(all, room: 1.2, least: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02))
+            ?? MKCoordinateRegion(center: place.coordinate, latitudinalMeters: 9000, longitudinalMeters: 9000)
     }
 }
 

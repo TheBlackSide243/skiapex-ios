@@ -205,6 +205,7 @@ enum Pistes {
                 let found = match(points, among: pistes, within: 40)
                 day.segments[i].name = found.label
                 day.segments[i].difficulty = found.difficulty
+                day.segments[i].ref = found.label.flatMap { label in pistes.first { $0.label == label && $0.ref?.isEmpty == false }?.ref }
             case .lift:
                 day.segments[i].name = match(points, among: lifts, within: 60).label
             case .idle:
