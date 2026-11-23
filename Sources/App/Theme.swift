@@ -233,17 +233,40 @@ extension View {
     /// Sentences. They were once set in another face than the numbers; now everything is in one.
     func prose() -> some View { self }
 
-    /// The page behind every scrolling screen: the sheet, night blue at the top.
-    func screen() -> some View {
-        scrollContentBackground(.hidden)
+    /// The page behind every scrolling screen: the sheet, night blue at the top. On the sheet
+    /// over the map its right edge is kept free for the buttons (see `Rail`).
+    func screen() -> some View { modifier(Screen()) }
+}
+
+private struct Screen: ViewModifier {
+    @Environment(\.railInset) private var rail
+
+    func body(content: Content) -> some View {
+        content
+            .scrollContentBackground(.hidden)
+            .contentMargins(.trailing, rail, for: .scrollContent)
             .background(Ground())
     }
 }
 
-/// The whole app in its look.
+private struct RailInsetKey: EnvironmentKey {
+    static let defaultValue: CGFloat = 0
+}
+
+extension EnvironmentValues {
+    /// How much of the right edge of a screen the buttons of the sheet take: 0 where there are none.
+    var railInset: CGFloat {
+        get { self[RailInsetKey.self] }
+        set { self[RailInsetKey.self] = newValue }
+    }
+}
+
+/// The whole app in its look. Every sheet opened over a screen wears it, and has no buttons on
+/// its right edge.
 struct Dressed: ViewModifier {
     func body(content: Content) -> some View {
         content
+            .environment(\.railInset, 0)
             .tint(Theme.accent)
             .preferredColorScheme(Theme.dark ? .dark : .light)
     }

@@ -70,10 +70,9 @@ private struct SheetRoot: View {
             }
         }
         // The right edge is kept free for the buttons.
-        .safeAreaPadding(.trailing, Rail.width)
+        .environment(\.railInset, Rail.width)
         // Every number again in the new units, every color again in the new look.
         .id("\(tab)" + units + Looks.shared.look.rawValue)
-        .overlay(alignment: .topTrailing) { profile }
         .overlay(alignment: .bottomTrailing) { Rail(tab: $tab) }
         .modifier(Dressed())
         .sensoryFeedback(.selection, trigger: tab)
@@ -87,33 +86,14 @@ private struct SheetRoot: View {
             if code != nil { tab = 3 }
         }
     }
-
-    /// Your picture: it opens the settings, with the profile at the top.
-    private var profile: some View {
-        Button { tab = 4 } label: {
-            Group {
-                if let me = social.account {
-                    Avatar(id: me.id, name: me.name, photo: me.photo, size: 46)
-                } else {
-                    Image(systemName: "person.fill").font(.body.weight(.semibold)).foregroundStyle(Theme.text)
-                        .frame(width: 46, height: 46)
-                        .background(Theme.input, in: Circle())
-                }
-            }
-            .overlay(Circle().strokeBorder(tab == 4 ? Theme.accent : Color.white.opacity(0.18), lineWidth: 2))
-        }
-        .buttonStyle(PressStyle())
-        .padding(.trailing, (Rail.width - 46) / 2)
-        .padding(.top, 22)
-        .accessibilityLabel(Text("Impostazioni"))
-    }
 }
 
-/// On the right edge of the sheet, at the bottom: the three screens, one over the other, and
-/// beside them the round button that records.
+/// On the right edge of the sheet, at the bottom: your picture, which opens the settings, the
+/// three screens one over the other, and beside them the round button that records.
 struct Rail: View {
     @Binding var tab: Int
     @Environment(Recorder.self) private var recorder
+    @Environment(Social.self) private var social
 
     /// The width kept free for it on every screen.
     static let width: CGFloat = 64
@@ -131,18 +111,40 @@ struct Rail: View {
             }
             .buttonStyle(PressStyle())
             .accessibilityLabel(Text("Registra"))
-            VStack(spacing: 4) {
-                item(1, "book.closed.fill", "Giornate")
-                item(2, "map.fill", "Guida")
-                item(3, "person.2.fill", "Amici")
+            VStack(spacing: 10) {
+                profile
+                VStack(spacing: 4) {
+                    item(1, "book.closed.fill", "Giornate")
+                    item(2, "map.fill", "Guida")
+                    item(3, "person.2.fill", "Amici")
+                }
+                .padding(5)
+                .background(Theme.input, in: Capsule())
+                .overlay(Capsule().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
+                .shadow(color: .black.opacity(0.3), radius: 10, y: 4)
             }
-            .padding(5)
-            .background(Theme.input, in: Capsule())
-            .overlay(Capsule().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
-            .shadow(color: .black.opacity(0.3), radius: 10, y: 4)
         }
         .padding(.trailing, (Self.width - 58) / 2)
         .padding(.bottom, 6)
+    }
+
+    /// Your picture: it opens the settings, with the profile at the top.
+    private var profile: some View {
+        Button { tab = 4 } label: {
+            Group {
+                if let me = social.account {
+                    Avatar(id: me.id, name: me.name, photo: me.photo, size: 46)
+                } else {
+                    Image(systemName: "person.fill").font(.body.weight(.semibold)).foregroundStyle(Theme.text)
+                        .frame(width: 46, height: 46)
+                        .background(Theme.input, in: Circle())
+                }
+            }
+            .overlay(Circle().strokeBorder(tab == 4 ? Theme.accent : Color.white.opacity(0.18), lineWidth: 2))
+            .shadow(color: .black.opacity(0.3), radius: 8, y: 3)
+        }
+        .buttonStyle(PressStyle())
+        .accessibilityLabel(Text("Impostazioni"))
     }
 
     private func item(_ index: Int, _ symbol: String, _ label: String) -> some View {

@@ -44,6 +44,22 @@ final class LookTests: XCTestCase {
         XCTAssertNil(Relief.heights(png: Data([1, 2, 3])))
     }
 
+    /// Twice the points a side keeps a slope a slope; from far away the sea is the darkest.
+    func testTheSquaresOfTheMap() {
+        let side = 8
+        var values = [Float](repeating: 0, count: side * side)
+        for j in 0..<side { for i in 0..<side { values[j * side + i] = 1000 + Float(i) * 10 } }
+        let fine = Relief.doubled(Relief.Heights(values: values, side: side))
+        XCTAssertEqual(fine.side, 16)
+        XCTAssertEqual(fine.values[8 * 16 + 7], 1032.5, accuracy: 0.01)
+        XCTAssertEqual(fine.values[8 * 16 + 8], 1037.5, accuracy: 0.01)
+        XCTAssertEqual(fine.values[0], 1000, accuracy: 0.01)
+        let land = Relief.night(Relief.Heights(values: values, side: side), metersPerPixel: 400)
+        let sea = Relief.night(Relief.Heights(values: [Float](repeating: 0, count: side * side), side: side), metersPerPixel: 400)
+        XCTAssertGreaterThan(Int(land[2]), Int(sea[2]))
+        XCTAssertEqual(sea[3], 255)
+    }
+
     /// A picture of heights read back: 2000 m is red 135, green 208 in a terrarium square.
     func testHeightsFromAPicture() throws {
         let side = 4

@@ -158,20 +158,9 @@ struct DayDetailView: View {
         VStack(spacing: 14) {
             ErrorBanner(error: $error)
             if !day.points.isEmpty {
-                ZStack(alignment: .topTrailing) {
-                    Map(initialPosition: .automatic) {
-                        TrackMapContent(tracks: tracks)
-                    }
-                    .mapStyle(look.style)
-                    .frame(height: 320)
-                    .clipShape(Theme.round)
-                    .overlay(Theme.round.strokeBorder(Theme.line, lineWidth: 1))
-                    MapButton(symbol: look == .standard ? "globe.europe.africa" : "map",
-                              label: look == .standard ? "Satellite" : "Mappa") {
-                        mapLook = (look == .standard ? MapLook.satellite : MapLook.standard).rawValue
-                    }
-                    .padding(10)
-                }
+                PlaceMap(tracks: tracks)
+                    .frame(height: 300)
+                    .id(tracks.count)
             }
 
             VStack(alignment: .leading, spacing: 8) {

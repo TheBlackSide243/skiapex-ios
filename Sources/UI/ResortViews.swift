@@ -14,20 +14,17 @@ struct ResortFacts: View {
 
     var body: some View {
         let range = Self.altitudes(terrain)
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 18) {
-                if let range {
-                    Fact(value: Fmt.height(range.top - range.base), label: "Dislivello", symbol: "arrow.down")
-                }
-                Fact(value: "\(terrain.pistes)", label: "Piste", symbol: "number")
-                Fact(value: "\(terrain.lifts)", label: "Impianti", symbol: "cablecar")
-                Fact(value: Fmt.distance(terrain.pisteMeters), label: "Di piste", symbol: "arrow.right")
-                if let range {
-                    Fact(value: Fmt.height(range.base), label: "Quota base", symbol: "triangle")
-                    Fact(value: Fmt.height(range.top), label: "Quota vetta", symbol: "mountain.2")
-                }
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8, alignment: .leading), count: 3), alignment: .leading, spacing: 16) {
+            if let range {
+                Fact(value: Fmt.height(range.top - range.base), label: "Dislivello", symbol: "arrow.down")
             }
-            .padding(.horizontal, 2)
+            Fact(value: "\(terrain.pistes)", label: "Piste", symbol: "number")
+            Fact(value: "\(terrain.lifts)", label: "Impianti", symbol: "cablecar")
+            Fact(value: Fmt.distance(terrain.pisteMeters), label: "Di piste", symbol: "arrow.right")
+            if let range {
+                Fact(value: Fmt.height(range.base), label: "Quota base", symbol: "triangle")
+                Fact(value: Fmt.height(range.top), label: "Quota vetta", symbol: "mountain.2")
+            }
         }
     }
 }
@@ -39,8 +36,13 @@ private struct Fact: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(value).font(.display(.title3)).monospacedDigit().foregroundStyle(Theme.text).lineLimit(1)
-            Label(LocalizedStringKey(label), systemImage: symbol).font(.caption).foregroundStyle(Theme.sub).lineLimit(1)
+            FigureText(value, big: .system(.title3, design: .default, weight: .bold), small: .system(.caption, design: .default, weight: .bold))
+                .foregroundStyle(Theme.text).lineLimit(1).minimumScaleFactor(0.6)
+            HStack(spacing: 4) {
+                Image(systemName: symbol).font(.caption2.weight(.bold))
+                Text(LocalizedStringKey(label)).font(.footnote)
+            }
+            .foregroundStyle(Theme.sub).lineLimit(1).minimumScaleFactor(0.7)
         }
         .accessibilityElement(children: .combine)
     }

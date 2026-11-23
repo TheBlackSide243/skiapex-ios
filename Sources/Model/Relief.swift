@@ -40,7 +40,52 @@ enum Relief {
 
     private static func mix(_ a: Float, _ b: Float, _ t: Float) -> Float { a + (b - a) * min(1, max(0, t)) }
 
-    /// The colors of a square, four bytes a point (red, green, blue, 255).
+    /// The same heights on twice as many points a side, each between its neighbors: the lines
+    /// every fifty meters come out thin on the screens of today.
+    static func doubled(_ heights: Heights) -> Heights {
+        let side = heights.side, wide = side * 2, h = heights.values
+        var values = [Float](repeating: 0, count: wide * wide)
+        for j in 0..<wide {
+            let y = min(Float(side - 1), max(0, (Float(j) + 0.5) / 2 - 0.5))
+            let y0 = Int(y), y1 = min(side - 1, y0 + 1), fy = y - Float(y0)
+            for i in 0..<wide {
+                let x = min(Float(side - 1), max(0, (Float(i) + 0.5) / 2 - 0.5))
+                let x0 = Int(x), x1 = min(side - 1, x0 + 1), fx = x - Float(x0)
+                let top = h[y0 * side + x0] * (1 - fx) + h[y0 * side + x1] * fx
+                let bottom = h[y1 * side + x0] * (1 - fx) + h[y1 * side + x1] * fx
+                values[j * wide + i] = top * (1 - fy) + bottom * fy
+            }
+        }
+        return Heights(values: values, side: wide)
+    }
+
+    /// The mountains from far away, at night: dark blue, lighter where they face the north-west
+    /// and where they are high, the sea darker still.
+    static func night(_ heights: Heights, metersPerPixel: Double) -> [UInt8] {
+        let side = heights.side, h = heights.values, mpp = Float(metersPerPixel)
+        var out = [UInt8](repeating: 255, count: side * side * 4)
+        // The farther away, the more the mountains are raised to be seen.
+        let exaggeration = min(12, max(1.5, mpp / 85))
+        for j in 0..<side {
+            for i in 0..<side {
+                let a = j * side + i
+                let left = i > 0 ? a - 1 : a, right = i < side - 1 ? a + 1 : a
+                let up = j > 0 ? a - side : a, down = j < side - 1 ? a + side : a
+                let gx = (h[right] - h[left]) / (Float(right - left) * mpp) * exaggeration
+                let gy = (h[down] - h[up]) / (Float((down - up) / side) * mpp) * exaggeration
+                let light = (gx * 0.55 + gy * 0.55 + 0.63) / (gx * gx + gy * gy + 1).squareRoot()
+                let t = (light - 0.25) / 0.6, high = max(0, (h[a] - 400) / 3200)
+                var r = mix(20, 54, t) + 14 * high, g = mix(27, 70, t) + 16 * high, b = mix(50, 108, t) + 20 * high
+                if h[a] <= 0.5 { r = 13; g = 18; b = 36 }
+                out[a * 4] = UInt8(min(255, max(0, r)))
+                out[a * 4 + 1] = UInt8(min(255, max(0, g)))
+                out[a * 4 + 2] = UInt8(min(255, max(0, b)))
+            }
+        }
+        return out
+    }
+
+    /// The colors of a square of snow, four bytes a point (red, green, blue, 255).
     static func shade(_ heights: Heights, metersPerPixel: Double) -> [UInt8] {
         let side = heights.side, h = heights.values, mpp = Float(metersPerPixel)
         var out = [UInt8](repeating: 255, count: side * side * 4)
@@ -91,15 +136,23 @@ enum Relief {
         return UIImage(cgImage: image).pngData()
     }
 
-    /// A square of heights as it came from the internet into a square of the winter map.
+    /// From this zoom in the map is snow; farther out, the mountains at night.
+    static let snowFrom = 10
+
+    /// A square of heights as it came from the internet into a square of the map.
     static func tile(from terrarium: Data, z: Int, y: Int) -> Data? {
         guard let heights = heights(png: terrarium) else { return nil }
-        return png(shade(heights, metersPerPixel: metersPerPixel(z: z, y: y, side: heights.side)), side: heights.side)
+        if z < snowFrom {
+            return png(night(heights, metersPerPixel: metersPerPixel(z: z, y: y, side: heights.side)), side: heights.side)
+        }
+        let fine = doubled(heights)
+        return png(shade(fine, metersPerPixel: metersPerPixel(z: z, y: y, side: fine.side)), side: fine.side)
     }
 }
 
-/// The winter map over Apple's: from the zoom of a valley in, each square is asked for as heights
-/// and drawn by `Relief`. Farther out, and where a square does not arrive, Apple's map shows.
+/// The map of the app over Apple's: each square is asked for as heights and drawn by `Relief`,
+/// as snow from the zoom of a valley in and as mountains at night farther out. The names stay
+/// Apple's, and where a square does not arrive Apple's map shows.
 final class ReliefOverlay: MKTileOverlay {
     /// The squares already drawn, kept while the app is open.
     private static let drawn: NSCache<NSString, NSData> = {
@@ -119,7 +172,7 @@ final class ReliefOverlay: MKTileOverlay {
     init() {
         super.init(urlTemplate: nil)
         canReplaceMapContent = false
-        minimumZ = 10
+        minimumZ = 4
         maximumZ = 14
         tileSize = CGSize(width: 256, height: 256)
     }

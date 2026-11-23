@@ -75,6 +75,8 @@ struct SnowMap: UIViewRepresentable {
     var recenter = 0
     /// How much of the bottom the sheet covers, in points.
     var bottomInset: CGFloat = 0
+    /// The blue dot of where you are.
+    var showsUser = true
     /// Told when the map stops: its center and how many degrees of latitude it shows.
     var onMove: ((CLLocationCoordinate2D, Double) -> Void)?
 
@@ -86,7 +88,7 @@ struct SnowMap: UIViewRepresentable {
         style.pointOfInterestFilter = .excludingAll
         map.preferredConfiguration = style
         map.delegate = context.coordinator
-        map.showsUserLocation = true
+        map.showsUserLocation = showsUser
         map.showsCompass = false
         map.isPitchEnabled = false
         map.overrideUserInterfaceStyle = .dark
@@ -116,7 +118,7 @@ struct SnowMap: UIViewRepresentable {
             if pins != pinsKey {
                 pinsKey = pins
                 map.removeAnnotations(map.annotations.filter { $0 is PinAnnotation })
-                map.addAnnotations(view.pins.map { PinAnnotation(coordinate: $0.coordinate, title: $0.name, glyph: "\($0.days)", friend: false) })
+                map.addAnnotations(view.pins.map { PinAnnotation(coordinate: $0.coordinate, title: $0.name, glyph: $0.days > 0 ? "\($0.days)" : "▲", friend: false) })
                 map.addAnnotations(view.friends.map {
                     PinAnnotation(coordinate: $0.coordinate, title: $0.name, glyph: String($0.name.prefix(2)).uppercased(), friend: true)
                 })
@@ -203,7 +205,7 @@ struct SnowMap: UIViewRepresentable {
         func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
             // From the zoom of a valley in the map is snow, and its words are dark.
             let zoom = Self.zoom(span: mapView.region.span.longitudeDelta, width: mapView.bounds.width)
-            let style: UIUserInterfaceStyle = zoom >= 10 ? .light : .dark
+            let style: UIUserInterfaceStyle = zoom >= Double(Relief.snowFrom) - 0.5 ? .light : .dark
             if mapView.overrideUserInterfaceStyle != style { mapView.overrideUserInterfaceStyle = style }
             onMove?(mapView.region.center, mapView.region.span.latitudeDelta)
         }
@@ -213,6 +215,42 @@ struct SnowMap: UIViewRepresentable {
             guard span > 0, width > 0 else { return 0 }
             return log2(360 * Double(width) / 256 / span)
         }
+    }
+}
+
+/// A piece of the winter map inside a screen: the line of a day, or a ski area with its pin,
+/// with the pistes around when they are known or the internet is allowed.
+struct PlaceMap: View {
+    var tracks: [MapTrack] = []
+    /// A place to show with a pin when there is no line.
+    var place: PlacePin?
+    @State private var terrain: Terrain?
+
+    var body: some View {
+        let region = Self.region(tracks: tracks, place: place)
+        SnowMap(pins: place.map { [$0] } ?? [], tracks: tracks, terrain: terrain, region: region,
+                regionKey: "\(tracks.count)|\(place?.id ?? "")", showsUser: false)
+            .clipShape(Theme.round)
+            .task(id: "\(region.center.latitude),\(region.center.longitude)") {
+                let lat = region.center.latitude, lon = region.center.longitude
+                if let kept = Terrains.shared.known(lat: lat, lon: lon) {
+                    terrain = kept
+                } else if UserDefaults.standard.object(forKey: Prefs.online) as? Bool ?? true {
+                    terrain = try? await Terrains.shared.terrain(lat: lat, lon: lon)
+                }
+            }
+    }
+
+    /// All of the line with room around it; a ski area alone, about nine kilometers of it.
+    static func region(tracks: [MapTrack], place: PlacePin?) -> MKCoordinateRegion {
+        let all = tracks.flatMap(\.coordinates)
+        let lats = all.map(\.latitude), lons = all.map(\.longitude)
+        guard let south = lats.min(), let north = lats.max(), let west = lons.min(), let east = lons.max() else {
+            let center = place?.coordinate ?? CLLocationCoordinate2D(latitude: 46.3, longitude: 9.6)
+            return MKCoordinateRegion(center: center, latitudinalMeters: 9000, longitudinalMeters: 9000)
+        }
+        return MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: (south + north) / 2, longitude: (west + east) / 2),
+                                  span: MKCoordinateSpan(latitudeDelta: max(0.012, (north - south) * 1.35), longitudeDelta: max(0.012, (east - west) * 1.35)))
     }
 }
 
