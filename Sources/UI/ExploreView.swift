@@ -283,11 +283,11 @@ struct ExploreView: View {
     private func show(_ loaded: Terrain) {
         terrain = loaded
         graph = RouteGraph(ways: loaded.ways)
-        frame(loaded.ways.flatMap(\.lats), loaded.ways.flatMap(\.lons))
+        bringInView(loaded.ways.flatMap(\.lats), loaded.ways.flatMap(\.lons))
     }
 
     /// Brings some points in view above the panel, which covers the lower part of the map.
-    private func frame(_ lats: [Double], _ lons: [Double]) {
+    private func bringInView(_ lats: [Double], _ lons: [Double]) {
         guard let south = lats.min(), let north = lats.max(), let west = lons.min(), let east = lons.max() else { return }
         // The points take less than half the height, under the buttons at the top.
         let height = max(0.006, north - south) / 0.42
@@ -331,7 +331,7 @@ struct ExploreView: View {
             return
         }
         route = graph.route(fromLat: from.latitude, fromLon: from.longitude, toLat: to.latitude, toLon: to.longitude, level: level)
-        if let route { frame(route.lats, route.lons) }
+        if let route { bringInView(route.lats, route.lons) }
         if route == nil {
             noRoute = true
             // To choose again where to get.
