@@ -113,8 +113,18 @@ struct DaysView: View {
             .sorted { $0.id < $1.id }
     }
 
+    /// All the pins with room around them: never closer than a region, so that one place alone
+    /// still shows where in the Alps it is.
+    private var placesRegion: MapCameraPosition {
+        let lats = pins.map(\.coordinate.latitude), lons = pins.map(\.coordinate.longitude)
+        guard let south = lats.min(), let north = lats.max(), let west = lons.min(), let east = lons.max() else { return .automatic }
+        let center = CLLocationCoordinate2D(latitude: (south + north) / 2, longitude: (west + east) / 2)
+        let span = MKCoordinateSpan(latitudeDelta: max(1.4, (north - south) * 1.7), longitudeDelta: max(2.2, (east - west) * 1.7))
+        return .region(MKCoordinateRegion(center: center, span: span))
+    }
+
     private var places: some View {
-        Map(initialPosition: .automatic, interactionModes: [.pan, .zoom]) {
+        Map(initialPosition: placesRegion, interactionModes: [.pan, .zoom]) {
             ForEach(pins) { pin in
                 Marker(pin.name, monogram: Text("\(pin.days)"), coordinate: pin.coordinate).tint(Theme.accent)
             }
@@ -123,6 +133,8 @@ struct DaysView: View {
         .frame(height: 190)
         .clipShape(Theme.round)
         .overlay(Theme.round.strokeBorder(Theme.line, lineWidth: 1))
+        // Drawn again when a place is added, to make room for it.
+        .id(pins.count)
         .accessibilityLabel(Text("Mappa dei posti dove hai sciato"))
     }
 
@@ -131,7 +143,7 @@ struct DaysView: View {
         return Button { numbers = true } label: {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 0) {
-                    lifetimeFigure("\(Set(library.days.map { Calendar.current.startOfDay(for: $0.start) }).count)", "giorni registrati", "calendar")
+                    lifetimeFigure("\(Set(library.days.map { Calendar.current.startOfDay(for: $0.start) }).count)", "giorni", "calendar")
                     lifetimeFigure(Fmt.height(s.reduce(0) { $0 + $1.vertical }), "dislivello", "arrow.down")
                     lifetimeFigure("\(pins.count)", "posti", "mappin.and.ellipse")
                 }

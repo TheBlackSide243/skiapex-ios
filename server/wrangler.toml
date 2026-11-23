@@ -5,6 +5,8 @@ main = "src/index.js"
 compatibility_date = "2025-09-01"
 workers_dev = true
 preview_urls = false
+# The address the app uses; the zone tbsgaming.win is on the same Cloudflare account.
+routes = [{ pattern = "skiapex.tbsgaming.win", custom_domain = true }]
 
 [[durable_objects.bindings]]
 name = "ACCOUNTS"

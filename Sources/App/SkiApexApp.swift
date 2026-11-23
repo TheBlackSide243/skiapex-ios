@@ -91,7 +91,8 @@ enum Demo {
         for (i, place) in places.enumerated() {
             let morning = Calendar.current.date(bySettingHour: 9, minute: 5, second: 0, of: Date()) ?? Date()
             let start = Calendar.current.date(byAdding: .day, value: -(i * 9 + 2), to: morning) ?? morning
-            let points = SkiSim.day(laps: 7 + i * 2, start: start, seed: UInt64(11 + i))
+            let spot = resorts.first { $0.name == place } ?? resorts[0]
+            let points = SkiSim.day(laps: 7 + i * 2, start: start, seed: UInt64(11 + i), lat0: spot.lat, lon0: spot.lon)
             var day = SkiDay(points: points, place: place, sport: i == 1 ? .snowboard : .ski)
             name(&day)
             day.weather = DayWeather(tempMin: -8 + Double(i), tempMax: -2 + Double(i), snowfall: i == 0 ? 12 : 0,
