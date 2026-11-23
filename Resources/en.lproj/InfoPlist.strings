@@ -1,3 +1,6 @@
 "NSLocationWhenInUseUsageDescription" = "To record your runs, lifts and speed while you ski. Your location stays on your iPhone.";
 "NSLocationAlwaysAndWhenInUseUsageDescription" = "To keep recording the day with the iPhone in your pocket and the screen off. Your location stays on your iPhone.";
 "NSMotionUsageDescription" = "To measure the vertical with the iPhone's barometer, much more precise than GPS.";
+"NSPhotoLibraryUsageDescription" = "To show you, inside a day, the pictures you took on the snow. They stay in your library.";
+"NSHealthUpdateUsageDescription" = "To save your ski days in Health as workouts, with their route.";
+"NSHealthShareUsageDescription" = "To show you the heart rate of your ski days.";

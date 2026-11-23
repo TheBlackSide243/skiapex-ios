@@ -165,6 +165,11 @@ struct SkiDay: Codable, Identifiable {
     var weather: DayWeather?
     /// The pistes and lifts of OpenStreetMap were looked up (whether or not any was found).
     var mapped: Bool?
+    /// Saved in Apple Health as a workout.
+    var inHealth: Bool?
+    /// Beats a minute during the day, from Apple Health: the average and the highest.
+    var heartAvg: Double?
+    var heartMax: Double?
 
     /// A day made of the points recorded: cleaned up, then cut into runs and lifts.
     init(id: UUID = UUID(), points raw: [TrackPoint], place: String? = nil, sport: Sport? = nil) {

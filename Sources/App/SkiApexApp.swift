@@ -18,13 +18,10 @@ struct SkiApexApp: App {
 
     init() {
         Theme.dressBars()
-        if Demo.isOn {
-            _library = State(initialValue: Demo.library())
-            _recorder = State(initialValue: Demo.recorder())
-        } else {
-            _library = State(initialValue: Library())
-            _recorder = State(initialValue: Recorder())
-        }
+        _library = State(initialValue: Shared.library)
+        _recorder = State(initialValue: Shared.recorder)
+        // A day on the lock screen left from a recording that is no more.
+        if Shared.recorder.state == .idle { LiveStatus.end() }
     }
 
     var body: some Scene {
@@ -50,6 +47,8 @@ enum Prefs {
     static let sport = "sport"
     /// Ask OpenStreetMap and Open-Meteo for the names of the pistes and the weather. On unless set off.
     static let online = "online"
+    /// Save every day in Apple Health as it ends. Off unless set on.
+    static let healthAuto = "healthAuto"
 }
 
 /// Launched with `-demo`: made-up days and a day under way, for the screenshots. `-screen <name>`

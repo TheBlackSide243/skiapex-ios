@@ -94,7 +94,7 @@ struct ReplayView: View {
                     if now >= total - 1 { now = 0 }
                     playing.toggle()
                 } label: {
-                    Label(playing ? "Pausa" : "Riproduci", systemImage: playing ? "pause.fill" : "play.fill")
+                    Label(LocalizedStringKey(playing ? "Pausa" : "Riproduci"), systemImage: playing ? "pause.fill" : "play.fill")
                 }
                 .buttonStyle(PrimaryButtonStyle())
                 Menu {

@@ -7,4 +7,9 @@ Ski Apex 0.2.0
 - Immagine da condividere con traccia e numeri.
 - Importazione di file GPX da altre app.
 - Sci, snowboard, telemark o slittino per ogni giornata.
+- Giornata in corso sulla schermata di blocco e nella Dynamic Island.
+- Comandi di Siri: inizia, metti in pausa e finisci la giornata.
+- Foto della giornata dalla tua libreria.
+- Apple Salute: giornata come allenamento con percorso, e battito dall Apple Watch.
+- Copia di sicurezza di tutte le giornate in un file zip.
 Da provare: una giornata vera sulla neve. Dimmi se i nomi delle piste sono giusti.

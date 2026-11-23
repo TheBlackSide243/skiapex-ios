@@ -7,4 +7,9 @@ Ski Apex 0.2.0
 - Picture to share with the track and the numbers.
 - Import GPX files from other apps.
 - Ski, snowboard, telemark or sled for each day.
+- The day under way on the lock screen and in the Dynamic Island.
+- Siri commands: start, pause and finish the day.
+- Photos of the day from your library.
+- Apple Health: the day as a workout with its route, and heart rate from Apple Watch.
+- Backup of all your days in one zip file.
 To test: a real day on the snow. Tell me whether the piste names are right.

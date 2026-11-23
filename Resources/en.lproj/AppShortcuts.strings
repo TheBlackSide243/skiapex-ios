@@ -1,0 +1,6 @@
+/* Phrases of the ready-made shortcuts (Siri, Shortcuts, Spotlight). Keys are the Italian phrases. */
+"Inizia la giornata con ${applicationName}" = "Start the day with ${applicationName}";
+"Avvia la registrazione con ${applicationName}" = "Start recording with ${applicationName}";
+"Metti in pausa ${applicationName}" = "Pause ${applicationName}";
+"Finisci la giornata con ${applicationName}" = "Finish the day with ${applicationName}";
+"Salva la giornata con ${applicationName}" = "Save the day with ${applicationName}";

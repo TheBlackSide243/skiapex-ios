@@ -111,6 +111,7 @@ import Observation
         manager.showsBackgroundLocationIndicator = true
         manager.startUpdatingLocation()
         startBarometer()
+        refresh()
     }
 
     func pause() {
@@ -134,6 +135,7 @@ import Observation
     func hold() {
         guard state == .idle, !points.isEmpty else { return }
         state = .paused
+        refresh()
     }
 
     /// Clears what was recorded, from the screen and from the disk.
@@ -148,6 +150,7 @@ import Observation
         tracks = []
         recovered = false
         journal?.finish()
+        if journal != nil { LiveStatus.end() }
     }
 
     /// From the scene: on screen or not.
@@ -163,6 +166,8 @@ import Observation
         let clean = Segmenter.clean(points)
         analysis = Segmenter.analyze(clean)
         tracks = MapTrack.build(points: clean, segments: analysis.segments)
+        // The lock screen and the Dynamic Island, for a real recording only.
+        if journal != nil { LiveStatus.update(state: state, analysis: analysis, start: startDate) }
     }
 
     // MARK: Sensors
@@ -216,7 +221,8 @@ import Observation
         pointCount = points.count
         lastPoint = point
         journal?.append(point)
-        if appIsActive && Date().timeIntervalSince(lastRefresh) >= 8 { refresh() }
+        // On screen the numbers follow closely; in a pocket, often enough for the lock screen.
+        if Date().timeIntervalSince(lastRefresh) >= (appIsActive ? 8 : 30) { refresh() }
     }
 
     // MARK: CLLocationManagerDelegate

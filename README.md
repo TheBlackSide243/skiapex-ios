@@ -17,6 +17,11 @@ Premi **Inizia** ai piedi della pista, metti l'iPhone in tasca e scia. Ski Apex 
 - **Velocità sulla mappa**: ogni discesa disegnata dal blu (lento) al rosso (veloce).
 - **Statistiche**: totali, medie al giorno, record e grafici per stagione.
 - **Immagine da condividere** con traccia e numeri; importazione ed esportazione **GPX**.
+- **Schermata di blocco e Dynamic Island**: la giornata in corso sempre sott'occhio (Live Activity).
+- **Siri e Comandi Rapidi**: inizia, metti in pausa e finisci la giornata a voce.
+- **Foto della giornata** dalla tua libreria, trovate dall'orario.
+- **Apple Salute**: la giornata come allenamento con il percorso, e il battito se porti un Apple Watch (nella versione TestFlight).
+- **Copia di sicurezza** di tutte le giornate in un file zip, e ripristino.
 - Sci, snowboard, telemark o slittino; unità metriche o imperiali; italiano e inglese.
 - Se l'app viene chiusa a metà giornata, la registrazione si ritrova al prossimo avvio.
 - Le giornate restano sull'iPhone (visibili anche nell'app File). Nessun account, nessun server: per i nomi delle piste e il meteo viene chiesta solo la zona a OpenStreetMap e Open-Meteo, e si può spegnere.
@@ -53,6 +58,11 @@ Tap **Start** at the bottom of the slope, put your iPhone in your pocket and ski
 - **Speed on the map**: every run drawn from blue (slow) to red (fast).
 - **Stats**: totals, averages per day, records and charts by season.
 - **Picture to share** with the track and the numbers; **GPX** import and export.
+- **Lock screen and Dynamic Island**: the day under way always in sight (Live Activity).
+- **Siri and Shortcuts**: start, pause and finish the day by voice.
+- **Photos of the day** from your library, found by their time.
+- **Apple Health**: the day as a workout with its route, and the heart rate if you wear an Apple Watch (in the TestFlight build).
+- **Backup** of all your days in one zip file, and restore.
 - Ski, snowboard, telemark or sled; metric or imperial units; Italian and English.
 - If the app is closed during the day, the recording comes back at the next launch.
 - Your days stay on the iPhone (also visible in the Files app). No account, no server: for piste names and weather only the area is asked to OpenStreetMap and Open-Meteo, and it can be turned off.

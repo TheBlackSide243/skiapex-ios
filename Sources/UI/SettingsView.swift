@@ -1,5 +1,6 @@
 import CoreLocation
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @Environment(Recorder.self) private var recorder
@@ -8,7 +9,12 @@ struct SettingsView: View {
     @AppStorage(Prefs.mapLook) private var mapLook = MapLook.standard.rawValue
     @AppStorage(Prefs.sport) private var sport = Sport.ski.rawValue
     @AppStorage(Prefs.online) private var online = true
+    @AppStorage(Prefs.healthAuto) private var healthAuto = false
     @State private var made = false
+    @State private var backup: URL?
+    @State private var restoring = false
+    @State private var backupNote: String?
+    @State private var error: String?
 
     private var version: String {
         let v = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
@@ -49,6 +55,42 @@ struct SettingsView: View {
                         Text("Quando apri una giornata, Ski Apex chiede a OpenStreetMap i nomi delle piste e degli impianti della zona e a Open-Meteo il meteo di quel giorno. Viene inviata solo la zona della giornata, senza account e senza il tuo nome. Spento, non esce niente dall'iPhone.")
                             .prose().font(.caption).foregroundStyle(Theme.sub)
                             .fixedSize(horizontal: false, vertical: true)
+                    }
+                    if HealthSync.available {
+                        Panel("Salute") {
+                            Toggle(isOn: $healthAuto) {
+                                Text("Salva le giornate in Salute").font(.subheadline).foregroundStyle(Theme.text)
+                            }
+                            .tint(Theme.accent)
+                            Text("Ogni giornata finita viene salvata in Salute come allenamento di sci o snowboard, con il percorso, e se portavi un Apple Watch ne leggo il battito. Puoi farlo anche a mano dal menu di una giornata. Con l'app installata da Feather può non essere disponibile.")
+                                .prose().font(.caption).foregroundStyle(Theme.sub)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    Panel("Copia di sicurezza") {
+                        ErrorBanner(error: $error)
+                        Text("Tutte le giornate in un file zip, da tenere su iCloud Drive o da portare su un altro iPhone. Ripristinando, le giornate che ci sono già non vengono toccate.")
+                            .prose().font(.caption).foregroundStyle(Theme.sub)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Button {
+                            do {
+                                backup = try library.exportBackup()
+                                backupNote = nil
+                            } catch {
+                                self.error = error.localizedDescription
+                            }
+                        } label: { Label("Prepara la copia", systemImage: "archivebox") }
+                            .buttonStyle(SecondaryButtonStyle())
+                            .disabled(library.days.isEmpty)
+                        if let backup {
+                            ShareLink(item: backup) { Label("Salva o invia la copia", systemImage: "square.and.arrow.up") }
+                                .buttonStyle(PrimaryButtonStyle())
+                        }
+                        Button { restoring = true } label: { Label("Ripristina da una copia", systemImage: "arrow.down.doc") }
+                            .buttonStyle(SecondaryButtonStyle())
+                        if let backupNote {
+                            Text(backupNote).font(.caption).foregroundStyle(Theme.good)
+                        }
                     }
                     Panel("Sensori") {
                         InfoRow("Posizione", permission)
@@ -98,6 +140,14 @@ struct SettingsView: View {
             }
             .screen()
             .navigationTitle("Impostazioni")
+            .fileImporter(isPresented: $restoring, allowedContentTypes: [.zip]) { result in
+                do {
+                    let added = try library.restore(from: try result.get())
+                    backupNote = String(localized: "Giornate aggiunte: \(added).")
+                } catch {
+                    self.error = error.localizedDescription
+                }
+            }
         }
     }
 

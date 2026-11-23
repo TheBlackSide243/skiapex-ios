@@ -109,6 +109,40 @@ import Observation
         try? save(day)
     }
 
+    /// Every day in one zip file, in the temporary folder: to keep somewhere else, or to move
+    /// to another iPhone.
+    func exportBackup() throws -> URL {
+        let name = DateFormatter()
+        name.dateFormat = "yyyy-MM-dd"
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("Ski Apex \(name.string(from: Date())).zip")
+        try? FileManager.default.removeItem(at: url)
+        let zip = try ZipWriter(url: url)
+        for day in days {
+            try zip.add("\(day.id.uuidString).json", file: file(day.id))
+        }
+        try zip.finish()
+        return url
+    }
+
+    /// The days of a copy that are not here yet are added; none is replaced. Returns how many.
+    func restore(from url: URL) throws -> Int {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        let zip = try ZipReader(url: url)
+        let decoder = JSONDecoder()
+        var added = 0
+        for entry in zip.entries where entry.name.hasSuffix(".json") && !entry.name.contains("/") {
+            guard let day = try? decoder.decode(SkiDay.self, from: zip.data(entry)) else { continue }
+            let here = days.contains {
+                $0.id == day.id || (abs($0.start.timeIntervalSince(day.start)) < 2 && abs($0.end.timeIntervalSince(day.end)) < 2)
+            }
+            if here { continue }
+            try save(day)
+            added += 1
+        }
+        return added
+    }
+
     private func writeIndex() {
         if let data = try? JSONEncoder().encode(days) { try? data.write(to: index, options: .atomic) }
     }

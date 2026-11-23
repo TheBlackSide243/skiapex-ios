@@ -115,10 +115,37 @@ final class FeatureTests: XCTestCase {
         }
     }
 
+    func testBackupBringsTheDaysBack() throws {
+        let here = Library(directory: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString))
+        let first = SkiDay(points: SkiSim.day(laps: 2, seed: 31), place: "Uno")
+        let start = Date(timeIntervalSinceNow: -30 * 86_400)
+        try here.save(first)
+        try here.save(SkiDay(points: SkiSim.day(laps: 1, start: start, seed: 32), place: "Due"))
+        let zip = try here.exportBackup()
+
+        let there = Library(directory: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString))
+        XCTAssertEqual(try there.restore(from: zip), 2)
+        XCTAssertEqual(try there.restore(from: zip), 0, "the days already there are left alone")
+        XCTAssertEqual(there.days.count, 2)
+        XCTAssertEqual(there.day(first.id)?.stats.runs, 2)
+        XCTAssertEqual(there.day(first.id)?.points.count, first.points.count)
+        XCTAssertThrowsError(try there.restore(from: GPX.file(first)), "a GPX is not a backup")
+    }
+
+    func testLiveActivityWordsFollowTheUnits() {
+        var state = SkiActivityAttributes.ContentState(phase: "run", runs: 3, vertical: 1000, maxSpeed: 20, metric: true)
+        XCTAssertEqual(state.verticalText, "1000 m")
+        XCTAssertEqual(state.maxSpeedText, "72 km/h")
+        XCTAssertEqual(state.symbol, "figure.skiing.downhill")
+        state.metric = false
+        XCTAssertEqual(state.verticalText, "3281 ft")
+        XCTAssertEqual(state.maxSpeedText, "45 mph")
+    }
+
     func testDaysSavedByTheFirstVersionStillOpen() throws {
         let day = SkiDay(points: SkiSim.day(laps: 1, seed: 17), place: "Vecchia")
         var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(day)) as? [String: Any])
-        for key in ["sport", "resort", "weather", "mapped"] { json[key] = nil }
+        for key in ["sport", "resort", "weather", "mapped", "inHealth", "heartAvg", "heartMax"] { json[key] = nil }
         json["segments"] = (json["segments"] as? [[String: Any]])?.map { segment in
             segment.filter { $0.key != "name" && $0.key != "difficulty" }
         }

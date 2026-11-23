@@ -170,3 +170,42 @@
 "Nomi delle piste e meteo" = "Piste names and weather";
 "Quando apri una giornata, Ski Apex chiede a OpenStreetMap i nomi delle piste e degli impianti della zona e a Open-Meteo il meteo di quel giorno. Viene inviata solo la zona della giornata, senza account e senza il tuo nome. Spento, non esce niente dall'iPhone." = "When you open a day, Ski Apex asks OpenStreetMap for the names of the pistes and lifts of the area and Open-Meteo for the weather of that day. Only the area of the day is sent, with no account and without your name. When off, nothing leaves the iPhone.";
 "Nomi di piste e impianti: © i contributori di OpenStreetMap (ODbL). Meteo: Open-Meteo.com." = "Piste and lift names: © OpenStreetMap contributors (ODbL). Weather: Open-Meteo.com.";
+
+/* Siri, photos, Health, backup */
+"Avvia la registrazione della giornata sugli sci, o la riprende se è in pausa." = "Starts recording the ski day, or resumes it if it is paused.";
+"La registrazione è già in corso." = "Recording is already under way.";
+"Registrazione ripresa." = "Recording resumed.";
+"Registrazione avviata. Buone discese!" = "Recording started. Have a great day!";
+"Metti in pausa la giornata" = "Pause the day";
+"Mette in pausa la registrazione in corso." = "Pauses the recording under way.";
+"Non c'è una registrazione in corso." = "There is no recording under way.";
+"Registrazione in pausa." = "Recording paused.";
+"Finisci la giornata" = "Finish the day";
+"Ferma la registrazione e salva la giornata." = "Stops recording and saves the day.";
+"Troppo pochi punti GPS: non c'era niente da salvare." = "Too few GPS points: there was nothing to save.";
+"Giornata salvata: %lld discese, %@ di dislivello." = "Day saved: %lld runs, %@ of vertical.";
+
+"Foto della giornata" = "Photos of the day";
+"Mostra le foto di questa giornata" = "Show the photos of this day";
+"Foto delle %@" = "Photo taken at %@";
+
+"Salute" = "Health";
+"In Salute" = "In Health";
+"Salva in Salute" = "Save to Health";
+"Aggiorna il battito da Salute" = "Update heart rate from Health";
+"Battito medio" = "Average heart rate";
+"Battito max" = "Top heart rate";
+"Salva le giornate in Salute" = "Save days to Health";
+"Ogni giornata finita viene salvata in Salute come allenamento di sci o snowboard, con il percorso, e se portavi un Apple Watch ne leggo il battito. Puoi farlo anche a mano dal menu di una giornata. Con l'app installata da Feather può non essere disponibile." = "Every finished day is saved to Health as a skiing or snowboarding workout, with its route, and if you wore an Apple Watch its heart rate is read. You can also do it by hand from the menu of a day. With the app installed from Feather it may not be available.";
+"Salute non è disponibile su questo dispositivo." = "Health is not available on this device.";
+"Non sono riuscito a usare Salute. Con l'app installata da Feather può non essere disponibile: usa la versione di TestFlight. (%@)" = "Couldn't use Health. With the app installed from Feather it may not be available: use the TestFlight version. (%@)";
+
+"Copia di sicurezza" = "Backup";
+"Tutte le giornate in un file zip, da tenere su iCloud Drive o da portare su un altro iPhone. Ripristinando, le giornate che ci sono già non vengono toccate." = "All your days in one zip file, to keep on iCloud Drive or to move to another iPhone. When restoring, the days already here are left as they are.";
+"Prepara la copia" = "Make the backup";
+"Salva o invia la copia" = "Save or send the backup";
+"Ripristina da una copia" = "Restore from a backup";
+"Giornate aggiunte: %lld." = "Days added: %lld.";
+"Un file è troppo grande per la copia (più di 4 GB)." = "A file is too large for the backup (more than 4 GB).";
+"Il file non è un archivio zip leggibile." = "The file is not a readable zip archive.";
+"Nell'archivio il file «%@» è rovinato." = "In the archive the file “%@” is damaged.";

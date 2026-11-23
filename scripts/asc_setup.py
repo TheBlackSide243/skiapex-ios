@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Prepares Ski Apex on App Store Connect for TestFlight. Safe to run again: what is there is kept.
 
-1. Registers the bundle ID (the App ID) if it is missing.
+1. Registers the bundle ID (the App ID) if it is missing, and the one of the extension (the Live
+   Activity, BUNDLE.live), and turns Apple Health on for the app.
 2. If the app exists on App Store Connect (it is created by hand there: the API cannot), makes the
    internal group and the external group with a public link, writes the TestFlight description in
    Italian and English, and copies the beta review contact, the feedback address and the internal
@@ -92,15 +93,29 @@ def main():
     bundle, name = os.environ["BUNDLE"], os.environ["NAME"]
     source_bundle = os.environ.get("COPY_FROM") or ""
 
-    # 1. The App ID.
+    # 1. The App IDs: the app's and the extension's (the filter finds both, by their beginning).
     query = urllib.parse.urlencode({"filter[identifier]": bundle, "limit": 200})
-    ids = need(*call("GET", "bundleIds?" + query), "bundle IDs")["data"]
-    if any(b["attributes"]["identifier"] == bundle for b in ids):
-        print(f"App ID {bundle}: already registered")
+    ids = {b["attributes"]["identifier"]: b["id"]
+           for b in need(*call("GET", "bundleIds?" + query), "bundle IDs")["data"]}
+    for identifier, label in ((bundle, name), (bundle + ".live", name + " Live")):
+        if identifier in ids:
+            print(f"App ID {identifier}: already registered")
+        else:
+            made = need(*call("POST", "bundleIds", {"data": {"type": "bundleIds", "attributes": {
+                "identifier": identifier, "name": label, "platform": "IOS"}}}), "register the App ID")
+            ids[identifier] = made["data"]["id"]
+            print(f"App ID {identifier}: registered")
+
+    # Apple Health on the app's App ID: the TestFlight build is signed with its entitlement.
+    capabilities = need(*call("GET", f"bundleIds/{ids[bundle]}/bundleIdCapabilities"), "capabilities")["data"]
+    if any(c["attributes"]["capabilityType"] == "HEALTHKIT" for c in capabilities):
+        print("Apple Health: already on")
     else:
-        need(*call("POST", "bundleIds", {"data": {"type": "bundleIds", "attributes": {
-            "identifier": bundle, "name": name, "platform": "IOS"}}}), "register the App ID")
-        print(f"App ID {bundle}: registered")
+        done = soft(*call("POST", "bundleIdCapabilities", {"data": {
+            "type": "bundleIdCapabilities", "attributes": {"capabilityType": "HEALTHKIT"},
+            "relationships": {"bundleId": {"data": {"type": "bundleIds", "id": ids[bundle]}}}}}), "Apple Health")
+        if done is not None:
+            print("Apple Health: turned on")
 
     # 2. The app.
     app = app_with(bundle)

@@ -1,6 +1,13 @@
 import Charts
 import MapKit
+import Photos
 import SwiftUI
+
+/// A picture of the day, for the list and for the sheet that shows it.
+struct PhotoItem: Identifiable {
+    let asset: PHAsset
+    var id: String { asset.localIdentifier }
+}
 
 /// A day saved: its map, its numbers, the weather, the altitude through the day and everything
 /// that happened in it, run by run.
@@ -20,6 +27,11 @@ struct DayDetailView: View {
     @State private var missing = false
     @State private var replaying = false
     @State private var sharing = false
+    @State private var photos: [PhotoItem] = []
+    @State private var viewing: PhotoItem?
+    @State private var canAskPhotos = DayPhotos.canAsk
+    @State private var error: String?
+    @State private var busy = false
     /// Everything that happened, or the runs alone.
     @State private var everything = Demo.screen == "timeline"
 
@@ -62,6 +74,11 @@ struct DayDetailView: View {
                             }
                         }
                     } label: { Label("Attività", systemImage: "figure.skiing.downhill") }
+                    if HealthSync.available {
+                        Button { Task { await toHealth() } } label: {
+                            Label(LocalizedStringKey(day?.inHealth == true ? "Aggiorna il battito da Salute" : "Salva in Salute"), systemImage: "heart")
+                        }
+                    }
                     Button(role: .destructive) { confirmDelete = true } label: { Label("Elimina", systemImage: "trash") }
                 } label: {
                     Label("Altro", systemImage: "ellipsis")
@@ -95,6 +112,7 @@ struct DayDetailView: View {
         .sheet(isPresented: $sharing) {
             if let day { ShareSheet(day: day) }
         }
+        .fullScreenCover(item: $viewing) { PhotoViewer(asset: $0.asset) }
     }
 
     private func load() {
@@ -108,6 +126,7 @@ struct DayDetailView: View {
         tracks = MapTrack.build(points: loaded.points, segments: loaded.segments)
         profile = ProfilePoint.make(loaded)
         gpx = try? GPX.file(loaded)
+        if !Demo.isOn { photos = DayPhotos.assets(from: loaded.start, to: loaded.end).map { PhotoItem(asset: $0) } }
         guard first else { return }
         switch Demo.screen {
         case "run": if loaded.runs.count > 2 { run = loaded.runs[2] }
@@ -117,8 +136,20 @@ struct DayDetailView: View {
         }
     }
 
+    /// Into Apple Health as a workout, and its heart rate back from there.
+    private func toHealth() async {
+        busy = true
+        defer { busy = false }
+        do {
+            try await HealthSync.save(id)
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
     @ViewBuilder private func content(_ day: SkiDay) -> some View {
         VStack(spacing: 14) {
+            ErrorBanner(error: $error)
             ZStack(alignment: .topTrailing) {
                 Map(initialPosition: .automatic) {
                     TrackMapContent(tracks: tracks)
@@ -151,6 +182,10 @@ struct DayDetailView: View {
                             }
                             Chip(symbol: "wind", text: Fmt.wind(weather.windMax), color: Theme.accent)
                         }
+                        if day.inHealth == true {
+                            Chip(symbol: "heart.fill", text: String(localized: "In Salute"), color: Theme.bad)
+                        }
+                        if busy { ProgressView().controlSize(.small) }
                     }
                 }
             }
@@ -173,6 +208,32 @@ struct DayDetailView: View {
                 StatTile(value: Fmt.height(s.topAlt), label: "Quota max", symbol: "mountain.2")
                 StatTile(value: Fmt.duration(s.runTime), label: "Tempo in pista", symbol: "stopwatch")
                 StatTile(value: Fmt.duration(s.liftTime), label: "Tempo in risalita", symbol: "cablecar")
+                if let average = day.heartAvg, let top = day.heartMax {
+                    StatTile(value: "\(Int(average.rounded())) bpm", label: "Battito medio", symbol: "heart")
+                    StatTile(value: "\(Int(top.rounded())) bpm", label: "Battito max", symbol: "heart.fill")
+                }
+            }
+
+            if !photos.isEmpty {
+                Panel("Foto della giornata") {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(photos) { item in
+                                Button { viewing = item } label: { PhotoThumb(asset: item.asset) }
+                                    .buttonStyle(PressStyle())
+                            }
+                        }
+                    }
+                }
+            } else if canAskPhotos && !Demo.isOn {
+                Button {
+                    Task {
+                        let allowed = await DayPhotos.ask()
+                        canAskPhotos = false
+                        if allowed { photos = DayPhotos.assets(from: day.start, to: day.end).map { PhotoItem(asset: $0) } }
+                    }
+                } label: { Label("Mostra le foto di questa giornata", systemImage: "photo.on.rectangle") }
+                    .buttonStyle(SecondaryButtonStyle())
             }
 
             if profile.count > 2 {

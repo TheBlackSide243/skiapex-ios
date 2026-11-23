@@ -201,22 +201,15 @@ struct LiveView: View {
     private func save() async {
         saving = true
         defer { saving = false }
-        let points = recorder.stop()
-        guard points.count >= 10 else {
-            recorder.forget()
-            error = String(localized: "Troppo pochi punti GPS: non c'è niente da salvare.")
-            return
-        }
-        // The town, the names of the pistes and the weather come when the day is opened.
-        let day = SkiDay(points: points, sport: Sport.current)
         do {
-            try library.save(day)
-            recorder.forget()
-            saved = day.summary
+            if let day = try Session.finish() {
+                saved = day
+            } else {
+                error = String(localized: "Troppo pochi punti GPS: non c'è niente da salvare.")
+            }
         } catch {
-            self.error = String(localized: "Non sono riuscito a salvare la giornata: \(error.localizedDescription)")
             // The points stay: the day can be saved again from the paused recording.
-            recorder.hold()
+            self.error = String(localized: "Non sono riuscito a salvare la giornata: \(error.localizedDescription)")
         }
     }
 }
