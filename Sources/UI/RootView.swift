@@ -1,8 +1,10 @@
 import MapKit
 import SwiftUI
 
-/// Five tabs: the day under way, the diary, the guide to the ski areas, the numbers, the settings.
+/// Five tabs: the day under way, the diary (with the numbers), the guide to the ski areas, the
+/// friends, the settings.
 struct RootView: View {
+    @Environment(Social.self) private var social
     @AppStorage(Prefs.units) private var units = Units.metric.rawValue
     @State private var tab = Demo.tab
 
@@ -17,8 +19,8 @@ struct RootView: View {
             GuideView()
                 .tabItem { Label("Guida", systemImage: "map") }
                 .tag(2)
-            StatsView()
-                .tabItem { Label("Statistiche", systemImage: "chart.bar.xaxis") }
+            FriendsView()
+                .tabItem { Label("Amici", systemImage: "person.2") }
                 .tag(3)
             SettingsView()
                 .tabItem { Label("Impostazioni", systemImage: "gearshape") }
@@ -27,6 +29,10 @@ struct RootView: View {
         // Every number again in the new units.
         .id(units)
         .sensoryFeedback(.selection, trigger: tab)
+        // An invitation opened from its link goes to the friends.
+        .onChange(of: social.pendingCode) { _, code in
+            if code != nil { tab = 3 }
+        }
     }
 }
 

@@ -13,6 +13,7 @@ struct DaysView: View {
     @State private var trip: Trip?
     @State private var newTrip: Trip?
     @State private var error: String?
+    @State private var numbers = ["stats", "heat"].contains(Demo.screen ?? "")
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -38,6 +39,7 @@ struct DaysView: View {
             .screen()
             .navigationTitle("Giornate")
             .navigationDestination(for: UUID.self) { DayDetailView(id: $0) }
+            .navigationDestination(isPresented: $numbers) { StatsView() }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
@@ -126,13 +128,25 @@ struct DaysView: View {
 
     private var lifetime: some View {
         let s = library.days.map(\.stats)
-        return HStack(spacing: 0) {
-            lifetimeFigure("\(Set(library.days.map { Calendar.current.startOfDay(for: $0.start) }).count)", "giorni registrati", "calendar")
-            lifetimeFigure(Fmt.height(s.reduce(0) { $0 + $1.vertical }), "dislivello", "arrow.down")
-            lifetimeFigure("\(pins.count)", "posti", "mappin.and.ellipse")
+        return Button { numbers = true } label: {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 0) {
+                    lifetimeFigure("\(Set(library.days.map { Calendar.current.startOfDay(for: $0.start) }).count)", "giorni registrati", "calendar")
+                    lifetimeFigure(Fmt.height(s.reduce(0) { $0 + $1.vertical }), "dislivello", "arrow.down")
+                    lifetimeFigure("\(pins.count)", "posti", "mappin.and.ellipse")
+                }
+                HStack {
+                    Label("Statistiche, record e mappa di calore", systemImage: "chart.bar.xaxis")
+                        .font(.caption.weight(.semibold)).foregroundStyle(Theme.accent)
+                    Spacer()
+                    Image(systemName: "chevron.right").font(.caption.weight(.bold)).foregroundStyle(Theme.sub)
+                }
+            }
+            .padding(16)
+            .card()
+            .contentShape(Rectangle())
         }
-        .padding(16)
-        .card()
+        .buttonStyle(PressStyle())
     }
 
     private func lifetimeFigure(_ value: String, _ label: String, _ symbol: String) -> some View {

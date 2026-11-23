@@ -17,6 +17,7 @@ Premi **Inizia** ai piedi della pista, metti l'iPhone in tasca e scia. Ski Apex 
 - **Velocità sulla mappa**: ogni discesa disegnata dal blu (lento) al rosso (veloce).
 - **Statistiche**: totali, medie al giorno, record e grafici per stagione.
 - **Immagine da condividere** con traccia e numeri; importazione ed esportazione **GPX**.
+- **Amici**: classifiche della stagione con gli amici che inviti (giorni sulla neve, dislivello, chilometri, discese, velocità).
 - **Guida delle stazioni**: cerca una stazione, guarda quelle vicine e segui le tue, con la neve prevista per 8 giorni.
 - **Diario** con la mappa dei posti dove hai sciato, i **viaggi in programma** e le **giornate scritte a mano**.
 - **Mappa di calore**: tutte le tue discese in un posto, una sull'altra.
@@ -27,7 +28,7 @@ Premi **Inizia** ai piedi della pista, metti l'iPhone in tasca e scia. Ski Apex 
 - **Copia di sicurezza** di tutte le giornate in un file zip, e ripristino.
 - Sci, snowboard, telemark o slittino; unità metriche o imperiali; italiano e inglese.
 - Se l'app viene chiusa a metà giornata, la registrazione si ritrova al prossimo avvio.
-- Le giornate restano sull'iPhone (visibili anche nell'app File). Nessun account, nessun server: per i nomi delle piste e il meteo viene chiesta solo la zona a OpenStreetMap e Open-Meteo, e si può spegnere.
+- Le giornate restano sull'iPhone (visibili anche nell'app File). Per i nomi delle piste e il meteo viene chiesta solo la zona a OpenStreetMap e Open-Meteo, e si può spegnere. L'account serve solo per gli Amici, e lì arrivano solo il nome e i totali della stagione: mai tracce o posti.
 - Niente neve? In Impostazioni si crea una giornata di prova.
 
 <p>
@@ -40,6 +41,7 @@ Premi **Inizia** ai piedi della pista, metti l'iPhone in tasca e scia. Ski Apex 
   <img src="docs/screenshots/iphone-stats.jpg" width="190" alt="Statistiche e record">
   <img src="docs/screenshots/iphone-guide.jpg" width="190" alt="La guida delle stazioni con la neve prevista">
   <img src="docs/screenshots/iphone-heat.jpg" width="190" alt="La mappa di calore">
+  <img src="docs/screenshots/iphone-friends.jpg" width="190" alt="La classifica con gli amici">
   <img src="docs/screenshots/iphone-share.jpg" width="190" alt="L'immagine da condividere">
 </p>
 
@@ -63,6 +65,7 @@ Tap **Start** at the bottom of the slope, put your iPhone in your pocket and ski
 - **Speed on the map**: every run drawn from blue (slow) to red (fast).
 - **Stats**: totals, averages per day, records and charts by season.
 - **Picture to share** with the track and the numbers; **GPX** import and export.
+- **Friends**: season leaderboards with the friends you invite (days on the snow, vertical, distance, runs, speed).
 - **Guide to ski areas**: search one, see the ones nearby and follow yours, with the snow expected for 8 days.
 - **Diary** with the map of the places you skied, your **planned trips** and **days written by hand**.
 - **Heat map**: all your runs in one place, one over the other.
@@ -73,7 +76,7 @@ Tap **Start** at the bottom of the slope, put your iPhone in your pocket and ski
 - **Backup** of all your days in one zip file, and restore.
 - Ski, snowboard, telemark or sled; metric or imperial units; Italian and English.
 - If the app is closed during the day, the recording comes back at the next launch.
-- Your days stay on the iPhone (also visible in the Files app). No account, no server: for piste names and weather only the area is asked to OpenStreetMap and Open-Meteo, and it can be turned off.
+- Your days stay on the iPhone (also visible in the Files app). For piste names and weather only the area is asked to OpenStreetMap and Open-Meteo, and it can be turned off. An account is needed only for Friends, and only your name and the totals of the season go there: never tracks or places.
 - No snow? Make a sample day in Settings.
 
 ### Install
@@ -87,6 +90,6 @@ Requires iOS 17 or later. Speeds, distances and altitudes are estimates from GPS
 
 ### Build
 
-SwiftUI, no dependencies. `xcodegen generate`, then open `SkiApex.xcodeproj`. The `.ipa` is built by GitHub Actions (`.github/workflows/ipa.yml`); the tests run with `unittests.yml`, the pictures above come from `screenshots.yml`.
+SwiftUI, no dependencies. `xcodegen generate`, then open `SkiApex.xcodeproj`. The friends' server (a Cloudflare Worker) is in [`server`](server). The `.ipa` is built by GitHub Actions (`.github/workflows/ipa.yml`); the tests run with `unittests.yml`, the pictures above come from `screenshots.yml`.
 
 © 2026 TheBlackSide243. All rights reserved: see [LICENSE](LICENSE).

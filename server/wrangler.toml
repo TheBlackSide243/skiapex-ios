@@ -1,0 +1,19 @@
+# The Ski Apex server on Cloudflare Workers (see server/README.md): accounts, friends and the
+# leaderboards among friends. Deployed from this folder with `npx wrangler deploy`.
+name = "skiapex"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+workers_dev = true
+preview_urls = false
+
+[[durable_objects.bindings]]
+name = "ACCOUNTS"
+class_name = "Accounts"
+
+# A SQLite-backed object, the kind the Workers free plan has.
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Accounts"]
+
+[observability]
+enabled = true

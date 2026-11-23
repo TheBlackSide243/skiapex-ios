@@ -215,6 +215,25 @@ final class FeatureTests: XCTestCase {
         XCTAssertNil(ManualDayView.number("tanti"))
     }
 
+    func testLeaderboardPlacesAndWhatIsShared() throws {
+        func row(_ name: String, days: Int, vertical: Double, me: Bool = false) -> BoardRow {
+            BoardRow(id: name, name: name, me: me, days: days, vertical: vertical, runs: days * 10, distance: vertical * 4, time: 0, maxSpeed: 15)
+        }
+        let rows = [row("Luca", days: 6, vertical: 9000), row("Marco", days: 9, vertical: 5000, me: true), row("Anna", days: 6, vertical: 12_000)]
+        XCTAssertEqual(BoardMetric.days.ranked(rows).map(\.row.name), ["Marco", "Anna", "Luca"])
+        XCTAssertEqual(BoardMetric.days.ranked(rows).map(\.place), [1, 2, 2], "the same number, the same place")
+        XCTAssertEqual(BoardMetric.vertical.ranked(rows).map(\.row.name), ["Anna", "Luca", "Marco"])
+        XCTAssertEqual(BoardMetric.maxSpeed.ranked(rows).map(\.place), [1, 1, 1])
+
+        // Of a day only when and its numbers are sent: not where.
+        let day = SkiDay(points: SkiSim.day(laps: 2, seed: 51), place: "Posto segreto")
+        let sent = Social.shared(day.summary)
+        XCTAssertEqual(Set(sent.keys), ["date", "vertical", "runs", "distance", "time", "maxSpeed"])
+        XCTAssertEqual(sent["runs"] as? Int, 2)
+        XCTAssertEqual((sent["date"] as? String)?.count, 10)
+        XCTAssertFalse(String(data: try JSONSerialization.data(withJSONObject: sent), encoding: .utf8)?.contains("segreto") ?? true)
+    }
+
     func testDaysSavedByTheFirstVersionStillOpen() throws {
         let day = SkiDay(points: SkiSim.day(laps: 1, seed: 17), place: "Vecchia")
         var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(day)) as? [String: Any])

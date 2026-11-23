@@ -2,7 +2,7 @@ import Charts
 import SwiftUI
 
 /// The numbers of a season, or of all of them: totals, averages, the records with the day they
-/// were set on, and each day side by side.
+/// were set on, and each day side by side. Opened from the diary, inside its navigation.
 struct StatsView: View {
     @Environment(Library.self) private var library
     /// nil: every season together.
@@ -11,7 +11,7 @@ struct StatsView: View {
     @State private var heat = Demo.screen == "heat"
 
     var body: some View {
-        NavigationStack {
+        Group {
             ScrollView {
                 VStack(spacing: 14) {
                     if library.days.isEmpty {
@@ -29,7 +29,7 @@ struct StatsView: View {
             }
             .screen()
             .navigationTitle("Statistiche")
-            .navigationDestination(for: UUID.self) { DayDetailView(id: $0) }
+            .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(isPresented: $heat) { HeatmapView() }
         }
     }

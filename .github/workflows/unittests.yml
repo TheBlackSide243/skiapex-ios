@@ -28,6 +28,10 @@ jobs:
       - name: Xcode project
         run: xcodegen generate
 
+      - name: Server tests
+        working-directory: server
+        run: node --version && npm test
+
       - name: Unit tests
         run: |
           set -o pipefail

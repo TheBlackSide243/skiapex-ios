@@ -15,4 +15,5 @@ Ski Apex 0.2.0
 - Guide to ski areas with the snow expected for 8 days.
 - Diary with the map of your places, planned trips and days written by hand.
 - Heat map of your runs.
+- Friends: season leaderboards with the friends you invite.
 To test: a real day on the snow. Tell me whether the piste names are right.

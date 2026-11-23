@@ -15,4 +15,5 @@ Ski Apex 0.2.0
 - Guida delle stazioni con la neve prevista per 8 giorni.
 - Diario con mappa dei posti, viaggi in programma e giornate scritte a mano.
 - Mappa di calore delle tue discese.
+- Amici: classifiche della stagione con gli amici che inviti.
 Da provare: una giornata vera sulla neve. Dimmi se i nomi delle piste sono giusti.

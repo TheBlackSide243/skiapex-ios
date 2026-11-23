@@ -30,6 +30,13 @@ struct SkiApexApp: App {
                 .environment(library)
                 .environment(recorder)
                 .environment(Shared.guide)
+                .environment(Shared.social)
+                .onOpenURL { url in
+                    // skiapex://friend/<code>: an invitation, from the page of its link.
+                    if url.scheme == "skiapex", url.host == "friend", let code = url.pathComponents.last, code.count == 8 {
+                        Shared.social.pendingCode = code.uppercased()
+                    }
+                }
                 .onChange(of: phase) { _, now in
                     recorder.setActive(now == .active)
                 }
@@ -53,8 +60,8 @@ enum Prefs {
 }
 
 /// Launched with `-demo`: made-up days and a day under way, for the screenshots. `-screen <name>`
-/// opens one screen: ready, live, days, day, timeline, run, replay, share, manual, guide, stats,
-/// heat, settings, empty.
+/// opens one screen: ready, live, days, day, timeline, run, replay, share, manual, stats, heat,
+/// guide, friends, settings, empty.
 enum Demo {
     static let isOn = ProcessInfo.processInfo.arguments.contains("-demo")
 
@@ -67,9 +74,9 @@ enum Demo {
     /// The tab the screen asked for is in.
     static var tab: Int {
         switch screen {
-        case "days", "day", "timeline", "run", "replay", "share", "manual", "empty": 1
+        case "days", "day", "timeline", "run", "replay", "share", "manual", "stats", "heat", "empty": 1
         case "guide": 2
-        case "stats", "heat": 3
+        case "friends": 3
         case "settings": 4
         default: 0
         }

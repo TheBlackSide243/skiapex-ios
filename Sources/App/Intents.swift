@@ -6,6 +6,7 @@ enum Shared {
     static let library: Library = Demo.isOn ? Demo.library() : Library()
     static let recorder: Recorder = Demo.isOn ? Demo.recorder() : Recorder()
     static let guide = Guide(demo: Demo.isOn ? Demo.resorts : [])
+    static let social = Social(demo: Demo.isOn)
 }
 
 /// The end of a day, from the Fine button or from a Siri command.
@@ -28,6 +29,8 @@ enum Session {
             throw error
         }
         recorder.forget()
+        // The friends' leaderboard hears about the new day.
+        Task { await Shared.social.refresh(season: Season(day.start), days: Shared.library.days) }
         if UserDefaults.standard.bool(forKey: Prefs.healthAuto) {
             Task { _ = try? await HealthSync.save(day.id) }
         }

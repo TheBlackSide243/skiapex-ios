@@ -141,7 +141,7 @@ struct ReplayView: View {
         // The pictures of the README: stopped in the middle of the third run.
         if Demo.screen == "replay", day.runs.count > 2 {
             let run = day.runs[2]
-            now = run.startTime.timeIntervalSince(day.start) + run.duration * 0.45
+            now = run.startTime.timeIntervalSince(day.start) + run.duration * 0.3
         } else if let first = day.segments.first(where: { $0.kind != .idle }) {
             // Not the minutes spent putting the boots on.
             now = max(0, first.startTime.timeIntervalSince(day.start) - 5)
