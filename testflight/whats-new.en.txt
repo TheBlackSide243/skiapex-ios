@@ -1,5 +1,7 @@
-Ski Apex 0.3.0
-- Friends live: while you record a day you see on the map the friends who are skiing, and they see you.
-- Turn it on from the Friends tab, with the switch "Let friends see you while you record". When off, your location does not leave the iPhone.
-- A notice when a friend is within 300 meters of you, or skiing in your area.
-To test: two of you, on the snow or just walking, with the recording started on both phones.
+Ski Apex 0.4.0
+- Piste map: the pistes, lifts and huts of a ski area, and the way from one point to another (from the Guide).
+- Apple Watch: the numbers of the day on your wrist and the buttons to start, pause and finish.
+- Widgets: the snow to come at a place of your choice, and a button to record.
+- Looks and icons: six looks for the app and the icon in the same colors (Settings, Look).
+- Friends live on the map while you record, with a notice when one is close; over Bluetooth even with no signal (Friends tab).
+To test: the Watch app with a recording started; friends live with two people, the recording started on both phones.

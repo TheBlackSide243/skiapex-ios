@@ -1,5 +1,7 @@
-Ski Apex 0.3.0
-- Amici in diretta: mentre registri una giornata vedi sulla mappa gli amici che stanno sciando, e loro vedono te.
-- Si accende dalla scheda Amici, con l'interruttore "Fatti vedere dagli amici mentre registri". Spento, la posizione non esce dall'iPhone.
-- Avviso quando un amico e a meno di 300 metri da te, o scia nella tua zona.
-Da provare: in due, sulla neve o anche solo camminando, con la registrazione avviata su entrambi i telefoni.
+Ski Apex 0.4.0
+- Mappa delle piste: piste, impianti e rifugi di una stazione, e il percorso da un punto all'altro (dalla Guida).
+- Apple Watch: i numeri della giornata al polso e i tasti per iniziare, mettere in pausa e finire.
+- Widget: la neve in arrivo in una localita a scelta, e un tasto per registrare.
+- Temi e icone: sei aspetti per l'app e l'icona negli stessi colori (Impostazioni, Aspetto).
+- Amici in diretta sulla mappa mentre registri, con l'avviso quando uno e vicino; con il Bluetooth anche senza campo (scheda Amici).
+Da provare: l'app sul Watch con una registrazione avviata; gli amici in diretta in due, con la registrazione avviata su entrambi i telefoni.

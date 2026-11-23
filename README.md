@@ -18,12 +18,16 @@ Premi **Inizia** ai piedi della pista, metti l'iPhone in tasca e scia. Ski Apex 
 - **Statistiche**: totali, medie al giorno, record e grafici per stagione.
 - **Immagine da condividere** con traccia e numeri; importazione ed esportazione **GPX**.
 - **Amici**: classifiche della stagione con gli amici che inviti (giorni sulla neve, dislivello, chilometri, discese, velocità).
-- **Amici in diretta**: mentre registri vedi sulla mappa gli amici che stanno sciando, e loro vedono te, se lo accendi. Un avviso ti dice quando uno è a meno di 300 metri o scia nella tua zona.
+- **Amici in diretta**: mentre registri vedi sulla mappa gli amici che stanno sciando, e loro vedono te, se lo accendi. Un avviso ti dice quando uno è a meno di 300 metri o scia nella tua zona; con il Bluetooth, se lo accendi, anche dove non c'è campo.
 - **Guida delle stazioni**: cerca una stazione, guarda quelle vicine e segui le tue, con la neve prevista per 8 giorni.
+- **Mappa delle piste e percorsi**: piste nel colore della difficoltà, impianti e rifugi di una stazione; tocca da dove parti e dove vuoi arrivare e trova la strada, anche solo sulle piste blu o rosse.
 - **Diario** con la mappa dei posti dove hai sciato, i **viaggi in programma** e le **giornate scritte a mano**.
 - **Mappa di calore**: tutte le tue discese in un posto, una sull'altra.
 - **Schermata di blocco e Dynamic Island**: la giornata in corso sempre sott'occhio (Live Activity).
 - **Siri e Comandi Rapidi**: inizia, metti in pausa e finisci la giornata a voce.
+- **Apple Watch**: velocità, discese, dislivello e chilometri al polso, e i tasti per iniziare, mettere in pausa e finire (nella versione TestFlight; la giornata la registra l'iPhone).
+- **Widget**: la neve in arrivo in una località a scelta, e un tasto per registrare, sulla schermata Home e sulla schermata di blocco.
+- **Temi e icone**: sei aspetti per l'app (notte, aurora, alba, bosco, carbone e uno chiaro, neve) e l'icona negli stessi colori.
 - **Foto della giornata** dalla tua libreria, trovate dall'orario.
 - **Apple Salute**: la giornata come allenamento con il percorso, e il battito se porti un Apple Watch (nella versione TestFlight).
 - **Copia di sicurezza** di tutte le giornate in un file zip, e ripristino.
@@ -67,12 +71,16 @@ Tap **Start** at the bottom of the slope, put your iPhone in your pocket and ski
 - **Stats**: totals, averages per day, records and charts by season.
 - **Picture to share** with the track and the numbers; **GPX** import and export.
 - **Friends**: season leaderboards with the friends you invite (days on the snow, vertical, distance, runs, speed).
-- **Friends live**: while you record you see on the map the friends who are skiing, and they see you, if you turn it on. A notice tells you when one is within 300 meters or skiing in your area.
+- **Friends live**: while you record you see on the map the friends who are skiing, and they see you, if you turn it on. A notice tells you when one is within 300 meters or skiing in your area. With Bluetooth, if you turn it on, also where there is no signal.
 - **Guide to ski areas**: search one, see the ones nearby and follow yours, with the snow expected for 8 days.
+- **Piste map and routes**: the pistes in the color of their difficulty, the lifts and the huts of a ski area; touch where you leave from and where you want to get and find the way, on blue or red pistes only if you like.
 - **Diary** with the map of the places you skied, your **planned trips** and **days written by hand**.
 - **Heat map**: all your runs in one place, one over the other.
 - **Lock screen and Dynamic Island**: the day under way always in sight (Live Activity).
 - **Siri and Shortcuts**: start, pause and finish the day by voice.
+- **Apple Watch**: speed, runs, vertical and distance on your wrist, and the buttons to start, pause and finish (in the TestFlight build; the iPhone records the day).
+- **Widgets**: the snow to come at a place of your choice, and a button to record, on the Home Screen and the Lock Screen.
+- **Looks and icons**: six looks for the app (night, aurora, sunrise, forest, carbon and a light one, snow) and the icon in the same colors.
 - **Photos of the day** from your library, found by their time.
 - **Apple Health**: the day as a workout with its route, and the heart rate if you wear an Apple Watch (in the TestFlight build).
 - **Backup** of all your days in one zip file, and restore.
