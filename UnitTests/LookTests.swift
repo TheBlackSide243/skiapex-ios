@@ -107,27 +107,29 @@ final class LookTests: XCTestCase {
         XCTAssertEqual(Rail.reserved(band: 73), 0)
     }
 
-    /// Every drawing of the icon in the colors of every look has a name of its own, and from the
-    /// name the two are found again; the one the app comes with has none.
+    /// Nine icons: each drawing, and the first of them in the other colors. Each has a name of
+    /// its own, from which it is found again, and a small picture; the one the app comes with has
+    /// no name.
     func testTheIconsToChooseFrom() {
         XCTAssertNil(IconArt.close.iconName(.night))
         XCTAssertEqual(IconArt.close.iconName(.aurora), "AppIcon-Aurora")
         XCTAssertEqual(IconArt.classic.iconName(.night), "AppIcon-Classica")
-        XCTAssertEqual(IconArt.snow.iconName(.snow), "AppIcon-SullaNeve-Neve")
+        XCTAssertEqual(IconArt.snow.iconName(.night), "AppIcon-SullaNeve")
         XCTAssertEqual(IconArt.close.preview(.night), "IconPreview-night")
-        XCTAssertEqual(IconArt.mirror.preview(.forest), "IconPreview-mirror-forest")
+        XCTAssertEqual(IconArt.mirror.preview(.night), "IconPreview-mirror-night")
+        XCTAssertEqual(IconArt.label(.close, .night), "Primo piano")
+        XCTAssertEqual(IconArt.label(.close, .forest), "Bosco")
+        XCTAssertEqual(IconArt.label(.snow, .night), "Sulla neve")
         var names = Set<String>()
-        for art in IconArt.allCases {
-            for look in Look.allCases {
-                let name = art.iconName(look)
-                XCTAssertTrue(names.insert(name ?? "").inserted)
-                let back = IconArt.parse(name)
-                XCTAssertEqual(back.art, art)
-                XCTAssertEqual(back.look, look)
-                XCTAssertNotNil(UIImage(named: art.preview(look)), art.preview(look))
-            }
+        for choice in IconArt.choices {
+            let name = choice.art.iconName(choice.look)
+            XCTAssertTrue(names.insert(name ?? "").inserted)
+            let back = IconArt.parse(name)
+            XCTAssertEqual(back.art, choice.art)
+            XCTAssertEqual(back.look, choice.look)
+            XCTAssertNotNil(UIImage(named: choice.art.preview(choice.look)), choice.art.preview(choice.look))
         }
-        XCTAssertEqual(names.count, 24)
+        XCTAssertEqual(names.count, 9)
         XCTAssertEqual(IconArt.parse("AppIcon-Other").art, .close)
     }
 

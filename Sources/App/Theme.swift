@@ -107,8 +107,8 @@ enum Look: String, CaseIterable, Identifiable {
         warn: Color(hex: 0xb7791f), sky: Color(hex: 0xcfe2f4))
 }
 
-/// The drawings of the icon of the app (see scripts/icon_art.py). Each comes in the colors of
-/// every look: the icon on the Home Screen is one drawing in one set of colors.
+/// The drawings of the icon of the app (see scripts/icon_art.py). The first comes in the colors
+/// of every look, the others in those of the first look: nine icons to choose from.
 enum IconArt: String, CaseIterable, Identifiable {
     case close, classic, mirror, snow
 
@@ -145,12 +145,18 @@ enum IconArt: String, CaseIterable, Identifiable {
         self == .close ? "IconPreview-\(look.rawValue)" : "IconPreview-\(rawValue)-\(look.rawValue)"
     }
 
+    /// The icons there are: each drawing, then the first drawing in the other colors.
+    static let choices: [(art: IconArt, look: Look)] = allCases.map { ($0, Look.night) }
+        + Look.allCases.dropFirst().map { (IconArt.close, $0) }
+
+    /// What an icon is called where it is chosen: its drawing, or its colors for the first drawing.
+    static func label(_ art: IconArt, _ look: Look) -> String {
+        art == .close && look != .night ? look.label : art.label
+    }
+
     /// The drawing and the colors of an icon, from its name: the first of each for a name not known.
     static func parse(_ name: String?) -> (art: IconArt, look: Look) {
-        for art in allCases {
-            for look in Look.allCases where art.iconName(look) == name { return (art, look) }
-        }
-        return (.close, .night)
+        choices.first { $0.art.iconName($0.look) == name } ?? (.close, .night)
     }
 
     /// The icon on the Home Screen now, as a small picture.

@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-"""Draws the icons of Ski Apex: the one the app comes with and the ones to choose from in Settings,
-each drawing of scripts/icon_art.py in the colors of each look of the app.
+"""Draws the icons of Ski Apex: the one the app comes with and the ones to choose from in Settings.
+The drawings are those of scripts/icon_art.py: the first of them in the colors of each look of the
+app, the others in the colors of the first look. (Every drawing in every color made the app eight
+times heavier.)
 
 For each icon: the 1024 px picture of its set in the asset catalog (without an alpha channel, as
 the App Store wants it) and a small picture to show it in Settings. The sets are made when they
@@ -71,9 +73,14 @@ def ensure(folder, filename, icon):
         f.write('\n')
 
 
+def looks_of(design):
+    """The looks a drawing comes in: all of them for the first, the first for the others."""
+    return ICONS if design == DESIGNS[0] else ICONS[:1]
+
+
 def alternates():
     """The names of every icon but the first, for ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES."""
-    return [icon_set(design, name) for design in DESIGNS for name, _, _ in ICONS][1:]
+    return [icon_set(design, name) for design in DESIGNS for name, _, _ in looks_of(design)][1:]
 
 
 def recolor(svg, colors):
@@ -91,15 +98,14 @@ def render(svg_file, size, background, out):
     subprocess.run(['rsvg-convert', '-w', str(size), '-h', str(size), '-b', background, svg_file, '-o', out], check=True)
 
 
-def flatten(png):
-    """Without the alpha channel: through JPEG and back (sips, on a Mac)."""
-    if not shutil.which('sips'):
+def flatten(pngs):
+    """Without the alpha channel, as the App Store wants the icons (on a Mac: scripts/flatten.swift)."""
+    if not pngs or not shutil.which('swift') or not shutil.which('sips'):
         return
-    jpg = png + '.jpg'
-    subprocess.run(['sips', '-s', 'format', 'jpeg', '-s', 'formatOptions', '100', png, '--out', jpg],
-                   check=True, stdout=subprocess.DEVNULL)
-    subprocess.run(['sips', '-s', 'format', 'png', jpg, '--out', png], check=True, stdout=subprocess.DEVNULL)
-    os.remove(jpg)
+    subprocess.run(['swift', os.path.join(ROOT, 'scripts', 'flatten.swift')] + pngs, check=True)
+    for png in pngs:
+        told = subprocess.run(['sips', '-g', 'hasAlpha', png], check=True, capture_output=True, text=True).stdout
+        assert 'hasAlpha: no' in told, told
 
 
 def main():
@@ -109,9 +115,10 @@ def main():
     only_svg = sys.argv[2] if len(sys.argv) > 2 and sys.argv[1] == '--svg' else None
     work = only_svg or tempfile.mkdtemp()
     os.makedirs(work, exist_ok=True)
+    made = []
     for design in DESIGNS:
         svg = drawing(design)
-        for name, look, colors in ICONS:
+        for name, look, colors in looks_of(design):
             assert len(colors) == len(BASE), name
             name = icon_set(design, name)
             file = os.path.join(work, name + '.svg')
@@ -123,13 +130,14 @@ def main():
             ensure(folder, 'icon-1024.png', icon=True)
             icon = os.path.join(folder, 'icon-1024.png')
             render(file, 1024, colors[2], icon)
-            flatten(icon)
+            made.append(icon)
             small = os.path.join(ASSETS, preview_set(design, look) + '.imageset')
             ensure(small, 'icon.png', icon=False)
             render(file, 240, colors[2], os.path.join(small, 'icon.png'))
-            if name == 'AppIcon' and os.path.isdir(WATCH_ICON):
-                shutil.copyfile(icon, os.path.join(WATCH_ICON, 'icon-1024.png'))
             print('  ' + name)
+    flatten(made)
+    if made and os.path.isdir(WATCH_ICON):
+        shutil.copyfile(made[0], os.path.join(WATCH_ICON, 'icon-1024.png'))
 
 
 if __name__ == '__main__':

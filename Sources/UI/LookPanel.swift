@@ -25,30 +25,18 @@ struct LookPanel: View {
                 Divider().overlay(Theme.line)
                 let now = IconArt.parse(icon)
                 Text("Icona dell'app").font(.caption.weight(.semibold)).foregroundStyle(Theme.sub)
-                // Which drawing, shown in the colors chosen; then which colors, shown on the drawing chosen.
+                // The four drawings, then the first of them in the other colors.
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
-                        ForEach(IconArt.allCases) { art in
-                            Button { setIcon(art.iconName(now.look)) } label: {
-                                IconChoice(picture: art.preview(now.look), label: art.label, chosen: art == now.art)
+                        ForEach(Array(IconArt.choices.enumerated()), id: \.offset) { _, choice in
+                            let chosen = choice.art == now.art && choice.look == now.look
+                            let label = IconArt.label(choice.art, choice.look)
+                            Button { setIcon(choice.art.iconName(choice.look)) } label: {
+                                IconChoice(picture: choice.art.preview(choice.look), label: label, chosen: chosen)
                             }
                             .buttonStyle(PressStyle())
-                            .accessibilityLabel(Text(LocalizedStringKey(art.label)))
-                            .accessibilityAddTraits(art == now.art ? .isSelected : [])
-                        }
-                    }
-                    .padding(.vertical, 2)
-                }
-                Text("Colore dell'icona").font(.caption.weight(.semibold)).foregroundStyle(Theme.sub)
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(Look.allCases) { look in
-                            Button { setIcon(now.art.iconName(look)) } label: {
-                                IconChoice(picture: now.art.preview(look), label: look.label, chosen: look == now.look)
-                            }
-                            .buttonStyle(PressStyle())
-                            .accessibilityLabel(Text(LocalizedStringKey(look.label)))
-                            .accessibilityAddTraits(look == now.look ? .isSelected : [])
+                            .accessibilityLabel(Text(LocalizedStringKey(label)))
+                            .accessibilityAddTraits(chosen ? .isSelected : [])
                         }
                     }
                     .padding(.vertical, 2)

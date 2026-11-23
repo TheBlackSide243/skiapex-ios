@@ -418,7 +418,7 @@ private struct HelpPage: View {
 /// What came with this version.
 private struct NewsPage: View {
     private static let news: [(symbol: String, title: String, text: String)] = [
-        ("eyeglasses", "Icona nuova", "Una maschera da sci con la vetta nella lente. Quattro disegni, ognuno nei sei colori: si scelgono in Aspetto."),
+        ("eyeglasses", "Icona nuova", "Una maschera da sci con la vetta nella lente. Quattro disegni, e il primo anche negli altri colori: si scelgono in Aspetto."),
         ("map", "La mappa dietro a tutto", "Le schermate stanno su un pannello che tiri su e giù sopra la mappa; a destra la tua foto, Giornate, Guida, Amici e il pulsante per registrare."),
         ("mountain.2.fill", "Mappa invernale", "Neve, ombre e curve di livello disegnate dall'app, con le montagne di notte da lontano. Anche in giornata, discesa, Rivivi ed Esplora."),
         ("figure.snowboarding", "Cosa fai oggi?", "Sci, snowboard, telemark o slittino: lo scegli prima di iniziare a registrare."),

@@ -1,5 +1,5 @@
 Ski Apex 0.6.2
-- Icona nuova: una maschera da sci con la vetta nella lente. In Impostazioni, Aspetto, scegli tra quattro disegni, ognuno nei sei colori.
+- Icona nuova: una maschera da sci con la vetta nella lente. In Impostazioni, Aspetto, scegli tra quattro disegni, e il primo anche negli altri colori.
 - Sugli iPhone con l'ora e la batteria sul bordo destro dello schermo la barra dei pulsanti sta in quella fascia: niente piu' vuoto a destra.
 - In fondo a ogni schermata c'e' spazio per scorrere oltre il pulsante tondo.
 - Sci, snowboard, telemark e slittino si vedono tutti, senza scorrere.
