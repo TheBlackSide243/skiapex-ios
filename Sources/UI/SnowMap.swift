@@ -102,8 +102,8 @@ struct SnowMap: UIViewRepresentable {
     /// Where to look, and a word that changes when the map should go there again.
     var region: MKCoordinateRegion
     var regionKey: String
-    /// When set, the map looks from here at every change: for a day played again.
-    var camera: MKMapCamera?
+    /// When set, the map keeps this point in the middle, from close: for a day played again.
+    var center: CLLocationCoordinate2D?
     /// Counts the taps on "where am I".
     var recenter = 0
     /// How much of the bottom is covered by something else, in points.
@@ -154,6 +154,7 @@ struct SnowMap: UIViewRepresentable {
         private var regionKey: String?
         private var recenter = 0
         private var dot: MovingDot?
+        private var followed: CLLocationCoordinate2D?
         private var onMove: ((CLLocationCoordinate2D, Double) -> Void)?
         private var onTap: ((CLLocationCoordinate2D) -> Void)?
 
@@ -198,7 +199,12 @@ struct SnowMap: UIViewRepresentable {
                 regionKey = view.regionKey
                 map.setRegion(view.region, animated: !first)
             }
-            if let camera = view.camera { map.setCamera(camera, animated: false) }
+            if let center = view.center, center.latitude != followed?.latitude || center.longitude != followed?.longitude {
+                followed = center
+                map.setRegion(MKCoordinateRegion(center: center, latitudinalMeters: 1500, longitudinalMeters: 1500), animated: false)
+            } else if view.center == nil {
+                followed = nil
+            }
             if recenter != view.recenter {
                 recenter = view.recenter
                 map.setUserTrackingMode(.follow, animated: true)
