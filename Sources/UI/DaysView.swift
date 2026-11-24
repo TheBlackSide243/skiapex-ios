@@ -13,7 +13,7 @@ struct DaysView: View {
     @State private var trip: Trip?
     @State private var newTrip: Trip?
     @State private var error: String?
-    @State private var numbers = ["stats", "heat", "recap"].contains(Demo.screen ?? "")
+    @State private var numbers = ["stats", "heat", "recap", "pistes", "piste"].contains(Demo.screen ?? "")
 
     var body: some View {
         NavigationStack(path: $path) {

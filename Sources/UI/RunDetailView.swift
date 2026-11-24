@@ -48,6 +48,8 @@ struct RunDetailView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
+                RunPisteLink(day: day, run: run)
+
                 StatGrid {
                     StatTile(value: Fmt.speed(run.maxSpeed), label: "Velocità max", symbol: "speedometer")
                     StatTile(value: Fmt.speed(run.avgSpeed), label: "Velocità media", symbol: "gauge.with.dots.needle.50percent")

@@ -24,14 +24,16 @@ struct FriendsView: View {
                     ErrorBanner(error: $social.error)
                     if social.signedIn {
                         board
+                        MeetingsPanel()
                         LiveFriendsPanel()
+                        PisteChallengePanel()
                         invite
                         people
                         profileLink
                     } else {
                         SignInPanel()
                     }
-                    Text("Con gli amici condividi il nome, la foto se la metti e i totali della stagione: giorni, discese, dislivello, chilometri, tempo e velocità massima. La posizione la vedono solo se accendi \"Fatti vedere dagli amici\", e solo mentre registri. Le tracce e i posti delle tue giornate restano sul tuo iPhone.")
+                    Text("Con gli amici condividi il nome, la foto se la metti e i totali della stagione: giorni, discese, dislivello, chilometri, tempo e velocità massima. La posizione la vedono solo se accendi \"Fatti vedere dagli amici\", e solo mentre registri. Le piste che hai sciato e i tuoi tempi li vedono solo se accendi la sfida; un punto d'incontro solo quando lo mandi tu. Le tracce delle tue giornate restano sul tuo iPhone.")
                         .prose().font(.caption).foregroundStyle(Theme.sub)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -39,6 +41,7 @@ struct FriendsView: View {
             }
             .screen()
             .navigationTitle("Amici")
+            .navigationDestination(for: UUID.self) { DayDetailView(id: $0) }
             .toolbar {
                 if social.busy {
                     ToolbarItem(placement: .topBarTrailing) { ProgressView() }

@@ -13,7 +13,7 @@ struct GuideView: View {
     @State private var found: [Resort] = []
     @State private var searching = false
     @State private var noResults = false
-    @State private var exploring = Demo.screen == "explore"
+    @State private var exploring = ["explore", "meet"].contains(Demo.screen ?? "")
     @State private var showingResort = Demo.screen == "resort"
 
     var body: some View {
@@ -337,6 +337,7 @@ struct ResortDetailView: View {
                 }
 
                 CommunityPanel(lat: resort.lat, lon: resort.lon)
+                ResortPistes(resort: resort)
 
                 if !mine.isEmpty {
                     Panel("Le tue giornate qui") {

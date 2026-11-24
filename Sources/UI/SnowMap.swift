@@ -494,6 +494,7 @@ struct Backdrop: View {
         GeometryReader { box in
             SnowMap(pins: live ? [] : (shown.map { [$0] } ?? pins),
                     friends: live || tab == 3 ? social.live : [],
+                    marks: live || tab == 3 ? social.meetings.map(\.mark) : [],
                     tracks: live ? recorder.tracks : [],
                     terrain: shown == nil ? terrain : (shownTerrain ?? terrain),
                     region: shown.map { Stage.region(of: $0, terrain: shownTerrain) } ?? region(pins: pins, live: live),

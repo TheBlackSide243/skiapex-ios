@@ -104,8 +104,8 @@ enum Demo {
     /// The tab the screen asked for is in.
     static var tab: Int {
         switch screen {
-        case "days", "day", "timeline", "run", "replay", "share", "manual", "stats", "heat", "recap", "snow", "empty": 1
-        case "guide", "explore", "resort": 2
+        case "days", "day", "timeline", "run", "replay", "share", "manual", "stats", "heat", "recap", "snow", "empty", "pistes", "piste": 1
+        case "guide", "explore", "resort", "meet": 2
         case "friends": 3
         case "settings", "looks", "profile": 4
         default: 0
