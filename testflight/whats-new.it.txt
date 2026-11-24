@@ -1,6 +1,6 @@
-Ski Apex 0.8.1
+Ski Apex 0.8.2
+- Corretto: l'avviso "Non riesco a raggiungere il server degli amici" compariva anche con la rete a posto, quando si cambiava scheda mentre la classifica si aggiornava, e restava nel Profilo.
 - Punto d'incontro: l'invito arriva solo agli amici che quel giorno sciano in quella zona. Rispondono Ci sono o Non vengo, e chi l'ha proposto vede chi ha accettato, chi ha rifiutato e chi non ha ancora risposto. Con un avviso quando un amico propone un posto o risponde al tuo.
-Da provare: mandare un punto d'incontro da Esplora a un amico, rispondere dal suo iPhone e guardare l'elenco delle risposte sul tuo.
 - Le tue piste: per ogni pista quante volte l'hai fatta, il tempo migliore e la velocita' massima. In Giornate, Statistiche, Le tue piste; e nella pagina di una stazione e di una discesa.
 - Sfida sulla pista: accendila in Amici e in ogni pista vedi la classifica dei tempi con gli amici.
 - Punto d'incontro: in Esplora tocca un rifugio, una pista o un impianto e scegli Troviamoci qui. Gli amici lo vedono sulla mappa, con il percorso per arrivarci.
