@@ -39,18 +39,21 @@ import Observation
         } else {
             rebuildIndex()
         }
-        // The index of the first versions had no place for the pins: made again, once.
-        let marker = dir.appendingPathComponent(".indice-2")
-        if !FileManager.default.fileExists(atPath: marker.path) {
-            if days.contains(where: { $0.lat == nil }) { rebuildIndex() }
+        // The index of the versions before had less in it: no place for the pins at first, no
+        // profile of the days before 0.7.0, no runs piste by piste before 0.8.0. Made again, once.
+        var old = false
+        let lacks: [(String, (DaySummary) -> Bool)] = [
+            (".indice-2", { $0.lat == nil }),
+            (".indice-3", { $0.shape == nil && $0.lat != nil }),
+            (".indice-4", { $0.pistes == nil && $0.lat != nil }),
+        ]
+        for (name, lacking) in lacks {
+            let marker = dir.appendingPathComponent(name)
+            if FileManager.default.fileExists(atPath: marker.path) { continue }
+            if days.contains(where: lacking) { old = true }
             FileManager.default.createFile(atPath: marker.path, contents: nil)
         }
-        // The index of the versions before 0.7.0 had no profile of the days: made again, once.
-        let shapes = dir.appendingPathComponent(".indice-3")
-        if !FileManager.default.fileExists(atPath: shapes.path) {
-            if days.contains(where: { $0.shape == nil && $0.lat != nil }) { rebuildIndex() }
-            FileManager.default.createFile(atPath: shapes.path, contents: nil)
-        }
+        if old { rebuildIndex() }
         // Only the library of the app remembers what to ask: the ones made for a test or the demo do not.
         if directory == nil {
             keepsAsking = true

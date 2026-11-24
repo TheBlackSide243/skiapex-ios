@@ -75,6 +75,10 @@ enum Prefs {
     static let bluetooth = "bluetoothNear"
     /// `Look.rawValue`: the colors of the app.
     static let theme = "theme"
+    /// Send the best times on the pistes to the friends, for the challenge. Off unless set on.
+    static let sharePistes = "sharePistes"
+    /// Keep a copy of the days in iCloud. Off unless set on.
+    static let cloud = "cloudCopy"
 }
 
 /// Launched with `-demo`: made-up days and a day under way, for the screenshots. `-screen <name>`

@@ -140,7 +140,7 @@ struct SkiDay: Codable, Identifiable {
     var summary: DaySummary {
         let top = points.max { $0.alt < $1.alt }
         return DaySummary(id: id, start: start, end: end, place: place, stats: stats, sport: sport, resort: resort,
-                          lat: top?.lat, lon: top?.lon, manual: manual, shape: Leg.of(self))
+                          lat: top?.lat, lon: top?.lon, manual: manual, shape: Leg.of(self), pistes: RunNote.of(self))
     }
 }
 
@@ -185,6 +185,9 @@ struct DaySummary: Codable, Identifiable, Hashable {
     /// Its ups and downs, to draw its profile in the list. nil for a day with no track, and for
     /// the days saved before there was one, until the list is made again.
     var shape: [Leg]? = nil
+    /// Its runs on a piste with a name, for the book of the pistes. nil for a day with no track,
+    /// and for the days saved before there was one, until the list is made again.
+    var pistes: [RunNote]? = nil
 
     var season: Season { Season(start) }
     var title: String? { place ?? resort }

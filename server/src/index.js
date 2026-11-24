@@ -8,6 +8,10 @@
 // For who chooses to tell, it also keeps where a day was skied, to the kilometer, with how the snow
 // was and the numbers of the day: the snow of a ski area as the people there found it, the average
 // day there, and which friends have been.
+//
+// For who turns on the challenge on the pistes, it keeps the pistes skied by name, where they are
+// to the kilometer and the best time down each: seen by friends only. A meeting point set for the
+// friends (a place chosen on the map, not where one is) is kept until it is over, a day at most.
 
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const USERNAME = /^[A-Za-z0-9_.-]{3,20}$/;
@@ -33,6 +37,13 @@ const PLACE_RADIUS = 10000;
 const SNOW_DAYS = 5;
 const VISIT_DAYS = 400;
 const MAX_VISITS = 600;
+// The pistes of an account, for the challenge among friends; a piste of the same name within
+// this many meters is the same piste.
+const MAX_PISTES = 300;
+const PISTE_RADIUS = 15000;
+// A meeting point lasts half a day unless told otherwise, and never more than a day.
+const MEETING_TTL = 12 * 3600 * 1000;
+const MAX_MEETING = 24 * 3600 * 1000;
 // Who signs the tokens of "Sign in with Apple" and of Google, and what they call themselves.
 const PROVIDERS = {
   apple: { keys: 'https://appleid.apple.com/auth/keys', issuers: ['https://appleid.apple.com'] },
@@ -109,7 +120,7 @@ export class Accounts {
       this.positions.delete(user.id);
       const seasons = (user.seasons || []).map(year => `season:${user.id}:${year}`);
       await this.forgetVisits(user);
-      const own = ['photo:' + user.id, ...(user.ext ? [user.ext] : [])];
+      const own = ['photo:' + user.id, 'pistes:' + user.id, 'meet:' + user.id, ...(user.ext ? [user.ext] : [])];
       await this.state.storage.delete([...user.tokens.map(t => 'token:' + t), ...seasons, ...own, 'user:' + user.name.toLowerCase(), 'id:' + user.id]);
       return json({ ok: true });
     }
@@ -137,7 +148,23 @@ export class Accounts {
       this.positions.delete(user.id);
       return json({ ok: true });
     }
-    if (path === '/v1/friends/positions' && method === 'GET') return json({ friends: await this.around(user) });
+    if (path === '/v1/friends/positions' && method === 'GET') {
+      return json({ friends: await this.around(user), meetings: await this.meetings(user) });
+    }
+    if (path === '/v1/me/meeting' && method === 'PUT') return this.meet(user, await body(request));
+    if (path === '/v1/me/meeting' && method === 'DELETE') {
+      await this.state.storage.delete('meet:' + user.id);
+      return json({ ok: true, meetings: await this.meetings(user) });
+    }
+    if (path === '/v1/meetings' && method === 'GET') return json({ meetings: await this.meetings(user) });
+    if (path === '/v1/me/pistes' && method === 'PUT') return this.sharePistes(user, await body(request));
+    if (path === '/v1/me/pistes' && method === 'DELETE') {
+      await this.state.storage.delete('pistes:' + user.id);
+      return json({ ok: true });
+    }
+    if (path === '/v1/pistes' && method === 'GET') {
+      return this.pisteBoard(user, url.searchParams.get('name'), Number(url.searchParams.get('lat')), Number(url.searchParams.get('lon')));
+    }
     if (path === '/v1/places/visits' && method === 'PUT') return this.visit(user, await body(request));
     if (path === '/v1/places/visits' && method === 'DELETE') return this.unvisit(user, await body(request));
     if (path === '/v1/places' && method === 'GET') {
@@ -464,6 +491,91 @@ export class Accounts {
     return json({ season: year, rows });
   }
 
+  // The challenge on the pistes
+
+  /// The pistes of an account as the phone has them now: they replace what was there. For each,
+  /// its name, where it is to the kilometer, the best time down the whole of it, the top speed
+  /// and how many times it was skied.
+  async sharePistes(user, b) {
+    if (!Array.isArray(b?.pistes) || b.pistes.length > MAX_PISTES) return json({ error: 'bad pistes' }, 400);
+    const kept = [];
+    for (const p of b.pistes) {
+      if (typeof p?.name !== 'string' || !p.name.trim() || p.name.length > 120) return json({ error: 'bad piste' }, 400);
+      if (typeof p.lat !== 'number' || typeof p.lon !== 'number' || !(Math.abs(p.lat) <= 90) || !(Math.abs(p.lon) <= 180)) {
+        return json({ error: 'bad position' }, 400);
+      }
+      if (typeof p.date !== 'string' || !DATE.test(p.date)) return json({ error: 'bad day' }, 400);
+      kept.push({
+        n: p.name.trim(),
+        la: Math.round(p.lat * 100) / 100,
+        lo: Math.round(p.lon * 100) / 100,
+        b: number(p.best, 5, 7200),
+        v: number(p.speed, 0, 70),
+        r: Math.round(number(p.runs, 1, 5000)),
+        d: p.date,
+      });
+    }
+    await this.state.storage.put('pistes:' + user.id, kept);
+    return json({ ok: true, pistes: kept.length });
+  }
+
+  /// One piste among you and your friends: who skied it, the best time of each, the fastest first.
+  async pisteBoard(user, name, lat, lon) {
+    if (typeof name !== 'string' || !name.trim() || name.length > 120) return json({ error: 'bad piste' }, 400);
+    if (!(Math.abs(lat) <= 90) || !(Math.abs(lon) <= 180)) return json({ error: 'bad position' }, 400);
+    const people = [user];
+    for (const f of user.friends || []) {
+      const other = await this.byID(f.id);
+      if (other) people.push(other);
+    }
+    const rows = [];
+    for (const person of people) {
+      const theirs = ((await this.state.storage.get('pistes:' + person.id)) || [])
+        .filter(p => p.n === name.trim() && meters(lat, lon, p.la, p.lo) <= PISTE_RADIUS)
+        .sort((a, b) => a.b - b.b)[0];
+      if (theirs) rows.push({ ...this.card(person), me: person.id === user.id, best: theirs.b, speed: theirs.v, runs: theirs.r, date: theirs.d });
+    }
+    return json({ rows: rows.sort((a, b) => a.best - b.best) });
+  }
+
+  // Meeting points
+
+  /// A place to meet, for your friends: where, what it is called and, if you say so, at what time.
+  /// One for each account: a new one replaces the one before.
+  async meet(user, b) {
+    if (typeof b?.lat !== 'number' || typeof b?.lon !== 'number' || !(Math.abs(b.lat) <= 90) || !(Math.abs(b.lon) <= 180)) {
+      return json({ error: 'bad position' }, 400);
+    }
+    const now = Date.now();
+    const label = typeof b.label === 'string' ? b.label.trim().slice(0, 80) : '';
+    const when = typeof b.when === 'number' && b.when > now - 3600 * 1000 && b.when < now + MAX_MEETING ? Math.round(b.when) : null;
+    // Over an hour after its time; half a day after it was set when it has none.
+    const until = when ? when + 3600 * 1000 : now + MEETING_TTL;
+    await this.state.storage.put('meet:' + user.id, { lat: b.lat, lon: b.lon, label, when, until, at: now });
+    return json({ ok: true, meetings: await this.meetings(user) }, 201);
+  }
+
+  /// The meeting points of you and of your friends that are not over yet, the newest first.
+  async meetings(user) {
+    const now = Date.now();
+    const out = [];
+    const people = [user];
+    for (const f of user.friends || []) {
+      const other = await this.byID(f.id);
+      if (other) people.push(other);
+    }
+    for (const person of people) {
+      const m = await this.state.storage.get('meet:' + person.id);
+      if (!m) continue;
+      if (m.until <= now) {
+        await this.state.storage.delete('meet:' + person.id);
+        continue;
+      }
+      out.push({ ...this.card(person), mine: person.id === user.id, lat: m.lat, lon: m.lon, label: m.label, when: m.when, until: m.until, at: m.at });
+    }
+    return out.sort((a, b) => b.at - a.at);
+  }
+
   // Ski areas: how the snow was, the average day, the friends who have been
 
   /// A day told: where (to the kilometer), when, and what the phone chose to tell of it: how the
@@ -577,7 +689,7 @@ export class Accounts {
       phase: PHASES.includes(b.phase) ? b.phase : 'idle',
       at: Date.now(),
     });
-    return json({ ok: true, friends: await this.around(user) });
+    return json({ ok: true, friends: await this.around(user), meetings: await this.meetings(user) });
   }
 
   /// Your friends who are sharing right now; the ones not heard from for ten minutes are forgotten.
