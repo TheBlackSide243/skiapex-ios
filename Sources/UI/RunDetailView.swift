@@ -39,8 +39,8 @@ struct RunDetailView: View {
                     HStack(spacing: 8) {
                         Text("\(Fmt.time(run.startTime)) – \(Fmt.time(run.endTime))").font(.caption).foregroundStyle(Theme.sub)
                         if let label = Theme.difficultyLabel(run.difficulty) {
-                            HStack(spacing: 5) {
-                                DifficultyDot(difficulty: run.difficulty)
+                            HStack(spacing: 6) {
+                                PisteBadge(difficulty: run.difficulty, ref: run.ref, size: 22)
                                 Text(LocalizedStringKey(label)).font(.caption).foregroundStyle(Theme.text)
                             }
                         }

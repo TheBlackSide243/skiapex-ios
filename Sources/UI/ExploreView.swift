@@ -179,7 +179,7 @@ struct ExploreView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 if way.kind == .piste {
-                    DifficultyDot(difficulty: way.difficulty, size: 12)
+                    PisteBadge(difficulty: way.difficulty, ref: way.ref, size: 26)
                 } else {
                     Image(systemName: "cablecar").font(.footnote.weight(.semibold)).foregroundStyle(Theme.lift)
                 }

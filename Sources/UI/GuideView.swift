@@ -283,9 +283,6 @@ struct ResortDetailView: View {
         let mine = library.days(near: resort)
         ScrollView {
             VStack(spacing: 14) {
-                PlaceMap(place: PlacePin(id: resort.id, name: resort.name, lat: resort.lat, lon: resort.lon, days: mine.count))
-                    .frame(height: 240)
-
                 VStack(alignment: .leading, spacing: 4) {
                     Text(resort.name).font(.display(.title3)).foregroundStyle(Theme.text)
                     if let region = resort.region {
@@ -370,6 +367,10 @@ struct ResortDetailView: View {
         .screen()
         .navigationTitle(resort.name)
         .navigationBarTitleDisplayMode(.inline)
+        // The ski area on the map behind, with all its pistes and lifts as they arrive.
+        .onAppear { onStage() }
+        .onChange(of: terrain?.ways.count) { _, _ in onStage() }
+        .onDisappear { Stage.shared.leave(resort.id) }
         .task { await guide.load(resort) }
         .task {
             if Demo.isOn {
@@ -386,5 +387,10 @@ struct ResortDetailView: View {
             terrain = try? await Terrains.shared.terrain(lat: resort.lat, lon: resort.lon)
         }
         .sheet(item: $planning) { TripEditor(trip: $0, isNew: true) }
+    }
+
+    private func onStage() {
+        Stage.shared.show(PlacePin(id: resort.id, name: resort.name, lat: resort.lat, lon: resort.lon, days: library.days(near: resort).count),
+                          terrain: terrain)
     }
 }

@@ -1,4 +1,8 @@
-Ski Apex 0.6.2
+Ski Apex 0.7.0
+- The profile of the day: up with the lifts, down the pistes in the color of their signs. On every day of the list and at the top of its page.
+- Piste badges, with color and number as on the signs; on the map the runs take the color of their piste, and the places you skied are marked with the lens of the icon.
+- The ski area on the map: open a ski area from the Guide and the map behind shows it with all its pistes and lifts.
+To test: search for a ski area in the Guide and open it; open a saved day and look at its profile and badges.
 - A new icon: ski goggles with the peak in their lens. In Settings, Look, choose among four drawings, and the first in the other colors too.
 - On the iPhones with the clock and the battery on the right edge of the screen the buttons go in that band: no more empty space on the right.
 - At the bottom of every screen there is room to scroll clear of the round button.

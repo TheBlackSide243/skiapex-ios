@@ -84,14 +84,21 @@ final class LookTests: XCTestCase {
                             color: .red, width: 6),
                     MapLine(coordinates: [CLLocationCoordinate2D(latitude: 45.9, longitude: 7.6)], color: .red, width: 6)]
         let lines = SnowMap.Coordinator.lines(terrain: nil, tracks: [track(.run, 1), track(.lift, 2)], more: more)
-        XCTAssertEqual(lines.count, 3)
-        XCTAssertEqual(lines[0].width, 5)
-        XCTAssertNil(lines[0].dash)
-        XCTAssertEqual(lines[1].dash, [6, 6])
-        XCTAssertEqual(lines[2].color, .red)
-        XCTAssertEqual(lines[2].pointCount, 2)
+        // A run is two lines: its white edge, and over it the run.
+        XCTAssertEqual(lines.count, 4)
+        XCTAssertEqual(lines[0].width, 8.5)
+        XCTAssertEqual(lines[1].width, 5)
+        XCTAssertNil(lines[1].dash)
+        XCTAssertEqual(lines[2].dash, [6, 6])
+        XCTAssertEqual(lines[3].color, .red)
+        XCTAssertEqual(lines[3].pointCount, 2)
         let faint = SnowMap.Coordinator.lines(terrain: nil, tracks: [track(.run, 1)], dimmed: true)
-        XCTAssertEqual(faint[0].width, 3.5)
+        XCTAssertEqual(faint[1].width, 3.5)
+        // A run on a piste that is known takes its color.
+        var red = track(.run, 3)
+        red.difficulty = "intermediate"
+        let colored = SnowMap.Coordinator.lines(terrain: nil, tracks: [red, track(.run, 4)])
+        XCTAssertNotEqual(colored[1].color, colored[3].color)
         // Some points with room around them, and none.
         let fit = SnowMap.fit([CLLocationCoordinate2D(latitude: 45, longitude: 7), CLLocationCoordinate2D(latitude: 46, longitude: 9)], room: 2)
         XCTAssertEqual(fit?.center.longitude ?? 0, 8, accuracy: 0.001)
@@ -131,6 +138,34 @@ final class LookTests: XCTestCase {
         }
         XCTAssertEqual(names.count, 9)
         XCTAssertEqual(IconArt.parse("AppIcon-Other").art, .close)
+    }
+
+    /// The ups and downs of a day, for its profile: as many as its stretches, each with where it
+    /// began and ended; none for a day with no track.
+    func testTheProfileOfADay() {
+        let day = SkiDay(points: SkiSim.day(laps: 3, start: Date(timeIntervalSince1970: 1_800_000_000), seed: 3))
+        let legs = Leg.of(day) ?? []
+        XCTAssertEqual(legs.count, day.segments.count)
+        XCTAssertEqual(legs.filter { $0.k == 0 }.count, day.runs.count)
+        for leg in legs where leg.k == 0 { XCTAssertGreaterThan(leg.a, leg.b) }
+        for leg in legs where leg.k == 1 { XCTAssertLessThan(leg.a, leg.b) }
+        XCTAssertEqual(day.summary.shape, legs)
+        let range = DayProfile.range(legs)
+        XCTAssertNotNil(range)
+        XCTAssertGreaterThan(range?.high ?? 0, range?.low ?? 0)
+        XCTAssertNil(Leg.of(SkiDay(manual: Date(), duration: 3600, place: "A mano", sport: .ski, runs: 3, vertical: 900, distance: 5000, maxSpeed: 0)))
+        // A ski area put on the map: all its lines in view, and the sheet asked to stand lower once.
+        let place = PlacePin(id: "t", name: "Prova", lat: 45.9, lon: 7.6, days: 0)
+        let before = Stage.shared.asks
+        Stage.shared.show(place, terrain: nil)
+        Stage.shared.show(place, terrain: Terrain.demo(lat: 45.9, lon: 7.6))
+        XCTAssertEqual(Stage.shared.asks, before + 1)
+        let region = Stage.region(of: place, terrain: Stage.shared.terrain)
+        XCTAssertEqual(region.center.latitude, 45.9, accuracy: 0.05)
+        Stage.shared.leave("other")
+        XCTAssertNotNil(Stage.shared.place)
+        Stage.shared.leave("t")
+        XCTAssertNil(Stage.shared.place)
     }
 
     func testThePlacesBehindTheSheet() {

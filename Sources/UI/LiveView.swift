@@ -65,7 +65,8 @@ struct LiveView: View {
         HStack(spacing: 8) {
             Circle().fill(statusColor).frame(width: 10, height: 10)
             Text(LocalizedStringKey(statusText)).font(.headline).foregroundStyle(Theme.text).lineLimit(1)
-            if let name = wayName {
+            if let way = wayNow, let name = way.label {
+                if way.kind == .piste { PisteBadge(difficulty: way.difficulty, ref: way.ref, size: 22) }
                 Text(name).font(.headline.weight(.regular)).foregroundStyle(Theme.sub).lineLimit(1)
             }
             Spacer(minLength: 6)
@@ -103,13 +104,13 @@ struct LiveView: View {
     }
 
     /// The piste or the lift you are on, when the pistes around are known.
-    private var wayName: String? {
+    private var wayNow: OSMWay? {
         guard recorder.state == .recording, let around, let point = recorder.lastPoint else { return nil }
-        return Self.way(at: point, doing: recorder.analysis.current, in: around)
+        return Self.line(at: point, doing: recorder.analysis.current, in: around)
     }
 
-    /// The name of the piste (skiing) or of the lift (going up) closest to a point.
-    static func way(at point: TrackPoint, doing kind: SegmentKind, in terrain: Terrain) -> String? {
+    /// The piste (skiing) or the lift (going up) with a name closest to a point.
+    static func line(at point: TrackPoint, doing kind: SegmentKind, in terrain: Terrain) -> OSMWay? {
         let wanted: OSMWay.Kind
         switch kind {
         case .run: wanted = .piste
@@ -117,7 +118,12 @@ struct LiveView: View {
         case .idle: return nil
         }
         guard let i = terrain.nearest(lat: point.lat, lon: point.lon, within: wanted == .piste ? 45 : 70, where: { $0.kind == wanted && $0.label != nil }) else { return nil }
-        return terrain.ways[i].label
+        return terrain.ways[i]
+    }
+
+    /// Its name.
+    static func way(at point: TrackPoint, doing kind: SegmentKind, in terrain: Terrain) -> String? {
+        line(at: point, doing: kind, in: terrain)?.label
     }
 
     /// The pistes around the day under way: the ones downloaded, or asked once to OpenStreetMap
