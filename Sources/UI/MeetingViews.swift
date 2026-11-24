@@ -15,6 +15,107 @@ extension Meeting {
         let end = Fmt.time(Date(timeIntervalSince1970: until / 1000))
         return "\(who) · \(String(localized: "finisce alle \(end)"))"
     }
+
+    /// Of yours: how many friends are coming, how many are not, how many have not said.
+    var count: (yes: Int, no: Int, waiting: Int) {
+        let all = answers ?? []
+        return (all.filter { $0.answer == "yes" }.count, all.filter { $0.answer == "no" }.count, all.filter { $0.answer == nil }.count)
+    }
+}
+
+/// Under a friend's place to meet: are you coming or not. What you said stays lit, and can be changed.
+struct MeetingReply: View {
+    let meeting: Meeting
+    @Environment(Social.self) private var social
+    @State private var sending = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if meeting.asks {
+                Text("\(meeting.name) ti chiede se ci sei").font(.caption.weight(.semibold)).foregroundStyle(Theme.sub)
+            }
+            HStack(spacing: 10) {
+                choice("Ci sono", symbol: "checkmark", coming: true, color: Theme.good)
+                choice("Non vengo", symbol: "xmark", coming: false, color: Theme.bad)
+            }
+        }
+        .disabled(sending)
+        .sensoryFeedback(.selection, trigger: meeting.answer)
+    }
+
+    private func choice(_ title: String, symbol: String, coming: Bool, color: Color) -> some View {
+        let on = meeting.answer == (coming ? "yes" : "no")
+        return Button {
+            sending = true
+            Task {
+                _ = await Nearby.allow()
+                await social.answer(meeting, coming: coming)
+                sending = false
+            }
+        } label: {
+            Label(LocalizedStringKey(title), systemImage: symbol)
+                .font(.subheadline.weight(.semibold))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .foregroundStyle(on ? Color.white : color)
+                .background(on ? color : color.opacity(0.16), in: Capsule())
+        }
+        .buttonStyle(PressStyle())
+        .accessibilityAddTraits(on ? .isSelected : [])
+    }
+}
+
+/// Under your own place to meet: every friend, with what each said.
+struct MeetingAnswers: View {
+    let meeting: Meeting
+
+    var body: some View {
+        let answers = meeting.answers ?? []
+        VStack(alignment: .leading, spacing: 10) {
+            if answers.isEmpty {
+                Text("Quando avrai degli amici, qui vedi chi viene e chi no.").font(.caption).foregroundStyle(Theme.sub)
+            } else {
+                let count = meeting.count
+                Text("Vengono in \(count.yes) · non vengono in \(count.no) · in attesa \(count.waiting)")
+                    .font(.caption.weight(.semibold)).foregroundStyle(Theme.sub)
+                ForEach(answers) { one in
+                    HStack(spacing: 10) {
+                        Avatar(id: one.id, name: one.name, photo: one.photo, size: 30)
+                        Text(one.name).font(.subheadline).foregroundStyle(Theme.text).lineLimit(1)
+                        Spacer(minLength: 6)
+                        Label(LocalizedStringKey(Self.words(one.answer)), systemImage: Self.symbol(one.answer))
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Self.color(one.answer))
+                    }
+                    .accessibilityElement(children: .combine)
+                }
+            }
+        }
+    }
+
+    static func words(_ answer: String?) -> String {
+        switch answer {
+        case "yes": "Ci sarà"
+        case "no": "Non viene"
+        default: "Non ha ancora risposto"
+        }
+    }
+
+    static func symbol(_ answer: String?) -> String {
+        switch answer {
+        case "yes": "checkmark.circle.fill"
+        case "no": "xmark.circle.fill"
+        default: "clock"
+        }
+    }
+
+    static func color(_ answer: String?) -> Color {
+        switch answer {
+        case "yes": Theme.good
+        case "no": Theme.bad
+        default: Theme.sub
+        }
+    }
 }
 
 /// A place to meet in a list: whose it is, where and when.
@@ -55,6 +156,7 @@ struct MeetingsPanel: View {
                                 center: meeting.coordinate, meeting: meeting)
                 } label: { MeetingRow(meeting: meeting) }
                     .buttonStyle(PressStyle())
+                if meeting.mine { MeetingAnswers(meeting: meeting) } else { MeetingReply(meeting: meeting) }
                 Divider().overlay(Theme.line)
             }
             if social.meetings.contains(where: { $0.mine }) {
@@ -67,7 +169,7 @@ struct MeetingsPanel: View {
                 } label: { Label("Scegli sulla mappa", systemImage: "mappin.and.ellipse") }
                     .buttonStyle(SecondaryButtonStyle())
             }
-            Text("Per dire agli amici dove trovarvi apri la mappa di una stazione, tocca un rifugio, una pista o un impianto e scegli \"Troviamoci qui\". Lo vedono sulla mappa quando aprono l'app, con il percorso sulle piste per arrivarci. Finisce da solo un'ora dopo l'orario scelto, o dopo mezza giornata.")
+            Text("Per dire agli amici dove trovarvi apri la mappa di una stazione, tocca un rifugio, una pista o un impianto e scegli \"Troviamoci qui\". Ognuno dice se c'è o no, e tu vedi chi ha accettato e chi ha rifiutato. Lo vedono quando aprono l'app, con il percorso sulle piste per arrivarci. Finisce da solo un'ora dopo l'orario scelto, o dopo mezza giornata.")
                 .prose().font(.caption).foregroundStyle(Theme.sub)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -79,7 +181,28 @@ struct MeetingBanner: View {
     @Environment(Social.self) private var social
 
     var body: some View {
-        if let meeting = social.meetings.first(where: { !$0.mine }) ?? social.meetings.first {
+        // A friend's still waiting for your answer first; then any friend's; then yours.
+        if let meeting = social.meetings.first(where: { $0.asks }) ?? social.meetings.first(where: { !$0.mine }) ?? social.meetings.first {
+            VStack(alignment: .leading, spacing: 12) {
+                link(meeting)
+                if meeting.mine {
+                    if !(meeting.answers ?? []).isEmpty {
+                        let count = meeting.count
+                        Text("Vengono in \(count.yes) · non vengono in \(count.no) · in attesa \(count.waiting)")
+                            .font(.caption.weight(.semibold)).foregroundStyle(Theme.sub)
+                    }
+                } else {
+                    MeetingReply(meeting: meeting)
+                }
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .card()
+        }
+    }
+
+    private func link(_ meeting: Meeting) -> some View {
+        Group {
             NavigationLink {
                 ExploreView(name: meeting.label.isEmpty ? String(localized: "Punto d'incontro") : meeting.label,
                             center: meeting.coordinate, meeting: meeting)
@@ -96,9 +219,7 @@ struct MeetingBanner: View {
                     Spacer(minLength: 6)
                     Image(systemName: "chevron.right").font(.caption.weight(.bold)).foregroundStyle(Theme.sub)
                 }
-                .padding(14)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .card()
                 .contentShape(Rectangle())
             }
             .buttonStyle(PressStyle())
@@ -168,14 +289,18 @@ struct MeetingEditor: View {
                                                                    label: label.trimmingCharacters(in: .whitespacesAndNewlines),
                                                                    when: timed ? Self.next(time, after: Date()) : nil)
                                 sending = false
-                                if done { dismiss() }
+                                // To hear who answers.
+                                if done {
+                                    _ = await Nearby.allow()
+                                    dismiss()
+                                }
                             }
                         } label: {
                             if sending { ProgressView() } else { Label("Manda agli amici", systemImage: "paperplane.fill") }
                         }
                         .buttonStyle(PrimaryButtonStyle())
                         .disabled(sending)
-                        Text("Lo vedono i tuoi amici quando aprono Ski Apex: non arriva una notifica. Sostituisce il punto che avevi mandato prima.")
+                        Text("I tuoi amici lo vedono quando aprono Ski Apex, o mentre registrano, e dicono se ci sono o no: tu vedi chi ha accettato e chi ha rifiutato. Sostituisce il punto che avevi mandato prima.")
                             .prose().font(.caption).foregroundStyle(Theme.sub)
                             .fixedSize(horizontal: false, vertical: true)
                     } else {

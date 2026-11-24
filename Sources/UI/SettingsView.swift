@@ -468,6 +468,7 @@ private struct NewsPage: View {
     private static let news: [(symbol: String, title: String, text: String)] = [
         ("signpost.right.fill", "Le tue piste", "Per ogni pista quante volte l'hai fatta, il tuo tempo migliore e la velocità massima. In Statistiche, nella pagina di una stazione e di una discesa."),
         ("flag.checkered", "Sfida sulla pista", "Accendi la sfida e in ogni pista vedi la classifica dei tempi con i tuoi amici."),
+        ("checkmark.circle.fill", "Ci sono, non vengo", "A un punto d'incontro gli amici rispondono se ci sono o no, e chi l'ha proposto vede chi ha accettato e chi ha rifiutato."),
         ("person.2.fill", "Punto d'incontro", "In Esplora tocca un rifugio, una pista o un impianto e scegli Troviamoci qui: gli amici lo vedono sulla mappa, con il percorso per arrivarci."),
         ("photo.fill", "Schede da condividere nuove", "Le discese nel colore della pista, il profilo della giornata e l'icona dell'app, in formato post o storia."),
         ("icloud.fill", "Copia su iCloud", "Le giornate anche nel tuo iCloud, per ritrovarle cambiando iPhone. Si accende in Copia di sicurezza, dove iCloud è disponibile."),
@@ -529,7 +530,7 @@ private struct PrivacyPage: View {
                 Words("Bluetooth: solo se lo accendi. Passa un codice che cambia ogni giorno, non la posizione.")
                 Words("Com'era la neve: solo se lo dici a fine giornata. Parte la zona della stazione al chilometro, com'era la neve e i numeri della giornata, senza nomi; agli amici il tuo nome solo se lo lasci acceso.")
                 Words("Sfida sulle piste: solo se la accendi. Agli amici arrivano i nomi delle piste che hai sciato, dove sono al chilometro, il tuo tempo migliore, la velocità massima e quante volte. Spegnendola il server cancella tutto.")
-                Words("Punto d'incontro: solo quando lo mandi. Agli amici arriva il posto che hai scelto sulla mappa, non dove sei, e sparisce dopo l'orario o dopo mezza giornata.")
+                Words("Punto d'incontro: solo quando lo mandi. Agli amici arriva il posto che hai scelto sulla mappa, non dove sei, e sparisce dopo l'orario o dopo mezza giornata. Se rispondi a quello di un amico, lui vede se ci sei o no; gli altri amici no.")
                 Words("Copia su iCloud: solo se la accendi. Le giornate vanno nel tuo iCloud, quello di Apple: il server di Ski Apex non le vede.")
             }
             Panel("Mai") {

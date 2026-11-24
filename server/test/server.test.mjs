@@ -490,3 +490,50 @@ test('a meeting point reaches friends only, and is over after its time', async (
   assert.ok(!data.has('meet:' + a.id));
   assert.deepEqual((await call('GET', '/v1/meetings', { token: b.token })).body.meetings, []);
 });
+
+test('a meeting point is accepted or refused, and only who set it sees who said what', async () => {
+  const { call, signUp, befriend, data } = server();
+  const a = await signUp('Alessio');
+  const b = await signUp('Alex');
+  const c = await signUp('Carla');
+  const d = await signUp('Estraneo');
+  await befriend(a, b);
+  await befriend(a, c);
+  const hut = { lat: 45.9412, lon: 7.6388, label: 'Rifugio Teodulo' };
+  await call('PUT', '/v1/me/meeting', { token: a.token, body: hut });
+  const mine = async () => (await call('GET', '/v1/meetings', { token: a.token })).body.meetings[0];
+  const theirs = async who => (await call('GET', '/v1/meetings', { token: who.token })).body.meetings[0];
+
+  // Nobody answered yet: whose it is sees every friend waiting, a friend sees no answer of their own.
+  assert.deepEqual((await mine()).answers.map(x => [x.name, x.answer]), [['Alex', null], ['Carla', null]]);
+  assert.equal((await theirs(b)).answer, null);
+  assert.equal((await theirs(b)).answers, undefined, 'a friend does not see what the others said');
+
+  assert.equal((await call('PUT', `/v1/meetings/${a.id}/answer`, { body: { coming: true } })).status, 401);
+  assert.equal((await call('PUT', `/v1/meetings/${a.id}/answer`, { token: b.token, body: { coming: 'forse' } })).status, 400);
+  assert.equal((await call('PUT', `/v1/meetings/${a.id}/answer`, { token: d.token, body: { coming: true } })).status, 404, 'not a friend');
+  assert.equal((await call('PUT', `/v1/meetings/${b.id}/answer`, { token: a.token, body: { coming: true } })).status, 404, 'no place set');
+  assert.equal((await call('PUT', `/v1/meetings/${a.id}/answer`, { token: a.token, body: { coming: true } })).status, 404, 'not to your own');
+
+  // Carla is not coming, Alex is: the answer comes back with the meetings, and whose it is sees both.
+  const no = await call('PUT', `/v1/meetings/${a.id}/answer`, { token: c.token, body: { coming: false } });
+  assert.equal(no.status, 200);
+  assert.equal(no.body.meetings[0].answer, 'no');
+  await call('PUT', `/v1/meetings/${a.id}/answer`, { token: b.token, body: { coming: true } });
+  assert.equal((await theirs(b)).answer, 'yes');
+  assert.deepEqual((await mine()).answers.map(x => [x.name, x.answer]), [['Alex', 'yes'], ['Carla', 'no']]);
+  // A change of mind.
+  await call('PUT', `/v1/meetings/${a.id}/answer`, { token: c.token, body: { coming: true } });
+  assert.deepEqual((await mine()).answers.map(x => [x.name, x.answer]), [['Alex', 'yes'], ['Carla', 'yes']]);
+
+  // No longer a friend: no longer in the list. A new place is a new question for everyone.
+  await call('DELETE', '/v1/friends/' + c.id, { token: a.token });
+  assert.deepEqual((await mine()).answers.map(x => x.name), ['Alex']);
+  await call('PUT', '/v1/me/meeting', { token: a.token, body: { ...hut, label: 'Baita del Sole' } });
+  assert.deepEqual((await mine()).answers.map(x => [x.name, x.answer]), [['Alex', null]]);
+  assert.equal((await theirs(b)).answer, null);
+
+  // Over: nothing left to answer.
+  data.set('meet:' + a.id, { ...data.get('meet:' + a.id), until: Date.now() - 1000 });
+  assert.equal((await call('PUT', `/v1/meetings/${a.id}/answer`, { token: b.token, body: { coming: true } })).status, 404);
+});

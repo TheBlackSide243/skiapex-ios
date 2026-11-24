@@ -103,7 +103,17 @@ struct PisteRow: Codable, Identifiable, Hashable {
     var date: String
 }
 
-/// A place to meet, set by you or by a friend: a hut, the top of a lift, a point of a piste.
+/// What a friend said to a place to meet of yours.
+struct MeetingAnswer: Codable, Identifiable, Hashable {
+    var id: String
+    var name: String
+    var photo: Double?
+    /// "yes", "no", or nil while they have not answered.
+    var answer: String?
+}
+
+/// A place to meet, set by you or by a friend: a hut, the top of a lift, a point of a piste. The
+/// friends say whether they are coming; only who set it sees who said what.
 struct Meeting: Codable, Identifiable, Hashable {
     /// Whose it is.
     var id: String
@@ -119,9 +129,15 @@ struct Meeting: Codable, Identifiable, Hashable {
     /// When it is over, and when it was set.
     var until: Double
     var at: Double
+    /// To a friend's: what you said, "yes" or "no"; nil until you answer.
+    var answer: String? = nil
+    /// To yours: every friend, with what each said.
+    var answers: [MeetingAnswer]? = nil
 
     var coordinate: CLLocationCoordinate2D { CLLocationCoordinate2D(latitude: lat, longitude: lon) }
     var time: Date? { when.map { Date(timeIntervalSince1970: $0 / 1000) } }
+    /// A friend's, still waiting for your answer.
+    var asks: Bool { !mine && answer == nil }
 
     /// "Rifugio Teodulo · 12:30", or the place alone.
     var title: String {
@@ -545,7 +561,8 @@ enum SocialError: LocalizedError {
             let now = Date().timeIntervalSince1970 * 1000
             meetings.removeAll { $0.mine }
             meetings.insert(Meeting(id: "me", name: "Marco", photo: nil, mine: true, lat: lat, lon: lon, label: label,
-                                    when: when.map { $0.timeIntervalSince1970 * 1000 }, until: now + 3_600_000, at: now), at: 0)
+                                    when: when.map { $0.timeIntervalSince1970 * 1000 }, until: now + 3_600_000, at: now,
+                                    answers: Self.demoAnswers), at: 0)
             return true
         }
         var done = false
@@ -554,11 +571,36 @@ enum SocialError: LocalizedError {
             if let when { body["when"] = (when.timeIntervalSince1970 * 1000).rounded() }
             let data = try await self.call("PUT", "/v1/me/meeting", body)
             struct Answer: Decodable { let meetings: [Meeting] }
-            self.meetings = try JSONDecoder().decode(Answer.self, from: data).meetings
+            self.take(try JSONDecoder().decode(Answer.self, from: data).meetings)
             done = true
         }
         return done
     }
+
+    /// Says to a friend whether you are coming to the place they set. It can be said again.
+    @MainActor func answer(_ meeting: Meeting, coming: Bool) async {
+        if demo {
+            if let i = meetings.firstIndex(where: { $0.id == meeting.id }) { meetings[i].answer = coming ? "yes" : "no" }
+            return
+        }
+        await run {
+            let data = try await self.call("PUT", "/v1/meetings/\(meeting.id)/answer", ["coming": coming])
+            struct Answer: Decodable { let meetings: [Meeting] }
+            self.take(try JSONDecoder().decode(Answer.self, from: data).meetings)
+        }
+    }
+
+    /// The places to meet as the server has them now: kept, and what is new in them is said with
+    /// a notification (a friend asks, a friend answered).
+    private func take(_ new: [Meeting]) {
+        meetings = new
+        MeetingNews.tell(new)
+    }
+
+    /// For the pictures: one friend coming, one not, one who has not answered.
+    private static let demoAnswers = [MeetingAnswer(id: "a", name: "Giulia", photo: nil, answer: "yes"),
+                                      MeetingAnswer(id: "b", name: "Luca", photo: nil, answer: "no"),
+                                      MeetingAnswer(id: "c", name: "Sara", photo: nil, answer: nil)]
 
     /// Takes your meeting point back.
     @MainActor func clearMeeting() async {
@@ -569,7 +611,7 @@ enum SocialError: LocalizedError {
         await run {
             let data = try await self.call("DELETE", "/v1/me/meeting")
             struct Answer: Decodable { let meetings: [Meeting] }
-            self.meetings = try JSONDecoder().decode(Answer.self, from: data).meetings
+            self.take(try JSONDecoder().decode(Answer.self, from: data).meetings)
         }
     }
 
@@ -585,7 +627,7 @@ enum SocialError: LocalizedError {
                                                                       "speed": max(0, point.speed), "phase": phase]),
               let answer = try? JSONDecoder().decode(Answer.self, from: data) else { return }
         live = answer.friends
-        if let meetings = answer.meetings { self.meetings = meetings }
+        if let meetings = answer.meetings { take(meetings) }
         Nearby.check(lat: point.lat, lon: point.lon, friends: live)
     }
 
@@ -602,7 +644,7 @@ enum SocialError: LocalizedError {
         guard let data = try? await call("GET", "/v1/friends/positions"),
               let answer = try? JSONDecoder().decode(Answer.self, from: data) else { return }
         live = answer.friends
-        if let meetings = answer.meetings { self.meetings = meetings }
+        if let meetings = answer.meetings { take(meetings) }
         // While a day is recorded: is anyone close?
         let recorder = Shared.recorder
         if recorder.state == .recording, let me = recorder.lastPoint, Date().timeIntervalSince(me.t) < 120 {

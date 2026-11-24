@@ -239,6 +239,9 @@ struct ExploreView: View {
                 Button { met = nil } label: { Image(systemName: "xmark").font(.footnote.weight(.bold)).foregroundStyle(Theme.sub) }
                     .accessibilityLabel(Text("Chiudi"))
             }
+            // What the card shows follows the answers as they arrive.
+            let now = social.meetings.first { $0.id == meeting.id } ?? meeting
+            if now.mine { MeetingAnswers(meeting: now) } else { MeetingReply(meeting: now) }
             HStack(spacing: 10) {
                 if meeting.mine {
                     Button {
