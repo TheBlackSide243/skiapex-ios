@@ -89,6 +89,8 @@ struct ProfileView: View {
         .screen()
         .navigationTitle("Profilo")
         .navigationBarTitleDisplayMode(.inline)
+        // What went wrong on another screen is not said here.
+        .onAppear { social.error = nil }
         .toolbar {
             if social.busy {
                 ToolbarItem(placement: .topBarTrailing) { ProgressView() }

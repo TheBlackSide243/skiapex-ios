@@ -1,6 +1,6 @@
-Ski Apex 0.8.1
+Ski Apex 0.8.2
+- Fixed: the notice "I can't reach the friends server" showed up with the network working, when changing tab while the leaderboard was updating, and stayed in the Profile.
 - Meeting point: the invitation reaches only the friends skiing in that area that day. They answer I'm in or Not coming, and who set it sees who accepted, who refused and who has not answered yet. With a notice when a friend asks to meet or answers yours.
-To test: send a meeting point from Explore to a friend, answer on their iPhone and look at the list of the answers on yours.
 - Your pistes: for each piste how many times you skied it, your best time and your top speed. In Days, Statistics, Your pistes; and on the page of a ski area and of a run.
 - Challenge on a piste: turn it on in Friends and each piste shows the ranking of the times with your friends.
 - Meeting point: in Explore touch a hut, a piste or a lift and choose Let's meet here. Your friends see it on the map, with the way to get there.

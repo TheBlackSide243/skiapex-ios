@@ -206,6 +206,20 @@ final class PisteTests: XCTestCase {
         XCTAssertEqual(MeetingNews.notices(meetings, told: Set(first.map(\.key) + later.map(\.key))).map(\.key), ["ask:a:1795000060000"])
     }
 
+    /// A request to the server that was only interrupted (the screen was left while it asked) is
+    /// not the server out of reach: nothing is said. The rest is said as before.
+    func testAnInterruptedRequestIsNotAnError() {
+        XCTAssertNil(Social.words(for: CancellationError()))
+        XCTAssertNil(Social.words(for: URLError(.cancelled)))
+        let offline = SocialError.offline.localizedDescription
+        XCTAssertEqual(Social.words(for: URLError(.notConnectedToInternet)), offline)
+        XCTAssertEqual(Social.words(for: URLError(.timedOut)), offline)
+        XCTAssertEqual(Social.words(for: DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: ""))), offline)
+        let wrong = Social.words(for: SocialError.server("wrong password"))
+        XCTAssertEqual(wrong, SocialError.server("wrong password").localizedDescription)
+        XCTAssertNotEqual(wrong, offline)
+    }
+
     /// The copy in iCloud, with two folders: what is in one goes to the other, the newest of a
     /// day wins, and a day deleted on purpose goes from both and does not come back.
     func testTwoFoldersBroughtLevel() throws {

@@ -708,12 +708,20 @@ enum SocialError: LocalizedError {
         do {
             try await work()
             error = nil
-        } catch let failure as SocialError {
-            if case .server("signed out") = failure { forget() }
-            error = failure.localizedDescription
         } catch {
-            self.error = SocialError.offline.localizedDescription
+            if let failure = error as? SocialError, case .server("signed out") = failure { forget() }
+            if let words = Self.words(for: error) { self.error = words }
         }
+    }
+
+    /// What to say of something that went wrong with the server. Nothing when the request was
+    /// only interrupted: the screen that asked was left, or asked again. That is not the server
+    /// out of reach.
+    static func words(for failure: Error) -> String? {
+        if failure is CancellationError { return nil }
+        if let url = failure as? URLError, url.code == .cancelled { return nil }
+        if let known = failure as? SocialError { return known.localizedDescription }
+        return SocialError.offline.localizedDescription
     }
 
     private func call(_ method: String, _ path: String, _ body: [String: Any]? = nil, signed: Bool = true, raw: Data? = nil) async throws -> Data {
@@ -729,7 +737,15 @@ enum SocialError: LocalizedError {
             request.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
             request.httpBody = raw
         }
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await URLSession.shared.data(for: request)
+        } catch let failure as URLError where failure.code == .networkConnectionLost && method != "POST" {
+            // The connection kept from before was gone (the app was away, the network changed):
+            // once more, on a new one.
+            (data, response) = try await URLSession.shared.data(for: request)
+        }
         guard let status = (response as? HTTPURLResponse)?.statusCode else { throw SocialError.offline }
         if (200..<300).contains(status) { return data }
         let code = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
