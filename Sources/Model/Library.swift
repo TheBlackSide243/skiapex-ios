@@ -115,6 +115,16 @@ import Observation
 
     private func file(_ id: UUID) -> URL { dir.appendingPathComponent("\(id.uuidString).json") }
 
+    /// Where the days are kept, for the copy in iCloud.
+    var folder: URL { dir }
+
+    /// The files of the days changed under the list (the copy in iCloud brought some, or took
+    /// some away): the list is made again from them.
+    func reload() {
+        rebuildIndex()
+        saves += 1
+    }
+
     func day(_ id: UUID) -> SkiDay? {
         guard let data = try? Data(contentsOf: file(id)) else { return nil }
         return try? JSONDecoder().decode(SkiDay.self, from: data)
@@ -187,6 +197,8 @@ import Observation
 
     func delete(_ id: UUID) {
         try? FileManager.default.removeItem(at: file(id))
+        // Remembered, so that a copy in iCloud does not bring it back.
+        CloudCopy.bury(id, in: dir)
         days.removeAll { $0.id == id }
         writeIndex()
         saves += 1

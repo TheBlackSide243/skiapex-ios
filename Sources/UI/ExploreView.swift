@@ -345,13 +345,17 @@ struct ExploreView: View {
         defer { loading = false }
         if Demo.isOn {
             show(Terrain.demo(lat: center.latitude, lon: center.longitude))
+            // The picture of a place to meet: the friend's, with no way drawn.
+            if Demo.screen == "meet" {
+                met = social.meetings.first
+                return
+            }
             // For the picture: from the top to the village, on the easy pistes.
             if let top = terrain?.ways.first(where: { $0.name == "Canalone" }), let low = terrain?.ways.first(where: { $0.name == "Gran Bosco" }) {
                 from = CLLocationCoordinate2D(latitude: top.lats[0], longitude: top.lons[0])
                 to = CLLocationCoordinate2D(latitude: low.lats[low.lats.count - 1], longitude: low.lons[low.lons.count - 1])
                 level = .medium
-                // The picture of a place to meet: the friend's, with no way drawn yet.
-                if Demo.screen == "meet" { met = social.meetings.first } else { findRoute() }
+                findRoute()
             }
             return
         }

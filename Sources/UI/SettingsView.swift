@@ -364,9 +364,10 @@ private struct BackupPage: View {
                     Text(note).font(.caption).foregroundStyle(Theme.good)
                 }
             }
+            CloudPanel()
             Panel("Dove sono le giornate") {
                 InfoRow("Giornate salvate", "\(library.days.count)")
-                Words("Restano solo su questo iPhone e le trovi anche nell'app File, nella cartella Ski Apex.", small: true)
+                Words("Sono su questo iPhone e le trovi anche nell'app File, nella cartella Ski Apex. Con la copia su iCloud accesa sono anche lì.", small: true)
             }
         }
         .fileImporter(isPresented: $restoring, allowedContentTypes: [.zip]) { result in
@@ -377,6 +378,53 @@ private struct BackupPage: View {
                 self.error = error.localizedDescription
             }
         }
+    }
+}
+
+/// The copy of the days in iCloud: its switch, and what the last pass did.
+private struct CloudPanel: View {
+    @Environment(Library.self) private var library
+    @AppStorage(Prefs.cloud) private var on = false
+
+    var body: some View {
+        let cloud = CloudCopy.shared
+        Panel("iCloud") {
+            Toggle(isOn: $on) {
+                Text("Copia le giornate su iCloud").font(.subheadline).foregroundStyle(Theme.text)
+            }
+            .tint(Theme.accent)
+            .onChange(of: on) { _, now in
+                if now { Task { await cloud.sync(library) } } else { cloud.stop() }
+            }
+            Words("Accesa, ogni giornata salvata va anche nel tuo iCloud e torna da sola su un altro iPhone con lo stesso account, o su questo se lo cambi. Una giornata eliminata qui viene tolta anche lì.", small: true)
+            if on {
+                switch cloud.state {
+                case .off:
+                    EmptyView()
+                case .working:
+                    HStack(spacing: 10) {
+                        ProgressView()
+                        Text("Controllo iCloud…").font(.subheadline).foregroundStyle(Theme.sub)
+                    }
+                case .unavailable:
+                    Words("Qui iCloud non si può usare: questa versione dell'app non ce l'ha (succede con quella installata con Feather, e finché non è attivato per quella di TestFlight), oppure l'iPhone non è collegato a iCloud. Le giornate restano su questo iPhone.", small: true)
+                case .failed(let why):
+                    Text(why).font(.caption).foregroundStyle(Theme.bad)
+                case .done:
+                    InfoRow("Giornate su iCloud", "\(cloud.outcome.inCloud)")
+                    if cloud.outcome.waiting > 0 {
+                        InfoRow("In arrivo da iCloud", "\(cloud.outcome.waiting)")
+                    }
+                    if let last = cloud.last {
+                        InfoRow("Ultimo controllo", Fmt.time(last))
+                    }
+                }
+                Button { Task { await cloud.sync(library) } } label: { Label("Controlla ora", systemImage: "arrow.triangle.2.circlepath") }
+                    .buttonStyle(SecondaryButtonStyle())
+                    .disabled(cloud.state == .working)
+            }
+        }
+        .task { if on { await cloud.sync(library) } }
     }
 }
 
