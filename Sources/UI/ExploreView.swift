@@ -3,12 +3,16 @@ import SwiftUI
 
 /// The map of a ski area: its pistes in the colors of the signs, its lifts and its huts, from
 /// OpenStreetMap. Touch a piste or a lift to see what it is, and to set where you leave from and
-/// where you want to get: the way is found along the pistes and the lifts.
+/// where you want to get: the way is found along the pistes and the lifts. A hut, a piste or a
+/// lift can be sent to the friends as the place to meet, and theirs are on the map.
 struct ExploreView: View {
     let name: String
     let center: CLLocationCoordinate2D
+    /// A place to meet to show as the map opens.
+    var meeting: Meeting?
 
     @Environment(Recorder.self) private var recorder
+    @Environment(Social.self) private var social
     @AppStorage(Prefs.mapLook) private var mapLook = MapLook.standard.rawValue
     @State private var region: MKCoordinateRegion
     /// Counts the times the map was asked to go somewhere.
@@ -28,10 +32,15 @@ struct ExploreView: View {
     @State private var level = RouteLevel.all
     @State private var route: Route?
     @State private var noRoute = false
+    /// The hut touched, the place to meet touched, and the place about to be sent to the friends.
+    @State private var hut: Hut?
+    @State private var met: Meeting?
+    @State private var draft: MeetingDraft?
 
-    init(name: String, center: CLLocationCoordinate2D) {
+    init(name: String, center: CLLocationCoordinate2D, meeting: Meeting? = nil) {
         self.name = name
         self.center = center
+        self.meeting = meeting
         _region = State(initialValue: MKCoordinateRegion(center: center, latitudinalMeters: 6500, longitudinalMeters: 6500))
     }
 
@@ -67,6 +76,20 @@ struct ExploreView: View {
         .hidesRail()
         .task { await load() }
         .onChange(of: level) { _, _ in findRoute() }
+        .sheet(item: $draft) { MeetingEditor(draft: $0) }
+    }
+
+    /// The places to meet set around here, by you and by your friends.
+    private var meetings: [Meeting] {
+        social.meetings.filter {
+            Geo.distance(lat1: $0.lat, lon1: $0.lon, lat2: center.latitude, lon2: center.longitude) < 25_000
+        }
+    }
+
+    /// Where you are: the day under way, or the iPhone.
+    private var here: CLLocationCoordinate2D? {
+        if recorder.state == .recording, let point = recorder.lastPoint { return point.coordinate }
+        return recorder.here?.coordinate
     }
 
     // MARK: The map
@@ -77,6 +100,7 @@ struct ExploreView: View {
         if showHuts, let terrain {
             out += terrain.huts.map { MapMark(id: "hut\($0.id)", lat: $0.lat, lon: $0.lon, title: $0.name, symbol: "fork.knife", color: UIColor(Theme.warn)) }
         }
+        out += meetings.map(\.mark)
         if let from {
             out.append(MapMark(id: "from", lat: from.latitude, lon: from.longitude, title: String(localized: "Partenza"),
                                symbol: "figure.skiing.downhill", color: UIColor(Theme.good)))
@@ -149,6 +173,10 @@ struct ExploreView: View {
                     Text("Qui OpenStreetMap non ha piste o impianti.").prose().font(.subheadline).foregroundStyle(Theme.text)
                 } else if let route {
                     routeSummary(route)
+                } else if let met {
+                    meetingCard(met)
+                } else if let hut {
+                    hutCard(hut)
                 } else if let picked, picked < terrain.ways.count {
                     wayCard(terrain.ways[picked])
                 } else {
@@ -172,7 +200,57 @@ struct ExploreView: View {
         if noRoute { return "Non trovo un percorso tra questi due punti con le piste scelte. Tocca un'altra pista o un altro impianto." }
         if from != nil { return "Ora tocca la pista o l'impianto dove vuoi arrivare." }
         if to != nil { return "Ora tocca la pista o l'impianto da cui parti." }
-        return "Tocca una pista o un impianto per vedere cos'è e per calcolare un percorso."
+        return "Tocca una pista, un impianto o un rifugio per vedere cos'è, calcolare un percorso o dire agli amici di trovarvi lì."
+    }
+
+    /// A hut touched: the way there, or the place to meet.
+    private func hutCard(_ hut: Hut) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "fork.knife").font(.footnote.weight(.semibold)).foregroundStyle(Theme.warn)
+                Text(hut.name).font(.headline).foregroundStyle(Theme.text).lineLimit(2)
+                Spacer(minLength: 6)
+                Button { self.hut = nil } label: { Image(systemName: "xmark").font(.footnote.weight(.bold)).foregroundStyle(Theme.sub) }
+                    .accessibilityLabel(Text("Chiudi"))
+            }
+            HStack(spacing: 10) {
+                Button {
+                    draft = MeetingDraft(place: CLLocationCoordinate2D(latitude: hut.lat, longitude: hut.lon), label: hut.name)
+                } label: { Label("Troviamoci qui", systemImage: "person.2.fill") }
+                    .buttonStyle(SecondaryButtonStyle())
+                Button {
+                    go(to: CLLocationCoordinate2D(latitude: hut.lat, longitude: hut.lon))
+                } label: { Label("Arrivo qui", systemImage: "flag.checkered") }
+                    .buttonStyle(PrimaryButtonStyle())
+            }
+        }
+    }
+
+    /// A place to meet touched: whose it is, when, and the way there.
+    private func meetingCard(_ meeting: Meeting) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                Avatar(id: meeting.id, name: meeting.name, photo: meeting.photo, size: 40, ring: Theme.track)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(meeting.title).font(.headline).foregroundStyle(Theme.text).lineLimit(2).minimumScaleFactor(0.8)
+                    Text(meeting.detail).font(.caption).foregroundStyle(Theme.sub).lineLimit(1)
+                }
+                Spacer(minLength: 6)
+                Button { met = nil } label: { Image(systemName: "xmark").font(.footnote.weight(.bold)).foregroundStyle(Theme.sub) }
+                    .accessibilityLabel(Text("Chiudi"))
+            }
+            HStack(spacing: 10) {
+                if meeting.mine {
+                    Button {
+                        met = nil
+                        Task { await social.clearMeeting() }
+                    } label: { Label("Togli", systemImage: "xmark") }
+                        .buttonStyle(SecondaryButtonStyle(color: Theme.bad))
+                }
+                Button { go(to: meeting.coordinate) } label: { Label("Portami lì", systemImage: "arrow.triangle.turn.up.right.diamond.fill") }
+                    .buttonStyle(PrimaryButtonStyle())
+            }
+        }
     }
 
     private func wayCard(_ way: OSMWay) -> some View {
@@ -204,6 +282,13 @@ struct ExploreView: View {
                 Button { set(start: false) } label: { Label("Arrivo qui", systemImage: "flag.checkered") }
                     .buttonStyle(PrimaryButtonStyle())
             }
+            Button {
+                draft = MeetingDraft(place: spot(on: way, start: false), label: way.label ?? Self.nameless(way.kind))
+            } label: {
+                Label("Troviamoci qui", systemImage: "person.2.fill").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.accent)
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(PressStyle())
         }
     }
 
@@ -260,6 +345,11 @@ struct ExploreView: View {
         defer { loading = false }
         if Demo.isOn {
             show(Terrain.demo(lat: center.latitude, lon: center.longitude))
+            // The picture of a place to meet: the friend's, with no way drawn.
+            if Demo.screen == "meet" {
+                met = social.meetings.first
+                return
+            }
             // For the picture: from the top to the village, on the easy pistes.
             if let top = terrain?.ways.first(where: { $0.name == "Canalone" }), let low = terrain?.ways.first(where: { $0.name == "Gran Bosco" }) {
                 from = CLLocationCoordinate2D(latitude: top.lats[0], longitude: top.lons[0])
@@ -272,6 +362,7 @@ struct ExploreView: View {
         do {
             // The ones downloaded are here with no signal; the others come from OpenStreetMap.
             show(try await Terrains.shared.terrain(lat: center.latitude, lon: center.longitude))
+            met = meeting
         } catch {
             failed = true
         }
@@ -295,9 +386,21 @@ struct ExploreView: View {
         moves += 1
     }
 
-    /// A touch on the map: the piste or the lift under the finger, if it is shown.
+    /// A touch on the map: a place to meet, a hut, or the piste or the lift under the finger, if
+    /// it is shown.
     private func touch(_ place: CLLocationCoordinate2D) {
         guard let terrain, route == nil else { return }
+        func near(_ lat: Double, _ lon: Double) -> Double {
+            Geo.distance(lat1: place.latitude, lon1: place.longitude, lat2: lat, lon2: lon)
+        }
+        met = meetings.filter { near($0.lat, $0.lon) < 110 }.min { near($0.lat, $0.lon) < near($1.lat, $1.lon) }
+        hut = met != nil || !showHuts ? nil
+            : terrain.huts.filter { near($0.lat, $0.lon) < 80 }.min { near($0.lat, $0.lon) < near($1.lat, $1.lon) }
+        if met != nil || hut != nil {
+            picked = nil
+            pickedAt = nil
+            return
+        }
         let found = terrain.nearest(lat: place.latitude, lon: place.longitude, within: 90) { way in
             way.kind == .piste ? showPistes : showLifts
         }
@@ -308,17 +411,33 @@ struct ExploreView: View {
     /// The line touched becomes where the way starts, or where it ends.
     private func set(start: Bool) {
         guard let terrain, let picked, picked < terrain.ways.count else { return }
-        let way = terrain.ways[picked]
-        // A lift is taken at its bottom and left at its top; a piste where it was touched.
-        let place: CLLocationCoordinate2D
-        if way.kind == .lift {
-            let i = start ? 0 : way.lats.count - 1
-            place = CLLocationCoordinate2D(latitude: way.lats[i], longitude: way.lons[i])
-        } else {
-            place = pickedAt ?? CLLocationCoordinate2D(latitude: way.lats[0], longitude: way.lons[0])
-        }
+        let place = spot(on: terrain.ways[picked], start: start)
         if start { from = place } else { to = place }
         self.picked = nil
+        findRoute()
+    }
+
+    /// The point of a line touched: a lift is taken at its bottom and left at its top; a piste
+    /// where it was touched.
+    private func spot(on way: OSMWay, start: Bool) -> CLLocationCoordinate2D {
+        if way.kind == .lift {
+            let i = start ? 0 : way.lats.count - 1
+            return CLLocationCoordinate2D(latitude: way.lats[i], longitude: way.lons[i])
+        }
+        return pickedAt ?? CLLocationCoordinate2D(latitude: way.lats[0], longitude: way.lons[0])
+    }
+
+    /// The way to a place, from where you are when that is on the pistes; else from the piste
+    /// or the lift touched next.
+    private func go(to place: CLLocationCoordinate2D) {
+        to = place
+        hut = nil
+        met = nil
+        picked = nil
+        if from == nil, let here, let graph,
+           graph.route(fromLat: here.latitude, fromLon: here.longitude, toLat: place.latitude, toLon: place.longitude, level: level) != nil {
+            from = here
+        }
         findRoute()
     }
 
@@ -342,6 +461,8 @@ struct ExploreView: View {
         to = nil
         route = nil
         picked = nil
+        hut = nil
+        met = nil
         noRoute = false
     }
 }

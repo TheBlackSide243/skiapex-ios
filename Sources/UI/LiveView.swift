@@ -24,6 +24,7 @@ struct LiveView: View {
             ScrollView {
                 VStack(spacing: 18) {
                     ErrorBanner(error: $error)
+                    MeetingBanner()
                     if recorder.handed {
                         handedPanel
                     } else if recorder.state == .idle {

@@ -88,6 +88,49 @@ struct LiveFriend: Codable, Identifiable, Hashable {
     var initials: String { Avatars.initials(of: name) }
 }
 
+/// One person on a piste: the best time down the whole of it.
+struct PisteRow: Codable, Identifiable, Hashable {
+    var id: String
+    var name: String
+    var photo: Double?
+    var me: Bool
+    /// Seconds.
+    var best: Double
+    /// m/s, the top speed on it.
+    var speed: Double
+    var runs: Int
+    /// The day of the best time, "2026-11-20".
+    var date: String
+}
+
+/// A place to meet, set by you or by a friend: a hut, the top of a lift, a point of a piste.
+struct Meeting: Codable, Identifiable, Hashable {
+    /// Whose it is.
+    var id: String
+    var name: String
+    var photo: Double?
+    var mine: Bool
+    var lat: Double
+    var lon: Double
+    /// What the place is called.
+    var label: String
+    /// At what time, in milliseconds since 1970, when one was given.
+    var when: Double?
+    /// When it is over, and when it was set.
+    var until: Double
+    var at: Double
+
+    var coordinate: CLLocationCoordinate2D { CLLocationCoordinate2D(latitude: lat, longitude: lon) }
+    var time: Date? { when.map { Date(timeIntervalSince1970: $0 / 1000) } }
+
+    /// "Rifugio Teodulo · 12:30", or the place alone.
+    var title: String {
+        let place = label.isEmpty ? String(localized: "Punto d'incontro") : label
+        guard let time else { return place }
+        return "\(place) · \(Fmt.time(time))"
+    }
+}
+
 /// Your position to your friends while a day is recorded, if you turned it on: sent every half
 /// minute at most, and taken back when the recording pauses or ends, or when you turn it off.
 enum LiveShare {
@@ -200,6 +243,8 @@ enum SocialError: LocalizedError {
     private(set) var rows: [BoardRow] = []
     /// The friends skiing now who share where they are.
     private(set) var live: [LiveFriend] = []
+    /// The places to meet set by you and by your friends, not over yet.
+    private(set) var meetings: [Meeting] = []
     private(set) var busy = false
     /// The code of the invitation link, once asked for.
     private(set) var inviteCode: String?
@@ -244,6 +289,8 @@ enum SocialError: LocalizedError {
                 LiveFriend(id: "a", name: "Giulia", lat: 45.9418, lon: 7.6392, alt: 2610, speed: 11.4, phase: "run", at: now - 20_000),
                 LiveFriend(id: "b", name: "Luca", lat: 45.9372, lon: 7.6318, alt: 2240, speed: 4.8, phase: "lift", at: now - 45_000),
             ]
+            meetings = [Meeting(id: "a", name: "Giulia", photo: nil, mine: false, lat: 45.9345, lon: 7.6262, label: "Baita del Sole",
+                                when: now + 40 * 60_000, until: now + 100 * 60_000, at: now - 5 * 60_000)]
             return
         }
         if let data = UserDefaults.standard.data(forKey: Self.accountKey),
@@ -314,6 +361,7 @@ enum SocialError: LocalizedError {
         friends = []
         rows = []
         live = []
+        meetings = []
         inviteCode = nil
         Keychain.set(nil, for: "token")
         UserDefaults.standard.removeObject(forKey: Self.accountKey)
@@ -445,6 +493,84 @@ enum SocialError: LocalizedError {
             let boardData = try await self.call("GET", "/v1/board?season=\(season.year)")
             self.rows = try JSONDecoder().decode(Board.self, from: boardData).rows
         }
+        await sharePistes(days)
+        await loadLive()
+    }
+
+    // MARK: The challenge on the pistes
+
+    /// Whether the best times on the pistes go to the friends: off unless turned on.
+    static var sharesPistes: Bool { UserDefaults.standard.bool(forKey: Prefs.sharePistes) }
+
+    /// Sends the pistes skied with the best time on each, if the challenge is on. Silent.
+    @MainActor func sharePistes(_ days: [DaySummary]) async {
+        guard signedIn, !demo, Self.sharesPistes else { return }
+        let pistes = PisteBook.entries(days).compactMap { PisteBook.shared($0) }.prefix(300)
+        _ = try? await call("PUT", "/v1/me/pistes", ["pistes": Array(pistes)])
+    }
+
+    /// Takes the pistes back from the server: the challenge was turned off.
+    @MainActor func stopPistes() async {
+        guard signedIn, !demo else { return }
+        _ = try? await call("DELETE", "/v1/me/pistes")
+    }
+
+    /// Who among you and your friends skied a piste, the fastest first. nil when it cannot be asked.
+    func pisteBoard(_ entry: PisteEntry) async -> [PisteRow]? {
+        if demo { return Self.demoBoard(entry) }
+        guard signedIn, Self.sharesPistes else { return nil }
+        var parts = URLComponents()
+        parts.queryItems = [URLQueryItem(name: "name", value: entry.name), URLQueryItem(name: "lat", value: String(format: "%.2f", entry.lat)),
+                            URLQueryItem(name: "lon", value: String(format: "%.2f", entry.lon))]
+        struct Answer: Decodable { let rows: [PisteRow] }
+        guard let query = parts.percentEncodedQuery, let data = try? await call("GET", "/v1/pistes?" + query),
+              let answer = try? JSONDecoder().decode(Answer.self, from: data) else { return nil }
+        return answer.rows
+    }
+
+    /// For the pictures: you between two friends.
+    private static func demoBoard(_ entry: PisteEntry) -> [PisteRow] {
+        guard let best = entry.best else { return [] }
+        let day = PlaceInfo.dayFormat.string(from: best.date)
+        return [PisteRow(id: "b", name: "Luca", photo: nil, me: false, best: best.seconds * 0.93, speed: entry.topSpeed * 1.08, runs: 4, date: day),
+                PisteRow(id: "me", name: "Marco", photo: nil, me: true, best: best.seconds, speed: entry.topSpeed, runs: entry.count, date: day),
+                PisteRow(id: "a", name: "Giulia", photo: nil, me: false, best: best.seconds * 1.12, speed: entry.topSpeed * 0.94, runs: 7, date: day)]
+    }
+
+    // MARK: Meeting points
+
+    /// Sets where to meet, for your friends: it replaces the one you had. True when done.
+    @MainActor func setMeeting(lat: Double, lon: Double, label: String, when: Date?) async -> Bool {
+        if demo {
+            let now = Date().timeIntervalSince1970 * 1000
+            meetings.removeAll { $0.mine }
+            meetings.insert(Meeting(id: "me", name: "Marco", photo: nil, mine: true, lat: lat, lon: lon, label: label,
+                                    when: when.map { $0.timeIntervalSince1970 * 1000 }, until: now + 3_600_000, at: now), at: 0)
+            return true
+        }
+        var done = false
+        await run {
+            var body: [String: Any] = ["lat": lat, "lon": lon, "label": label]
+            if let when { body["when"] = (when.timeIntervalSince1970 * 1000).rounded() }
+            let data = try await self.call("PUT", "/v1/me/meeting", body)
+            struct Answer: Decodable { let meetings: [Meeting] }
+            self.meetings = try JSONDecoder().decode(Answer.self, from: data).meetings
+            done = true
+        }
+        return done
+    }
+
+    /// Takes your meeting point back.
+    @MainActor func clearMeeting() async {
+        if demo {
+            meetings.removeAll { $0.mine }
+            return
+        }
+        await run {
+            let data = try await self.call("DELETE", "/v1/me/meeting")
+            struct Answer: Decodable { let meetings: [Meeting] }
+            self.meetings = try JSONDecoder().decode(Answer.self, from: data).meetings
+        }
     }
 
     // MARK: Live positions
@@ -452,13 +578,14 @@ enum SocialError: LocalizedError {
     /// Tells the friends where you are. Silent: a recording must not show errors for this.
     @MainActor func sendPosition(_ point: TrackPoint, phase: String) async {
         guard signedIn, !demo else { return }
-        struct Answer: Decodable { let friends: [LiveFriend] }
+        struct Answer: Decodable { let friends: [LiveFriend]; let meetings: [Meeting]? }
         // The answer has the friends who share: with the iPhone in a pocket this is the only
         // moment they are asked for, and the moment to say that one is close.
         guard let data = try? await call("PUT", "/v1/me/position", ["lat": point.lat, "lon": point.lon, "alt": point.alt,
                                                                       "speed": max(0, point.speed), "phase": phase]),
               let answer = try? JSONDecoder().decode(Answer.self, from: data) else { return }
         live = answer.friends
+        if let meetings = answer.meetings { self.meetings = meetings }
         Nearby.check(lat: point.lat, lon: point.lon, friends: live)
     }
 
@@ -471,10 +598,11 @@ enum SocialError: LocalizedError {
     /// Where the friends who share are now. Silent too: it is asked again in half a minute.
     @MainActor func loadLive() async {
         guard signedIn, !demo else { return }
-        struct Answer: Decodable { let friends: [LiveFriend] }
+        struct Answer: Decodable { let friends: [LiveFriend]; let meetings: [Meeting]? }
         guard let data = try? await call("GET", "/v1/friends/positions"),
               let answer = try? JSONDecoder().decode(Answer.self, from: data) else { return }
         live = answer.friends
+        if let meetings = answer.meetings { self.meetings = meetings }
         // While a day is recorded: is anyone close?
         let recorder = Shared.recorder
         if recorder.state == .recording, let me = recorder.lastPoint, Date().timeIntervalSince(me.t) < 120 {

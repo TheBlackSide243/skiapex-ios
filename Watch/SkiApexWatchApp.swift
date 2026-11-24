@@ -35,8 +35,11 @@ final class WatchDelegate: NSObject, WKApplicationDelegate {
 
 /// The colors of the app, on the black of the watch.
 enum Ink {
-    static let accent = Color(red: 0.353, green: 0.635, blue: 1.0)
+    /// The ice blue of the icon, as on the iPhone.
+    static let accent = Color(red: 0.361, green: 0.812, blue: 1.0)
     static let lift = Color(red: 0.769, green: 0.710, blue: 0.992)
+    /// The dot of the button that records, and the button that ends.
+    static let record = Color(red: 0.949, green: 0.333, blue: 0.353)
     static let sub = Color(red: 0.635, green: 0.647, blue: 0.694)
     static let good = Color(red: 0.204, green: 0.827, blue: 0.600)
     static let bad = Color(red: 1.0, green: 0.482, blue: 0.541)
@@ -179,15 +182,31 @@ struct WatchRootView: View {
     @Environment(WatchRecorder.self) private var recorder
 
     var body: some View {
-        if recorder.state != .idle {
-            // The watch is recording.
-            DayPages(state: recorder.watchState, note: recorder.note, busy: false) { recorder.handle($0) }
-        } else if phone.state.state != "idle" {
-            // The iPhone is recording: its numbers, and its buttons.
-            DayPages(state: phone.state, note: phone.note, busy: phone.busy) { phone.send($0) }
-        } else {
-            ReadyView()
+        Group {
+            if recorder.state != .idle {
+                // The watch is recording.
+                DayPages(state: recorder.watchState, note: recorder.note, busy: false) { recorder.handle($0) }
+            } else if phone.state.state != "idle" {
+                // The iPhone is recording: its numbers, and its buttons.
+                DayPages(state: phone.state, note: phone.note, busy: phone.busy) { phone.send($0) }
+            } else {
+                ReadyView()
+            }
         }
+        .fontDesign(.rounded)
+    }
+}
+
+/// The button that records, as on the iPhone: white and round, with a red dot.
+private struct RecordDot: View {
+    var size: CGFloat = 62
+
+    var body: some View {
+        ZStack {
+            Circle().fill(Color.white)
+            Circle().fill(Ink.record).frame(width: size * 0.36, height: size * 0.36)
+        }
+        .frame(width: size, height: size)
     }
 }
 
@@ -199,22 +218,27 @@ struct ReadyView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 8) {
-                Image(systemName: "figure.skiing.downhill")
-                    .font(.title2.weight(.semibold))
-                    .foregroundStyle(Ink.accent)
                 Button {
                     recorder.start()
                 } label: {
-                    Label("Inizia", systemImage: "play.fill")
+                    VStack(spacing: 5) {
+                        RecordDot()
+                        Text("Inizia").font(.system(.headline, design: .rounded, weight: .heavy))
+                    }
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text("Inizia la giornata"))
                 if phone.reachable {
                     Button {
                         phone.send(.start)
                     } label: {
                         Label("Con l'iPhone", systemImage: "iphone")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(Ink.accent)
+                            .padding(.horizontal, 14).padding(.vertical, 8)
+                            .background(Ink.accent.opacity(0.18), in: Capsule())
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.plain)
                     .disabled(phone.busy)
                 }
                 if let note = recorder.note ?? phone.note {
@@ -268,7 +292,8 @@ private func phaseSymbol(_ phase: String) -> String {
     }
 }
 
-/// What is happening now: skiing or on a lift, the speed, the clock of the day.
+/// What is happening now: skiing or on a lift, the speed, the clock of the day, and how much
+/// was skied so far.
 struct NowView: View {
     let state: WatchState
 
@@ -280,8 +305,10 @@ struct NowView: View {
                 } icon: {
                     Image(systemName: phaseSymbol(state.phase))
                 }
-                .font(.caption.weight(.semibold))
+                .font(.caption2.weight(.bold))
                 .foregroundStyle(Ink.tint(state.phase))
+                .padding(.horizontal, 8).padding(.vertical, 4)
+                .background(Ink.tint(state.phase).opacity(0.2), in: Capsule())
                 Spacer()
                 if let heart = state.heart {
                     Label(heart, systemImage: "heart.fill").font(.caption2).foregroundStyle(Ink.bad)
@@ -289,18 +316,21 @@ struct NowView: View {
             }
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(state.speed)
-                    .font(.system(size: 56, weight: .semibold, design: .rounded))
+                    .font(.system(size: 58, weight: .heavy, design: .rounded))
                     .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
-                Text(state.speedUnit).font(.caption2).foregroundStyle(Ink.sub)
+                Text(state.speedUnit.uppercased()).font(.system(.caption2, design: .rounded, weight: .bold)).foregroundStyle(Ink.sub)
             }
-            HStack {
+            HStack(spacing: 6) {
                 if let start = state.start, state.state == "recording" {
-                    Text(start, style: .timer).font(.footnote.monospacedDigit())
+                    Text(start, style: .timer).font(.footnote.weight(.semibold).monospacedDigit())
                 }
                 Spacer()
-                Label(state.altitude, systemImage: "mountain.2").font(.caption2).foregroundStyle(Ink.sub)
+                Image(systemName: "arrow.down.right").font(.caption2.weight(.bold)).foregroundStyle(Ink.accent)
+                Text(UnitText.styled(state.vertical, big: .system(.footnote, design: .rounded, weight: .bold),
+                                     small: .system(size: 9, weight: .bold, design: .rounded)))
+                    .monospacedDigit().lineLimit(1).minimumScaleFactor(0.7)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
@@ -308,42 +338,53 @@ struct NowView: View {
     }
 }
 
-/// The numbers of the day so far.
+/// The numbers of the day so far: no boxes, the numbers bold with their units small beside them.
 struct TotalsView: View {
     let state: WatchState
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Total(value: "\(state.runs)", label: "Discese")
-                Total(value: state.vertical, label: "Dislivello")
+                Total(value: state.vertical, label: "Dislivello", color: Ink.accent)
             }
             HStack(spacing: 8) {
                 Total(value: state.distance, label: "Sciati")
                 Total(value: state.maxSpeed, label: "Vel. max")
             }
+            HStack(spacing: 5) {
+                Image(systemName: "mountain.2").font(.caption2.weight(.bold))
+                Text(UnitText.styled(state.altitude, big: .system(.caption, design: .rounded, weight: .bold),
+                                     small: .system(size: 9, weight: .bold, design: .rounded)))
+            }
+            .foregroundStyle(Ink.sub)
         }
-        .padding(.horizontal, 2)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 6)
     }
 }
 
 private struct Total: View {
     let value: String
     let label: LocalizedStringKey
+    var color = Color.white
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 1) {
-            Text(value).font(.system(.body, design: .rounded, weight: .semibold)).monospacedDigit()
+        VStack(alignment: .leading, spacing: 0) {
+            Text(UnitText.styled(value, big: .system(.title3, design: .rounded, weight: .bold),
+                                 small: .system(size: 10, weight: .bold, design: .rounded)))
+                .monospacedDigit()
+                .foregroundStyle(color)
                 .lineLimit(1).minimumScaleFactor(0.55)
             Text(label).font(.caption2).foregroundStyle(Ink.sub).lineLimit(1).minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(8)
-        .background(Color.white.opacity(0.1), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .accessibilityElement(children: .combine)
     }
 }
 
-/// Pause and end, a swipe away so that a glove does not press them by mistake.
+/// Pause and end, a swipe away so that a glove does not press them by mistake: two round
+/// buttons, the one that ends in red.
 struct ControlsView: View {
     let state: WatchState
     let note: String?
@@ -354,19 +395,14 @@ struct ControlsView: View {
     var body: some View {
         let paused = state.state == "paused"
         VStack(spacing: 8) {
-            Button {
-                send(paused ? .resume : .pause)
-            } label: {
-                Label(LocalizedStringKey(paused ? "Riprendi" : "Pausa"), systemImage: paused ? "play.fill" : "pause.fill")
+            HStack(spacing: 14) {
+                round(paused ? "play.fill" : "pause.fill", LocalizedStringKey(paused ? "Riprendi" : "Pausa"), fill: .white, ink: .black) {
+                    send(paused ? .resume : .pause)
+                }
+                round("flag.checkered", "Fine", fill: Ink.record, ink: .white) {
+                    confirming = true
+                }
             }
-            .buttonStyle(.bordered)
-            Button {
-                confirming = true
-            } label: {
-                Label("Fine", systemImage: "flag.checkered")
-            }
-            .buttonStyle(.bordered)
-            .tint(Ink.bad)
             if let note {
                 Text(note).font(.caption2).foregroundStyle(Ink.sub).multilineTextAlignment(.center)
             }
@@ -376,5 +412,19 @@ struct ControlsView: View {
             Button("Salva la giornata") { send(.finish) }
             Button("Annulla", role: .cancel) {}
         }
+    }
+
+    private func round(_ symbol: String, _ title: LocalizedStringKey, fill: Color, ink: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: symbol)
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(ink)
+                    .frame(width: 56, height: 56)
+                    .background(fill, in: Circle())
+                Text(title).font(.caption2.weight(.semibold))
+            }
+        }
+        .buttonStyle(.plain)
     }
 }

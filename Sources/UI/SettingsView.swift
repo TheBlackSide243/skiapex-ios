@@ -364,9 +364,10 @@ private struct BackupPage: View {
                     Text(note).font(.caption).foregroundStyle(Theme.good)
                 }
             }
+            CloudPanel()
             Panel("Dove sono le giornate") {
                 InfoRow("Giornate salvate", "\(library.days.count)")
-                Words("Restano solo su questo iPhone e le trovi anche nell'app File, nella cartella Ski Apex.", small: true)
+                Words("Sono su questo iPhone e le trovi anche nell'app File, nella cartella Ski Apex. Con la copia su iCloud accesa sono anche lì.", small: true)
             }
         }
         .fileImporter(isPresented: $restoring, allowedContentTypes: [.zip]) { result in
@@ -377,6 +378,53 @@ private struct BackupPage: View {
                 self.error = error.localizedDescription
             }
         }
+    }
+}
+
+/// The copy of the days in iCloud: its switch, and what the last pass did.
+private struct CloudPanel: View {
+    @Environment(Library.self) private var library
+    @AppStorage(Prefs.cloud) private var on = false
+
+    var body: some View {
+        let cloud = CloudCopy.shared
+        Panel("iCloud") {
+            Toggle(isOn: $on) {
+                Text("Copia le giornate su iCloud").font(.subheadline).foregroundStyle(Theme.text)
+            }
+            .tint(Theme.accent)
+            .onChange(of: on) { _, now in
+                if now { Task { await cloud.sync(library) } } else { cloud.stop() }
+            }
+            Words("Accesa, ogni giornata salvata va anche nel tuo iCloud e torna da sola su un altro iPhone con lo stesso account, o su questo se lo cambi. Una giornata eliminata qui viene tolta anche lì.", small: true)
+            if on {
+                switch cloud.state {
+                case .off:
+                    EmptyView()
+                case .working:
+                    HStack(spacing: 10) {
+                        ProgressView()
+                        Text("Controllo iCloud…").font(.subheadline).foregroundStyle(Theme.sub)
+                    }
+                case .unavailable:
+                    Words("Qui iCloud non si può usare: questa versione dell'app non ce l'ha (succede con quella installata con Feather, e finché non è attivato per quella di TestFlight), oppure l'iPhone non è collegato a iCloud. Le giornate restano su questo iPhone.", small: true)
+                case .failed(let why):
+                    Text(why).font(.caption).foregroundStyle(Theme.bad)
+                case .done:
+                    InfoRow("Giornate su iCloud", "\(cloud.outcome.inCloud)")
+                    if cloud.outcome.waiting > 0 {
+                        InfoRow("In arrivo da iCloud", "\(cloud.outcome.waiting)")
+                    }
+                    if let last = cloud.last {
+                        InfoRow("Ultimo controllo", Fmt.time(last))
+                    }
+                }
+                Button { Task { await cloud.sync(library) } } label: { Label("Controlla ora", systemImage: "arrow.triangle.2.circlepath") }
+                    .buttonStyle(SecondaryButtonStyle())
+                    .disabled(cloud.state == .working)
+            }
+        }
+        .task { if on { await cloud.sync(library) } }
     }
 }
 
@@ -418,6 +466,12 @@ private struct HelpPage: View {
 /// What came with this version.
 private struct NewsPage: View {
     private static let news: [(symbol: String, title: String, text: String)] = [
+        ("signpost.right.fill", "Le tue piste", "Per ogni pista quante volte l'hai fatta, il tuo tempo migliore e la velocità massima. In Statistiche, nella pagina di una stazione e di una discesa."),
+        ("flag.checkered", "Sfida sulla pista", "Accendi la sfida e in ogni pista vedi la classifica dei tempi con i tuoi amici."),
+        ("person.2.fill", "Punto d'incontro", "In Esplora tocca un rifugio, una pista o un impianto e scegli Troviamoci qui: gli amici lo vedono sulla mappa, con il percorso per arrivarci."),
+        ("photo.fill", "Schede da condividere nuove", "Le discese nel colore della pista, il profilo della giornata e l'icona dell'app, in formato post o storia."),
+        ("icloud.fill", "Copia su iCloud", "Le giornate anche nel tuo iCloud, per ritrovarle cambiando iPhone. Si accende in Copia di sicurezza, dove iCloud è disponibile."),
+        ("applewatch", "Watch e widget rinnovati", "Lo stesso aspetto dell'app sul Watch e nei widget, e una complicazione per aprire Ski Apex dal quadrante."),
         ("chart.xyaxis.line", "Il profilo della giornata", "Su con gli impianti, giù per le piste nel colore dei cartelli: in ogni giornata dell'elenco e in testa alla sua pagina."),
         ("circle.fill", "Bollini delle piste", "Ogni pista con il suo colore e il suo numero, come sui cartelli; sulla mappa le discese prendono il colore della pista."),
         ("magnifyingglass", "La stazione sulla mappa", "Apri una stazione dalla Guida e la mappa dietro la mostra con tutte le piste e gli impianti."),
@@ -465,7 +519,7 @@ private struct PrivacyPage: View {
     var body: some View {
         SettingsPageBody(title: "Ski Apex e i tuoi dati") {
             Panel("Sul tuo iPhone") {
-                Words("Le giornate, con le tracce e i posti, restano sul tuo iPhone. Nessuno le vede se non le condividi tu.")
+                Words("Le giornate, con le tracce e i posti, restano sul tuo iPhone, e nel tuo iCloud se accendi la copia. Nessuno le vede se non le condividi tu.")
             }
             Panel("Quello che esce") {
                 Words("Nomi delle piste e meteo: la zona della giornata, a OpenStreetMap e Open-Meteo, senza il tuo nome. Si spegne da Integrazioni.")
@@ -474,6 +528,9 @@ private struct PrivacyPage: View {
                 Words("Posizione in diretta: solo se la accendi e solo mentre registri. Il server tiene l'ultima, non la salva e la dimentica dopo dieci minuti.")
                 Words("Bluetooth: solo se lo accendi. Passa un codice che cambia ogni giorno, non la posizione.")
                 Words("Com'era la neve: solo se lo dici a fine giornata. Parte la zona della stazione al chilometro, com'era la neve e i numeri della giornata, senza nomi; agli amici il tuo nome solo se lo lasci acceso.")
+                Words("Sfida sulle piste: solo se la accendi. Agli amici arrivano i nomi delle piste che hai sciato, dove sono al chilometro, il tuo tempo migliore, la velocità massima e quante volte. Spegnendola il server cancella tutto.")
+                Words("Punto d'incontro: solo quando lo mandi. Agli amici arriva il posto che hai scelto sulla mappa, non dove sei, e sparisce dopo l'orario o dopo mezza giornata.")
+                Words("Copia su iCloud: solo se la accendi. Le giornate vanno nel tuo iCloud, quello di Apple: il server di Ski Apex non le vede.")
             }
             Panel("Mai") {
                 Words("Niente pubblicità, niente tracciamento, niente dati venduti. Eliminando l'account dal Profilo, il server cancella tutto quello che aveva.")

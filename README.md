@@ -18,9 +18,11 @@ Premi **Inizia** ai piedi della pista, metti l'iPhone in tasca e scia. Ski Apex 
 - **Rivivi la giornata**: il replay sulla mappa vista dall'alto, con ora, velocità e quota.
 - **Velocità sulla mappa**: ogni discesa disegnata dal blu (lento) al rosso (veloce).
 - **Statistiche**: totali, medie al giorno, record e grafici per stagione.
-- **Immagine da condividere** con traccia e numeri; importazione ed esportazione **GPX**.
+- **Le tue piste**: per ogni pista quante volte l'hai fatta, il tuo tempo migliore e la velocità massima, con i tempi uno per uno. Con la **sfida** accesa, in ogni pista c'è la classifica dei tempi con gli amici.
+- **Immagine da condividere**, in formato post o storia: le discese nel colore della pista, il profilo della giornata e i numeri; importazione ed esportazione **GPX**.
 - **Amici**: classifiche della stagione con gli amici che inviti (giorni sulla neve, dislivello, chilometri, discese, velocità), con la foto del profilo. Account con nome e password, con Apple o con Google.
 - **Amici in diretta**: mentre registri vedi sulla mappa gli amici che stanno sciando, e loro vedono te, se lo accendi. Un avviso ti dice quando uno è a meno di 300 metri o scia nella tua zona; con il Bluetooth, se lo accendi, anche dove non c'è campo.
+- **Punto d'incontro**: sulla mappa di una stazione tocca un rifugio, una pista o un impianto e scegli "Troviamoci qui"; gli amici lo vedono sulla mappa, con il percorso sulle piste per arrivarci.
 - **Guida delle stazioni**: cerca una stazione, guarda quelle vicine e segui le tue, con la neve prevista per 8 giorni. Ogni stazione ha la sua pagina: piste, impianti e quote, la neve di oggi ora per ora e quella dell'ultima settimana.
 - **Com'era la neve**: a fine giornata l'app te lo chiede (farinosa, battuta, ghiacciata...). Se vuoi, lo dice a chi scia lì: nella pagina della stazione si vede com'è la neve secondo chi c'è stato, la giornata media e quali amici ci sono passati.
 - **Mappe scaricate**: piste, impianti e rifugi di una stazione sull'iPhone, per quando non c'è campo; e mentre scii vedi il nome della pista su cui sei.
@@ -31,11 +33,11 @@ Premi **Inizia** ai piedi della pista, metti l'iPhone in tasca e scia. Ski Apex 
 - **Schermata di blocco e Dynamic Island**: la giornata in corso sempre sott'occhio (Live Activity).
 - **Siri e Comandi Rapidi**: inizia, metti in pausa e finisci la giornata a voce.
 - **Apple Watch**: registra la giornata da solo con il suo GPS, con battito, velocità, discese e dislivello al polso, e la manda all'iPhone quando finisci; oppure fa da telecomando quando registra l'iPhone. Dall'iPhone puoi anche passare la giornata al Watch ("Continua sul Watch") e mettere via il telefono: a fine giornata le due parti diventano una giornata sola (nella versione TestFlight).
-- **Widget**: la neve in arrivo in una località a scelta, e un tasto per registrare, sulla schermata Home e sulla schermata di blocco.
+- **Widget**: la neve in arrivo in una località a scelta, e un tasto per registrare, sulla schermata Home e sulla schermata di blocco; sul Watch una complicazione che apre l'app dal quadrante.
 - **Temi e icone**: sei aspetti per l'app (notte, aurora, alba, bosco, carbone e uno chiaro, neve) e l'icona negli stessi colori.
 - **Foto della giornata** dalla tua libreria, trovate dall'orario.
 - **Apple Salute**: la giornata come allenamento con il percorso, e il battito se porti un Apple Watch (nella versione TestFlight).
-- **Copia di sicurezza** di tutte le giornate in un file zip, e ripristino.
+- **Copia di sicurezza** di tutte le giornate in un file zip, e ripristino. La **copia su iCloud** delle giornate c'è solo dove l'app è firmata con iCloud: nella versione TestFlight va ancora attivata.
 - Sci, snowboard, telemark o slittino, scelti prima di iniziare; unità metriche o imperiali; italiano e inglese.
 - Se l'app viene chiusa a metà giornata, la registrazione si ritrova al prossimo avvio.
 - Le giornate restano sull'iPhone (visibili anche nell'app File). Per i nomi delle piste e il meteo viene chiesta solo la zona a OpenStreetMap e Open-Meteo, e si può spegnere. L'account serve solo per gli Amici, e lì arrivano il nome e i totali della stagione: mai le tracce o i posti delle giornate. La posizione in diretta parte solo se la accendi, solo mentre registri, e il server non la salva. Com'era la neve lo dici tu a fine giornata, se vuoi: parte la zona della stazione al chilometro con i numeri della giornata, senza nomi. Per la mappa invernale vengono chiesti a un archivio pubblico (AWS Open Data) i riquadri della zona che guardi, come quote: si spegne con lo stesso interruttore.
@@ -84,9 +86,11 @@ Tap **Start** at the bottom of the slope, put your iPhone in your pocket and ski
 - **Replay the day** on the map seen from above, with time, speed and altitude.
 - **Speed on the map**: every run drawn from blue (slow) to red (fast).
 - **Stats**: totals, averages per day, records and charts by season.
-- **Picture to share** with the track and the numbers; **GPX** import and export.
+- **Your pistes**: for each piste how many times you skied it, your best time and your top speed, with the times one by one. With the **challenge** on, each piste has the ranking of the times with your friends.
+- **Picture to share**, as a post or as a story: the runs in the color of their piste, the profile of the day and the numbers; **GPX** import and export.
 - **Friends**: season leaderboards with the friends you invite (days on the snow, vertical, distance, runs, speed), with profile pictures. An account with a name and a password, with Apple or with Google.
 - **Friends live**: while you record you see on the map the friends who are skiing, and they see you, if you turn it on. A notice tells you when one is within 300 meters or skiing in your area. With Bluetooth, if you turn it on, also where there is no signal.
+- **Meeting point**: on the map of a ski area touch a hut, a piste or a lift and choose "Let's meet here"; your friends see it on the map, with the way along the pistes to get there.
 - **Guide to ski areas**: search one, see the ones nearby and follow yours, with the snow expected for 8 days. Each ski area has its page: pistes, lifts and altitudes, today's snow hour by hour and the snow of the last week.
 - **How the snow was**: at the end of a day the app asks (powder, groomed, icy...). If you like, it tells who skis there: the page of the ski area shows how the snow is according to who has been, the average day and which friends passed by.
 - **Downloaded maps**: the pistes, lifts and huts of a ski area on the iPhone, for when there is no signal; and while you ski you see the name of the piste you are on.
@@ -97,11 +101,11 @@ Tap **Start** at the bottom of the slope, put your iPhone in your pocket and ski
 - **Lock screen and Dynamic Island**: the day under way always in sight (Live Activity).
 - **Siri and Shortcuts**: start, pause and finish the day by voice.
 - **Apple Watch**: records the day by itself with its GPS, with heart rate, speed, runs and vertical on your wrist, and sends it to the iPhone when you finish; or works as a remote when the iPhone records. From the iPhone you can also pass the day to the Watch ("Go on on the Watch") and put the phone away: at the end of the day the two parts become one day (in the TestFlight build).
-- **Widgets**: the snow to come at a place of your choice, and a button to record, on the Home Screen and the Lock Screen.
+- **Widgets**: the snow to come at a place of your choice, and a button to record, on the Home Screen and the Lock Screen; on the Watch a complication that opens the app from the watch face.
 - **Looks and icons**: six looks for the app (night, aurora, sunrise, forest, carbon and a light one, snow) and the icon in the same colors.
 - **Photos of the day** from your library, found by their time.
 - **Apple Health**: the day as a workout with its route, and the heart rate if you wear an Apple Watch (in the TestFlight build).
-- **Backup** of all your days in one zip file, and restore.
+- **Backup** of all your days in one zip file, and restore. The **copy in iCloud** of the days is only where the app is signed with iCloud: in the TestFlight build it is still to be turned on.
 - Skiing, snowboarding, telemark or sled, chosen before you start; metric or imperial units; Italian and English.
 - If the app is closed during the day, the recording comes back at the next launch.
 - Your days stay on the iPhone (also visible in the Files app). For piste names and weather only the area is asked to OpenStreetMap and Open-Meteo, and it can be turned off. An account is needed only for Friends, and your name and the totals of the season go there: never the tracks or the places of your days. Your live position is sent only if you turn it on, only while you record, and the server does not store it. How the snow was is told by you at the end of a day, if you like: the area of the ski area to the kilometer with the numbers of the day, with no names. For the winter map the squares of the area you look at are asked for, as heights, to a public archive (AWS Open Data): the same switch turns it off.

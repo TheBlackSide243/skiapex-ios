@@ -136,7 +136,7 @@ struct DayDetailView: View {
         switch Demo.screen {
         case "run": if loaded.runs.count > 2 { run = loaded.runs[2] }
         case "replay": replaying = true
-        case "share": sharing = true
+        case "share", "story": sharing = true
         default: break
         }
     }

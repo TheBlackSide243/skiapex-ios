@@ -407,3 +407,86 @@ test('how the snow was is told to everyone, who was there to friends only', asyn
   assert.deepEqual(after.friends, []);
   assert.ok(!JSON.stringify([...data.entries()]).includes(a.id));
 });
+
+test('the best time on a piste is seen by friends only, piste by piste', async () => {
+  const { call, signUp, befriend, data } = server();
+  const a = await signUp('Alessio');
+  const b = await signUp('Alex');
+  const c = await signUp('Estraneo');
+  await befriend(a, b);
+  const here = { lat: 45.93361, lon: 7.62954 };
+  const piste = (name, best, more = {}) => ({ name, ...here, best, speed: 19, runs: 3, date: '2026-11-20', ...more });
+
+  assert.equal((await call('PUT', '/v1/me/pistes', { body: { pistes: [] } })).status, 401);
+  assert.equal((await call('PUT', '/v1/me/pistes', { token: a.token, body: { pistes: 'tutte' } })).status, 400);
+  assert.equal((await call('PUT', '/v1/me/pistes', { token: a.token, body: { pistes: [{ ...piste('Ventina', 300), name: '' }] } })).status, 400);
+  assert.equal((await call('PUT', '/v1/me/pistes', { token: a.token, body: { pistes: [piste('Ventina', 300, { lat: 95 })] } })).status, 400);
+  assert.equal((await call('PUT', '/v1/me/pistes', { token: a.token, body: { pistes: [piste('Ventina', 300, { date: 'ieri' })] } })).status, 400);
+
+  // Sent twice: the second time replaces the first.
+  await call('PUT', '/v1/me/pistes', { token: a.token, body: { pistes: [piste('Ventina', 400)] } });
+  assert.equal((await call('PUT', '/v1/me/pistes', { token: a.token, body: { pistes: [piste('Ventina', 312.4), piste('Gran Bosco', 95)] } })).body.pistes, 2);
+  // The friend a kilometer away on the same piste, faster; the stranger too; a Ventina of somewhere else.
+  await call('PUT', '/v1/me/pistes', { token: b.token, body: { pistes: [piste('Ventina', 290, { lat: 45.94, lon: 7.64, runs: 1 }), piste('Ventina', 100, { lat: 46.5, lon: 10.1 })] } });
+  await call('PUT', '/v1/me/pistes', { token: c.token, body: { pistes: [piste('Ventina', 200)] } });
+
+  const board = (await call('GET', `/v1/pistes?name=Ventina&lat=${here.lat}&lon=${here.lon}`, { token: a.token })).body.rows;
+  assert.deepEqual(board.map(r => [r.name, r.me, r.best, r.runs]), [['Alex', false, 290, 1], ['Alessio', true, 312.4, 3]], 'the fastest first, no stranger');
+  assert.deepEqual((await call('GET', `/v1/pistes?name=Gran%20Bosco&lat=${here.lat}&lon=${here.lon}`, { token: b.token })).body.rows.map(r => r.name), ['Alessio']);
+  assert.deepEqual((await call('GET', `/v1/pistes?name=Ventina&lat=${here.lat}&lon=${here.lon}`, { token: c.token })).body.rows.map(r => r.name), ['Estraneo']);
+  assert.deepEqual((await call('GET', '/v1/pistes?name=Ventina&lat=46.5&lon=10.1', { token: a.token })).body.rows.map(r => r.best), [100]);
+  assert.equal((await call('GET', '/v1/pistes?lat=45.9&lon=7.6', { token: a.token })).status, 400);
+  assert.equal((await call('GET', '/v1/pistes?name=Ventina&lat=x&lon=7.6', { token: a.token })).status, 400);
+  // Kept to the kilometer, not to the meter.
+  assert.ok(!JSON.stringify([...data.entries()]).includes('45.93361'));
+
+  // Taken back, and gone with the account.
+  assert.equal((await call('DELETE', '/v1/me/pistes', { token: b.token })).status, 200);
+  assert.deepEqual((await call('GET', `/v1/pistes?name=Ventina&lat=${here.lat}&lon=${here.lon}`, { token: a.token })).body.rows.map(r => r.name), ['Alessio']);
+  await call('DELETE', '/v1/me', { token: a.token, body: { password: 'neve-2026' } });
+  assert.ok(!data.has('pistes:' + a.id));
+});
+
+test('a meeting point reaches friends only, and is over after its time', async () => {
+  const { call, signUp, befriend, data } = server();
+  const a = await signUp('Alessio');
+  const b = await signUp('Alex');
+  const c = await signUp('Estraneo');
+  await befriend(a, b);
+  const hut = { lat: 45.9412, lon: 7.6388, label: 'Rifugio Teodulo' };
+
+  assert.equal((await call('PUT', '/v1/me/meeting', { body: hut })).status, 401);
+  assert.equal((await call('PUT', '/v1/me/meeting', { token: a.token, body: { lat: 'qui', lon: 7 } })).status, 400);
+  const when = Date.now() + 2 * 3600 * 1000;
+  const set = await call('PUT', '/v1/me/meeting', { token: a.token, body: { ...hut, when } });
+  assert.equal(set.status, 201);
+  assert.deepEqual(set.body.meetings.map(m => [m.name, m.mine, m.label, m.when]), [['Alessio', true, 'Rifugio Teodulo', when]]);
+
+  // The friend sees it, with the positions too; the stranger does not.
+  const seen = (await call('GET', '/v1/meetings', { token: b.token })).body.meetings;
+  assert.deepEqual(seen.map(m => [m.name, m.mine, m.lat, m.lon]), [['Alessio', false, 45.9412, 7.6388]]);
+  assert.equal((await call('GET', '/v1/friends/positions', { token: b.token })).body.meetings.length, 1);
+  assert.equal((await call('PUT', '/v1/me/position', { token: b.token, body: { lat: 45.93, lon: 7.63 } })).body.meetings.length, 1);
+  assert.deepEqual((await call('GET', '/v1/meetings', { token: c.token })).body.meetings, []);
+
+  // One for each account: a new one replaces it. A time long gone, or too far ahead, is no time.
+  await call('PUT', '/v1/me/meeting', { token: a.token, body: { ...hut, label: 'x'.repeat(200), when: Date.now() + 9 * 24 * 3600 * 1000 } });
+  const again = (await call('GET', '/v1/meetings', { token: b.token })).body.meetings;
+  assert.equal(again.length, 1);
+  assert.equal(again[0].label.length, 80);
+  assert.equal(again[0].when, null);
+
+  // Over: forgotten the next time someone looks.
+  const kept = data.get('meet:' + a.id);
+  data.set('meet:' + a.id, { ...kept, until: Date.now() - 1000 });
+  assert.deepEqual((await call('GET', '/v1/meetings', { token: b.token })).body.meetings, []);
+  assert.ok(!data.has('meet:' + a.id));
+
+  // Taken back by hand, and gone with the account.
+  await call('PUT', '/v1/me/meeting', { token: a.token, body: hut });
+  assert.deepEqual((await call('DELETE', '/v1/me/meeting', { token: a.token })).body.meetings, []);
+  await call('PUT', '/v1/me/meeting', { token: a.token, body: hut });
+  await call('DELETE', '/v1/me', { token: a.token, body: { password: 'neve-2026' } });
+  assert.ok(!data.has('meet:' + a.id));
+  assert.deepEqual((await call('GET', '/v1/meetings', { token: b.token })).body.meetings, []);
+});

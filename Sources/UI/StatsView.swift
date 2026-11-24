@@ -10,6 +10,7 @@ struct StatsView: View {
     @State private var all = false
     @State private var heat = Demo.screen == "heat"
     @State private var recapping = Demo.screen == "recap"
+    @State private var pistes = ["pistes", "piste"].contains(Demo.screen ?? "")
 
     var body: some View {
         Group {
@@ -21,6 +22,8 @@ struct StatsView: View {
                         scope
                         totals
                         records
+                        Button { pistes = true } label: { pistesRow }
+                            .buttonStyle(PressStyle())
                         HStack(spacing: 10) {
                             Button { heat = true } label: { Label("Mappa di calore", systemImage: "flame") }
                                 .buttonStyle(SecondaryButtonStyle())
@@ -36,10 +39,33 @@ struct StatsView: View {
             .navigationTitle("Statistiche")
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(isPresented: $heat) { HeatmapView() }
+            .navigationDestination(isPresented: $pistes) { PistesView() }
             .sheet(isPresented: $recapping) {
                 SeasonSheet(recap: SeasonRecap(label: current?.label ?? String(localized: "Sempre"), days: days))
             }
         }
+    }
+
+    /// The way to the book of the pistes, with how many there are in it.
+    private var pistesRow: some View {
+        let known = Set(library.days.flatMap { day in (day.pistes ?? []).map { "\($0.n)|\(day.title ?? "")" } }).count
+        return HStack(spacing: 12) {
+            Image(systemName: "signpost.right.fill").font(.footnote.weight(.semibold)).foregroundStyle(Theme.accent)
+                .frame(width: 40, height: 40)
+                .iconBox()
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Le tue piste").font(.headline).foregroundStyle(Theme.text)
+                Text(known == 0 ? String(localized: "Quante volte, tempo migliore, sfida con gli amici")
+                     : String(localized: "\(known) piste: volte, tempo migliore, sfida con gli amici"))
+                    .font(.caption).foregroundStyle(Theme.sub).lineLimit(1).minimumScaleFactor(0.8)
+            }
+            Spacer(minLength: 6)
+            Image(systemName: "chevron.right").font(.subheadline.weight(.bold)).foregroundStyle(Theme.sub)
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .card()
+        .contentShape(Rectangle())
     }
 
     private var current: Season? { all ? nil : (season ?? library.seasons.first) }

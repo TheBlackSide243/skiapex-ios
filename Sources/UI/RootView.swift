@@ -7,6 +7,7 @@ import SwiftUI
 /// screens to move between and the button that records.
 struct RootView: View {
     @Environment(Social.self) private var social
+    @Environment(Library.self) private var library
     @State private var tab = Demo.tab
     @State private var detent = Demo.detent
     @State private var recenter = 0
@@ -31,6 +32,12 @@ struct RootView: View {
                 .presentationCornerRadius(36)
                 .presentationBackground(Theme.bg)
                 .interactiveDismissDisabled()
+        }
+        // The copy in iCloud, a moment after every save and when the app opens.
+        .task(id: library.saves) {
+            guard CloudCopy.isOn else { return }
+            try? await Task.sleep(for: .seconds(3))
+            if !Task.isCancelled { await CloudCopy.shared.sync(library) }
         }
         // A ski area put on the map: the sheet stands lower, to show it.
         .onChange(of: Stage.shared.asks) { _, _ in

@@ -41,55 +41,52 @@ struct SeasonCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("LA MIA STAGIONE").font(.system(size: 12, weight: .bold)).tracking(1.5).foregroundStyle(Theme.accent)
-            Text(recap.label).font(.system(size: 44, weight: .bold)).foregroundStyle(Theme.text)
+            Text("LA MIA STAGIONE").font(.system(size: 12, weight: .heavy, design: .rounded)).tracking(1.5).foregroundStyle(Theme.accent)
+            Text(recap.label).font(.system(size: 46, weight: .heavy, design: .rounded)).foregroundStyle(Theme.text)
                 .lineLimit(1).minimumScaleFactor(0.6)
             Spacer(minLength: 14)
-            VStack(alignment: .leading, spacing: 0) {
-                Text(Fmt.height(recap.vertical)).font(.system(size: 46, weight: .bold)).foregroundStyle(Theme.accent)
+            VStack(alignment: .leading, spacing: 2) {
+                FigureText(Fmt.height(recap.vertical), big: .system(size: 50, weight: .heavy, design: .rounded),
+                           small: .system(size: 20, weight: .heavy, design: .rounded))
+                    .foregroundStyle(Theme.accent)
                     .lineLimit(1).minimumScaleFactor(0.5)
-                Text("di dislivello sciato").font(.system(size: 13, weight: .medium)).foregroundStyle(Theme.sub)
+                Text("di dislivello sciato").font(.system(size: 13, weight: .medium, design: .rounded)).foregroundStyle(Theme.sub)
                 if recap.everests >= 0.5 {
                     Text("\(recap.everests.formatted(.number.precision(.fractionLength(1)))) volte l'Everest")
-                        .font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.text)
+                        .font(.system(size: 13, weight: .semibold, design: .rounded)).foregroundStyle(Theme.text)
                         .padding(.top, 4)
                 }
             }
             Spacer(minLength: 14)
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], alignment: .leading, spacing: 14) {
-                figure("\(recap.days)", "Giornate")
-                figure("\(recap.runs)", "Discese")
-                figure(Fmt.distance(recap.distance), "Sciati")
-                figure(Fmt.speed(recap.maxSpeed), "Velocità max")
-                figure(Fmt.duration(recap.time), "Sulla neve")
-                figure("\(recap.places)", "Posti")
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], alignment: .leading, spacing: 16) {
+                CardFigure(value: "\(recap.days)", label: "Giornate", size: 22)
+                CardFigure(value: "\(recap.runs)", label: "Discese", size: 22)
+                CardFigure(value: Fmt.distance(recap.distance), label: "Sciati", size: 22)
+                CardFigure(value: Fmt.speed(recap.maxSpeed), label: "Velocità max", size: 22)
+                CardFigure(value: Fmt.duration(recap.time), label: "Sulla neve", size: 22)
+                CardFigure(value: "\(recap.places)", label: "Posti", size: 22)
             }
             if let best = recap.best, best.stats.vertical > 0 {
                 Spacer(minLength: 14)
-                Text("LA GIORNATA MIGLIORE").font(.system(size: 10, weight: .bold)).tracking(1).foregroundStyle(Theme.sub)
+                Text("LA GIORNATA MIGLIORE").font(.system(size: 10, weight: .heavy, design: .rounded)).tracking(1).foregroundStyle(Theme.sub)
                 Text("\(best.title ?? Fmt.dayShort(best.start)) · \(Fmt.height(best.stats.vertical))")
-                    .font(.system(size: 15, weight: .semibold)).foregroundStyle(Theme.text)
+                    .font(.system(size: 15, weight: .semibold, design: .rounded)).foregroundStyle(Theme.text)
                     .lineLimit(1).minimumScaleFactor(0.6)
+                if let legs = best.shape, legs.count > 1 {
+                    DayProfile(legs: legs, lineWidth: 2).frame(height: 34).padding(.top, 8)
+                }
             }
             Spacer(minLength: 14)
-            HStack {
-                Text("SKI APEX").font(.system(size: 13, weight: .bold)).tracking(1.5).foregroundStyle(Theme.accent)
-                Spacer()
-                Image(systemName: "figure.skiing.downhill").font(.system(size: 14, weight: .semibold)).foregroundStyle(Theme.accent)
-            }
+            Rectangle().fill(Theme.line).frame(height: 1)
+            CardFoot().padding(.top, 12)
         }
         .padding(24)
         .frame(width: Self.size.width, height: Self.size.height, alignment: .topLeading)
-        .background(LinearGradient(colors: [Theme.sky, Theme.bg, Theme.deep], startPoint: .top, endPoint: .bottom))
-    }
-
-    private func figure(_ value: String, _ label: String) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(value).font(.system(size: 20, weight: .semibold)).foregroundStyle(Theme.text)
-                .lineLimit(1).minimumScaleFactor(0.6)
-            Text(LocalizedStringKey(label)).font(.system(size: 10, weight: .medium)).foregroundStyle(Theme.sub)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            LinearGradient(stops: [.init(color: Theme.sky, location: 0), .init(color: Theme.bg, location: 0.5), .init(color: Theme.deep, location: 1)],
+                           startPoint: .top, endPoint: .bottom)
+        )
+        .fontDesign(.rounded)
     }
 }
 
