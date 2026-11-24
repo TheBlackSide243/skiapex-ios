@@ -1,11 +1,12 @@
-Ski Apex 0.8.0
+Ski Apex 0.8.1
+- Meeting point: the invitation reaches only the friends skiing in that area that day. They answer I'm in or Not coming, and who set it sees who accepted, who refused and who has not answered yet. With a notice when a friend asks to meet or answers yours.
+To test: send a meeting point from Explore to a friend, answer on their iPhone and look at the list of the answers on yours.
 - Your pistes: for each piste how many times you skied it, your best time and your top speed. In Days, Statistics, Your pistes; and on the page of a ski area and of a run.
 - Challenge on a piste: turn it on in Friends and each piste shows the ranking of the times with your friends.
 - Meeting point: in Explore touch a hut, a piste or a lift and choose Let's meet here. Your friends see it on the map, with the way to get there.
 - New pictures to share, as a post or as a story.
 - The Watch and the widgets in the look of the app, and a complication to open Ski Apex from the watch face.
 - A copy of the days in iCloud: the switch is in Settings, Backup, but in this build iCloud is not on yet.
-To test: open Your pistes and one piste; turn the challenge on with a friend; send a meeting point from Explore; share a day in both formats; the complication and the new screens on the Watch.
 - The profile of the day: up with the lifts, down the pistes in the color of their signs. On every day of the list and at the top of its page.
 - Piste badges, with color and number as on the signs; on the map the runs take the color of their piste, and the places you skied are marked with the lens of the icon.
 - The ski area on the map: open a ski area from the Guide and the map behind shows it with all its pistes and lifts.

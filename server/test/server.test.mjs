@@ -454,6 +454,8 @@ test('a meeting point reaches friends only, and is over after its time', async (
   const c = await signUp('Estraneo');
   await befriend(a, b);
   const hut = { lat: 45.9412, lon: 7.6388, label: 'Rifugio Teodulo' };
+  // Alex and the stranger are skiing around there today.
+  for (const who of [b, c]) await call('PUT', '/v1/me/presence', { token: who.token, body: { lat: 45.93, lon: 7.63 } });
 
   assert.equal((await call('PUT', '/v1/me/meeting', { body: hut })).status, 401);
   assert.equal((await call('PUT', '/v1/me/meeting', { token: a.token, body: { lat: 'qui', lon: 7 } })).status, 400);
@@ -489,4 +491,99 @@ test('a meeting point reaches friends only, and is over after its time', async (
   await call('DELETE', '/v1/me', { token: a.token, body: { password: 'neve-2026' } });
   assert.ok(!data.has('meet:' + a.id));
   assert.deepEqual((await call('GET', '/v1/meetings', { token: b.token })).body.meetings, []);
+});
+
+test('a meeting point is accepted or refused, and only who set it sees who said what', async () => {
+  const { call, signUp, befriend, data } = server();
+  const a = await signUp('Alessio');
+  const b = await signUp('Alex');
+  const c = await signUp('Carla');
+  const d = await signUp('Estraneo');
+  await befriend(a, b);
+  await befriend(a, c);
+  const hut = { lat: 45.9412, lon: 7.6388, label: 'Rifugio Teodulo' };
+  // Everyone but Alessio is skiing around there today.
+  for (const who of [b, c, d]) await call('PUT', '/v1/me/presence', { token: who.token, body: { lat: 45.93, lon: 7.63 } });
+  await call('PUT', '/v1/me/meeting', { token: a.token, body: hut });
+  const mine = async () => (await call('GET', '/v1/meetings', { token: a.token })).body.meetings[0];
+  const theirs = async who => (await call('GET', '/v1/meetings', { token: who.token })).body.meetings[0];
+
+  // Nobody answered yet: whose it is sees every friend waiting, a friend sees no answer of their own.
+  assert.deepEqual((await mine()).answers.map(x => [x.name, x.answer]), [['Alex', null], ['Carla', null]]);
+  assert.equal((await theirs(b)).answer, null);
+  assert.equal((await theirs(b)).answers, undefined, 'a friend does not see what the others said');
+
+  assert.equal((await call('PUT', `/v1/meetings/${a.id}/answer`, { body: { coming: true } })).status, 401);
+  assert.equal((await call('PUT', `/v1/meetings/${a.id}/answer`, { token: b.token, body: { coming: 'forse' } })).status, 400);
+  assert.equal((await call('PUT', `/v1/meetings/${a.id}/answer`, { token: d.token, body: { coming: true } })).status, 404, 'not a friend');
+  assert.equal((await call('PUT', `/v1/meetings/${b.id}/answer`, { token: a.token, body: { coming: true } })).status, 404, 'no place set');
+  assert.equal((await call('PUT', `/v1/meetings/${a.id}/answer`, { token: a.token, body: { coming: true } })).status, 404, 'not to your own');
+
+  // Carla is not coming, Alex is: the answer comes back with the meetings, and whose it is sees both.
+  const no = await call('PUT', `/v1/meetings/${a.id}/answer`, { token: c.token, body: { coming: false } });
+  assert.equal(no.status, 200);
+  assert.equal(no.body.meetings[0].answer, 'no');
+  await call('PUT', `/v1/meetings/${a.id}/answer`, { token: b.token, body: { coming: true } });
+  assert.equal((await theirs(b)).answer, 'yes');
+  assert.deepEqual((await mine()).answers.map(x => [x.name, x.answer]), [['Alex', 'yes'], ['Carla', 'no']]);
+  // A change of mind.
+  await call('PUT', `/v1/meetings/${a.id}/answer`, { token: c.token, body: { coming: true } });
+  assert.deepEqual((await mine()).answers.map(x => [x.name, x.answer]), [['Alex', 'yes'], ['Carla', 'yes']]);
+
+  // No longer a friend: no longer in the list. A new place is a new question for everyone.
+  await call('DELETE', '/v1/friends/' + c.id, { token: a.token });
+  assert.deepEqual((await mine()).answers.map(x => x.name), ['Alex']);
+  await call('PUT', '/v1/me/meeting', { token: a.token, body: { ...hut, label: 'Baita del Sole' } });
+  assert.deepEqual((await mine()).answers.map(x => [x.name, x.answer]), [['Alex', null]]);
+  assert.equal((await theirs(b)).answer, null);
+
+  // Over: nothing left to answer.
+  data.set('meet:' + a.id, { ...data.get('meet:' + a.id), until: Date.now() - 1000 });
+  assert.equal((await call('PUT', `/v1/meetings/${a.id}/answer`, { token: b.token, body: { coming: true } })).status, 404);
+});
+
+test('a meeting point reaches only the friends skiing around there that day', async () => {
+  const { call, signUp, befriend, data } = server();
+  const a = await signUp('Alessio');
+  const b = await signUp('Alex');
+  const c = await signUp('Carla');
+  const e = await signUp('Elena');
+  for (const who of [b, c, e]) await befriend(a, who);
+  const hut = { lat: 45.9412, lon: 7.6388, label: 'Rifugio Teodulo' };
+  const seen = async who => (await call('GET', '/v1/meetings', { token: who.token })).body.meetings;
+
+  assert.equal((await call('PUT', '/v1/me/presence', { body: { lat: 45.93, lon: 7.63 } })).status, 401);
+  assert.equal((await call('PUT', '/v1/me/presence', { token: b.token, body: { lat: 'qui', lon: 7 } })).status, 400);
+  // Alex skis there, Carla in Livigno, Elena is at home.
+  await call('PUT', '/v1/me/presence', { token: b.token, body: { lat: 45.93361, lon: 7.62954 } });
+  await call('PUT', '/v1/me/presence', { token: c.token, body: { lat: 46.5386, lon: 10.1357 } });
+  await call('PUT', '/v1/me/meeting', { token: a.token, body: hut });
+
+  assert.deepEqual((await seen(b)).map(m => m.label), ['Rifugio Teodulo']);
+  assert.deepEqual(await seen(c), [], 'skiing somewhere else');
+  assert.deepEqual(await seen(e), [], 'not skiing');
+  assert.deepEqual((await seen(a))[0].answers.map(x => x.name), ['Alex'], 'whose it is sees who it reached');
+  assert.equal((await call('PUT', `/v1/meetings/${a.id}/answer`, { token: e.token, body: { coming: true } })).status, 404);
+  // Kept to the kilometer.
+  assert.ok(!JSON.stringify([...data.entries()]).includes('45.93361'));
+
+  // Elena starts her day there: the place reaches her too, and saying where she is answers with it.
+  const started = await call('PUT', '/v1/me/presence', { token: e.token, body: { lat: 45.95, lon: 7.65 } });
+  assert.deepEqual(started.body.meetings.map(m => m.label), ['Rifugio Teodulo']);
+  assert.deepEqual((await seen(a))[0].answers.map(x => x.name), ['Alex', 'Elena']);
+
+  // Half a day later Alex is no longer skiing there: unless he answered, which stays.
+  await call('PUT', `/v1/meetings/${a.id}/answer`, { token: e.token, body: { coming: true } });
+  for (const who of [b, e]) data.set('here:' + who.id, { ...data.get('here:' + who.id), at: Date.now() - 13 * 3600 * 1000 });
+  assert.deepEqual(await seen(b), []);
+  assert.deepEqual((await seen(e)).map(m => m.answer), ['yes']);
+  assert.deepEqual((await seen(a))[0].answers.map(x => [x.name, x.answer]), [['Elena', 'yes']]);
+  assert.ok(!data.has('here:' + b.id), 'forgotten');
+
+  // Taken back by hand, and gone with the account.
+  await call('PUT', '/v1/me/presence', { token: b.token, body: { lat: 45.93, lon: 7.63 } });
+  assert.deepEqual((await call('DELETE', '/v1/me/presence', { token: b.token })).body.meetings, []);
+  await call('PUT', '/v1/me/presence', { token: c.token, body: { lat: 45.93, lon: 7.63 } });
+  await call('DELETE', '/v1/me', { token: c.token, body: { password: 'neve-2026' } });
+  assert.ok(!data.has('here:' + c.id));
 });

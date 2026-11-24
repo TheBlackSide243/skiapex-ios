@@ -79,6 +79,9 @@ enum Prefs {
     static let sharePistes = "sharePistes"
     /// Keep a copy of the days in iCloud. Off unless set on.
     static let cloud = "cloudCopy"
+    /// While a day is recorded, tell the server in which area it is, so that the places to meet
+    /// of the friends skiing there arrive. On unless set off.
+    static let presence = "presence"
 }
 
 /// Launched with `-demo`: made-up days and a day under way, for the screenshots. `-screen <name>`

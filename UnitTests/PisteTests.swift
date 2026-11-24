@@ -156,6 +156,56 @@ final class PisteTests: XCTestCase {
         XCTAssertEqual(MeetingEditor.next(now.addingTimeInterval(900), after: now), now.addingTimeInterval(900))
     }
 
+    /// A place to meet is answered: what you said to a friend's, what the friends said to yours,
+    /// and what is new is said once.
+    func testAPlaceToMeetIsAnswered() throws {
+        let json = """
+        [{"id":"a","name":"Giulia","photo":0,"mine":false,"lat":45.94,"lon":7.63,"label":"Baita del Sole","when":null,
+          "until":1795040000000,"at":1795000000000,"answer":null},
+         {"id":"me","name":"Marco","photo":0,"mine":true,"lat":45.93,"lon":7.63,"label":"Rifugio Teodulo","when":null,
+          "until":1795040000000,"at":1794990000000,
+          "answers":[{"id":"a","name":"Giulia","photo":0,"answer":"yes"},{"id":"b","name":"Luca","photo":0,"answer":"no"},
+                     {"id":"c","name":"Sara","photo":0,"answer":null}]}]
+        """
+        var meetings = try JSONDecoder().decode([Meeting].self, from: Data(json.utf8))
+        XCTAssertTrue(meetings[0].asks)
+        XCTAssertNil(meetings[0].answers)
+        XCTAssertFalse(meetings[1].asks, "your own asks nothing of you")
+        XCTAssertEqual(meetings[1].answers?.map(\.answer), ["yes", "no", nil])
+        let count = meetings[1].count
+        XCTAssertEqual([count.yes, count.no, count.waiting], [1, 1, 1])
+        XCTAssertEqual(MeetingAnswers.words("yes"), "Ci sarà")
+        XCTAssertEqual(MeetingAnswers.words(nil), "Non ha ancora risposto")
+        XCTAssertNotEqual(MeetingAnswers.symbol("yes"), MeetingAnswers.symbol("no"))
+
+        // A friend asks, and two friends answered yours: three things to say, each once.
+        let first = MeetingNews.notices(meetings, told: [])
+        XCTAssertEqual(first.count, 3)
+        XCTAssertEqual(first[0].key, "ask:a:1795000000000")
+        XCTAssertTrue(first[0].title.contains("Giulia"))
+        XCTAssertTrue(first[0].body.contains("Baita del Sole"))
+        XCTAssertEqual(Set(first.dropFirst().map(\.key)), ["answer:a:1794990000000:yes", "answer:b:1794990000000:no"])
+        XCTAssertTrue(first.dropFirst().allSatisfy { $0.body.contains("Rifugio Teodulo") })
+        XCTAssertEqual(MeetingNews.notices(meetings, told: Set(first.map(\.key))), [])
+
+        // Once you answered, the friend's asks no more; a friend who changes their mind is news,
+        // and so is the same friend asking again with a new place.
+        meetings[0].answer = "yes"
+        XCTAssertFalse(meetings[0].asks)
+        meetings[1].answers?[1].answer = "yes"
+        let later = MeetingNews.notices(meetings, told: Set(first.map(\.key)))
+        XCTAssertEqual(later.map(\.key), ["answer:b:1794990000000:yes"])
+        // Where the day is, is said to the server every five minutes, not more.
+        let said = Date(timeIntervalSinceReferenceDate: 800_000_000)
+        XCTAssertTrue(Presence.due(last: .distantPast, now: said))
+        XCTAssertFalse(Presence.due(last: said, now: said.addingTimeInterval(120)))
+        XCTAssertTrue(Presence.due(last: said, now: said.addingTimeInterval(300)))
+
+        meetings[0].answer = nil
+        meetings[0].at += 60_000
+        XCTAssertEqual(MeetingNews.notices(meetings, told: Set(first.map(\.key) + later.map(\.key))).map(\.key), ["ask:a:1795000060000"])
+    }
+
     /// The copy in iCloud, with two folders: what is in one goes to the other, the newest of a
     /// day wins, and a day deleted on purpose goes from both and does not come back.
     func testTwoFoldersBroughtLevel() throws {
