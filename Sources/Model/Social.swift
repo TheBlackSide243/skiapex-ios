@@ -147,6 +147,29 @@ struct Meeting: Codable, Identifiable, Hashable {
     }
 }
 
+/// Where you are skiing today, to the kilometer, told to the server while a day is recorded: a
+/// place to meet reaches only the friends skiing around it that day. Said again every few
+/// minutes, which is also when the places to meet are heard of with the iPhone in a pocket.
+enum Presence {
+    static let every = 300.0
+    private static var last = Date.distantPast
+
+    static var isOn: Bool { UserDefaults.standard.object(forKey: Prefs.presence) as? Bool ?? true }
+
+    /// Whether it is time to say it again.
+    static func due(last: Date, now: Date) -> Bool { now.timeIntervalSince(last) >= every }
+
+    static func update(recording: Bool, point: TrackPoint?, social: Social) {
+        guard recording, isOn, social.signedIn, let point, Date().timeIntervalSince(point.t) < 120,
+              due(last: last, now: Date()) else { return }
+        last = Date()
+        Task { await social.sendPresence(point) }
+    }
+
+    /// Turned off, or signed out: the next day says it at once.
+    static func reset() { last = .distantPast }
+}
+
 /// Your position to your friends while a day is recorded, if you turned it on: sent every half
 /// minute at most, and taken back when the recording pauses or ends, or when you turn it off.
 enum LiveShare {
@@ -157,6 +180,8 @@ enum LiveShare {
         let social = Shared.social
         // The friends a few steps away, over Bluetooth: with or without signal.
         Proximity.shared.update(recording: state == .recording)
+        // In which area the day is, for the places to meet of the friends skiing there.
+        Presence.update(recording: state == .recording, point: point, social: social)
         let on = UserDefaults.standard.bool(forKey: Prefs.shareLive) && social.signedIn
         if on, state == .recording, let point, Date().timeIntervalSince(point.t) < 90 {
             guard Date().timeIntervalSince(lastSent) >= 25 else { return }
@@ -575,6 +600,27 @@ enum SocialError: LocalizedError {
             done = true
         }
         return done
+    }
+
+    /// Tells the server in which area you are skiing, to the kilometer; the answer has the places
+    /// to meet you are asked to. Silent: a recording must not show errors for this.
+    @MainActor func sendPresence(_ point: TrackPoint) async {
+        guard signedIn, !demo else { return }
+        struct Answer: Decodable { let meetings: [Meeting] }
+        let body = ["lat": (point.lat * 100).rounded() / 100, "lon": (point.lon * 100).rounded() / 100]
+        guard let data = try? await call("PUT", "/v1/me/presence", body),
+              let answer = try? JSONDecoder().decode(Answer.self, from: data) else { return }
+        take(answer.meetings)
+    }
+
+    /// Takes back from the server where you are skiing: the invitations no longer arrive.
+    @MainActor func stopPresence() async {
+        Presence.reset()
+        guard signedIn, !demo else { return }
+        struct Answer: Decodable { let meetings: [Meeting] }
+        guard let data = try? await call("DELETE", "/v1/me/presence"),
+              let answer = try? JSONDecoder().decode(Answer.self, from: data) else { return }
+        take(answer.meetings)
     }
 
     /// Says to a friend whether you are coming to the place they set. It can be said again.

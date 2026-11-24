@@ -73,7 +73,9 @@ struct MeetingAnswers: View {
         let answers = meeting.answers ?? []
         VStack(alignment: .leading, spacing: 10) {
             if answers.isEmpty {
-                Text("Quando avrai degli amici, qui vedi chi viene e chi no.").font(.caption).foregroundStyle(Theme.sub)
+                Text("Nessun amico sta sciando qui oggi. L'invito arriva a chi registra una giornata in zona, anche più tardi.")
+                    .prose().font(.caption).foregroundStyle(Theme.sub)
+                    .fixedSize(horizontal: false, vertical: true)
             } else {
                 let count = meeting.count
                 Text("Vengono in \(count.yes) · non vengono in \(count.no) · in attesa \(count.waiting)")
@@ -141,6 +143,7 @@ struct MeetingRow: View {
 struct MeetingsPanel: View {
     @Environment(Social.self) private var social
     @Environment(Recorder.self) private var recorder
+    @AppStorage(Prefs.presence) private var invited = true
 
     /// Where you are: the day under way, or the iPhone.
     private var here: CLLocationCoordinate2D? {
@@ -169,7 +172,18 @@ struct MeetingsPanel: View {
                 } label: { Label("Scegli sulla mappa", systemImage: "mappin.and.ellipse") }
                     .buttonStyle(SecondaryButtonStyle())
             }
-            Text("Per dire agli amici dove trovarvi apri la mappa di una stazione, tocca un rifugio, una pista o un impianto e scegli \"Troviamoci qui\". Ognuno dice se c'è o no, e tu vedi chi ha accettato e chi ha rifiutato. Lo vedono quando aprono l'app, con il percorso sulle piste per arrivarci. Finisce da solo un'ora dopo l'orario scelto, o dopo mezza giornata.")
+            Text("Per dire agli amici dove trovarvi apri la mappa di una stazione, tocca un rifugio, una pista o un impianto e scegli \"Troviamoci qui\". L'invito arriva solo agli amici che quel giorno sciano in quella zona. Ognuno dice se c'è o no, e tu vedi chi ha accettato e chi ha rifiutato. Finisce da solo un'ora dopo l'orario scelto, o dopo mezza giornata.")
+                .prose().font(.caption).foregroundStyle(Theme.sub)
+                .fixedSize(horizontal: false, vertical: true)
+            Toggle(isOn: $invited) {
+                Text("Ricevi gli inviti mentre scii").font(.subheadline).foregroundStyle(Theme.text)
+            }
+            .tint(Theme.accent)
+            .onChange(of: invited) { _, on in
+                // Off: what the server has is taken back at once.
+                if !on { Task { await social.stopPresence() } }
+            }
+            Text("Acceso, mentre registri una giornata il server sa in che zona stai sciando, al chilometro, per farti arrivare gli inviti degli amici che sono lì. Lo dimentica dopo mezza giornata. Chi ti invita vede il tuo nome tra gli invitati.")
                 .prose().font(.caption).foregroundStyle(Theme.sub)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -300,7 +314,7 @@ struct MeetingEditor: View {
                         }
                         .buttonStyle(PrimaryButtonStyle())
                         .disabled(sending)
-                        Text("I tuoi amici lo vedono quando aprono Ski Apex, o mentre registrano, e dicono se ci sono o no: tu vedi chi ha accettato e chi ha rifiutato. Sostituisce il punto che avevi mandato prima.")
+                        Text("Arriva solo agli amici che oggi sciano in questa zona, cioè che stanno registrando o hanno registrato nelle ultime ore entro 25 km. Dicono se ci sono o no, e tu vedi chi ha accettato e chi ha rifiutato. Sostituisce il punto che avevi mandato prima.")
                             .prose().font(.caption).foregroundStyle(Theme.sub)
                             .fixedSize(horizontal: false, vertical: true)
                     } else {

@@ -12,7 +12,9 @@
 // For who turns on the challenge on the pistes, it keeps the pistes skied by name, where they are
 // to the kilometer and the best time down each: seen by friends only. A meeting point set for the
 // friends (a place chosen on the map, not where one is) is kept until it is over, a day at most,
-// with who said they are coming and who said they are not.
+// with who said they are coming and who said they are not. It reaches only the friends skiing
+// around there that day: for that, while a day is recorded the phone says in which area it is,
+// to the kilometer, and that is forgotten half a day later.
 
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const USERNAME = /^[A-Za-z0-9_.-]{3,20}$/;
@@ -45,6 +47,9 @@ const PISTE_RADIUS = 15000;
 // A meeting point lasts half a day unless told otherwise, and never more than a day.
 const MEETING_TTL = 12 * 3600 * 1000;
 const MAX_MEETING = 24 * 3600 * 1000;
+// A place to meet is for the friends skiing within this many meters of it, in the last half day.
+const MEETING_RADIUS = 25000;
+const PRESENCE_TTL = 12 * 3600 * 1000;
 // Who signs the tokens of "Sign in with Apple" and of Google, and what they call themselves.
 const PROVIDERS = {
   apple: { keys: 'https://appleid.apple.com/auth/keys', issuers: ['https://appleid.apple.com'] },
@@ -121,7 +126,7 @@ export class Accounts {
       this.positions.delete(user.id);
       const seasons = (user.seasons || []).map(year => `season:${user.id}:${year}`);
       await this.forgetVisits(user);
-      const own = ['photo:' + user.id, 'pistes:' + user.id, 'meet:' + user.id, ...(user.ext ? [user.ext] : [])];
+      const own = ['photo:' + user.id, 'pistes:' + user.id, 'meet:' + user.id, 'here:' + user.id, ...(user.ext ? [user.ext] : [])];
       await this.state.storage.delete([...user.tokens.map(t => 'token:' + t), ...seasons, ...own, 'user:' + user.name.toLowerCase(), 'id:' + user.id]);
       return json({ ok: true });
     }
@@ -158,6 +163,11 @@ export class Accounts {
       return json({ ok: true, meetings: await this.meetings(user) });
     }
     if (path === '/v1/meetings' && method === 'GET') return json({ meetings: await this.meetings(user) });
+    if (path === '/v1/me/presence' && method === 'PUT') return this.present(user, await body(request));
+    if (path === '/v1/me/presence' && method === 'DELETE') {
+      await this.state.storage.delete('here:' + user.id);
+      return json({ ok: true, meetings: await this.meetings(user) });
+    }
     const answered = path.match(/^\/v1\/meetings\/([^/]+)\/answer$/);
     if (answered && method === 'PUT') return this.answer(user, answered[1], await body(request));
     if (path === '/v1/me/pistes' && method === 'PUT') return this.sharePistes(user, await body(request));
@@ -558,18 +568,42 @@ export class Accounts {
     return json({ ok: true, meetings: await this.meetings(user) }, 201);
   }
 
+  /// Where you are skiing today, to the kilometer: said by the phone while a day is recorded, so
+  /// that the places to meet of the friends skiing around reach you. Forgotten half a day later.
+  /// The answer has the places to meet, yours and the ones you are asked to.
+  async present(user, b) {
+    if (typeof b?.lat !== 'number' || typeof b?.lon !== 'number' || !(Math.abs(b.lat) <= 90) || !(Math.abs(b.lon) <= 180)) {
+      return json({ error: 'bad position' }, 400);
+    }
+    await this.state.storage.put('here:' + user.id, { la: Math.round(b.lat * 100) / 100, lo: Math.round(b.lon * 100) / 100, at: Date.now() });
+    return json({ ok: true, meetings: await this.meetings(user) });
+  }
+
+  /// Whether a place to meet is for someone: they are skiing around it today, or they answered it.
+  async invited(person, m, now) {
+    if (m.answers?.[person.id]) return true;
+    const here = await this.state.storage.get('here:' + person.id);
+    if (!here) return false;
+    if (now - here.at > PRESENCE_TTL) {
+      await this.state.storage.delete('here:' + person.id);
+      return false;
+    }
+    return meters(m.lat, m.lon, here.la, here.lo) <= MEETING_RADIUS;
+  }
+
   /// Your answer to the place to meet of a friend: you are coming, or you are not. It can be
   /// changed; a new place set by the friend is a new question.
   async answer(user, owner, b) {
     if (typeof b?.coming !== 'boolean') return json({ error: 'bad answer' }, 400);
     const m = user.friends?.some(f => f.id === owner) ? await this.state.storage.get('meet:' + owner) : null;
-    if (!m || m.until <= Date.now()) return json({ error: 'no such meeting' }, 404);
+    if (!m || m.until <= Date.now() || !(await this.invited(user, m, Date.now()))) return json({ error: 'no such meeting' }, 404);
     m.answers = { ...(m.answers || {}), [user.id]: { a: b.coming ? 'yes' : 'no', at: Date.now() } };
     await this.state.storage.put('meet:' + owner, m);
     return json({ ok: true, meetings: await this.meetings(user) });
   }
 
-  /// The meeting points of you and of your friends that are not over yet, the newest first.
+  /// Your meeting point, and the ones of your friends you are asked to (you are skiing around
+  /// there today), that are not over yet: the newest first.
   async meetings(user) {
     const now = Date.now();
     const out = [];
@@ -587,12 +621,16 @@ export class Accounts {
       }
       const answers = m.answers || {};
       const mine = person.id === user.id;
+      // A friend's place is for you only if you are skiing around it today.
+      if (!mine && !(await this.invited(user, m, now))) continue;
       const view = { ...this.card(person), mine, lat: m.lat, lon: m.lon, label: m.label, when: m.when, until: m.until, at: m.at };
       if (mine) {
-        // Whose place it is sees every friend with what each said: coming first, then not
-        // coming, then who has not answered yet.
+        // Whose place it is sees the friends it reached with what each said: coming first, then
+        // not coming, then who has not answered yet.
         const order = { yes: 0, no: 1 };
-        view.answers = people.slice(1)
+        const asked = [];
+        for (const friend of people.slice(1)) if (await this.invited(friend, m, now)) asked.push(friend);
+        view.answers = asked
           .map(friend => ({ ...this.card(friend), answer: answers[friend.id]?.a || null }))
           .sort((a, b) => (order[a.answer] ?? 2) - (order[b.answer] ?? 2) || a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
       } else {

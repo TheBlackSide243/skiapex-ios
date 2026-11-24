@@ -454,6 +454,8 @@ test('a meeting point reaches friends only, and is over after its time', async (
   const c = await signUp('Estraneo');
   await befriend(a, b);
   const hut = { lat: 45.9412, lon: 7.6388, label: 'Rifugio Teodulo' };
+  // Alex and the stranger are skiing around there today.
+  for (const who of [b, c]) await call('PUT', '/v1/me/presence', { token: who.token, body: { lat: 45.93, lon: 7.63 } });
 
   assert.equal((await call('PUT', '/v1/me/meeting', { body: hut })).status, 401);
   assert.equal((await call('PUT', '/v1/me/meeting', { token: a.token, body: { lat: 'qui', lon: 7 } })).status, 400);
@@ -500,6 +502,8 @@ test('a meeting point is accepted or refused, and only who set it sees who said 
   await befriend(a, b);
   await befriend(a, c);
   const hut = { lat: 45.9412, lon: 7.6388, label: 'Rifugio Teodulo' };
+  // Everyone but Alessio is skiing around there today.
+  for (const who of [b, c, d]) await call('PUT', '/v1/me/presence', { token: who.token, body: { lat: 45.93, lon: 7.63 } });
   await call('PUT', '/v1/me/meeting', { token: a.token, body: hut });
   const mine = async () => (await call('GET', '/v1/meetings', { token: a.token })).body.meetings[0];
   const theirs = async who => (await call('GET', '/v1/meetings', { token: who.token })).body.meetings[0];
@@ -536,4 +540,50 @@ test('a meeting point is accepted or refused, and only who set it sees who said 
   // Over: nothing left to answer.
   data.set('meet:' + a.id, { ...data.get('meet:' + a.id), until: Date.now() - 1000 });
   assert.equal((await call('PUT', `/v1/meetings/${a.id}/answer`, { token: b.token, body: { coming: true } })).status, 404);
+});
+
+test('a meeting point reaches only the friends skiing around there that day', async () => {
+  const { call, signUp, befriend, data } = server();
+  const a = await signUp('Alessio');
+  const b = await signUp('Alex');
+  const c = await signUp('Carla');
+  const e = await signUp('Elena');
+  for (const who of [b, c, e]) await befriend(a, who);
+  const hut = { lat: 45.9412, lon: 7.6388, label: 'Rifugio Teodulo' };
+  const seen = async who => (await call('GET', '/v1/meetings', { token: who.token })).body.meetings;
+
+  assert.equal((await call('PUT', '/v1/me/presence', { body: { lat: 45.93, lon: 7.63 } })).status, 401);
+  assert.equal((await call('PUT', '/v1/me/presence', { token: b.token, body: { lat: 'qui', lon: 7 } })).status, 400);
+  // Alex skis there, Carla in Livigno, Elena is at home.
+  await call('PUT', '/v1/me/presence', { token: b.token, body: { lat: 45.93361, lon: 7.62954 } });
+  await call('PUT', '/v1/me/presence', { token: c.token, body: { lat: 46.5386, lon: 10.1357 } });
+  await call('PUT', '/v1/me/meeting', { token: a.token, body: hut });
+
+  assert.deepEqual((await seen(b)).map(m => m.label), ['Rifugio Teodulo']);
+  assert.deepEqual(await seen(c), [], 'skiing somewhere else');
+  assert.deepEqual(await seen(e), [], 'not skiing');
+  assert.deepEqual((await seen(a))[0].answers.map(x => x.name), ['Alex'], 'whose it is sees who it reached');
+  assert.equal((await call('PUT', `/v1/meetings/${a.id}/answer`, { token: e.token, body: { coming: true } })).status, 404);
+  // Kept to the kilometer.
+  assert.ok(!JSON.stringify([...data.entries()]).includes('45.93361'));
+
+  // Elena starts her day there: the place reaches her too, and saying where she is answers with it.
+  const started = await call('PUT', '/v1/me/presence', { token: e.token, body: { lat: 45.95, lon: 7.65 } });
+  assert.deepEqual(started.body.meetings.map(m => m.label), ['Rifugio Teodulo']);
+  assert.deepEqual((await seen(a))[0].answers.map(x => x.name), ['Alex', 'Elena']);
+
+  // Half a day later Alex is no longer skiing there: unless he answered, which stays.
+  await call('PUT', `/v1/meetings/${a.id}/answer`, { token: e.token, body: { coming: true } });
+  for (const who of [b, e]) data.set('here:' + who.id, { ...data.get('here:' + who.id), at: Date.now() - 13 * 3600 * 1000 });
+  assert.deepEqual(await seen(b), []);
+  assert.deepEqual((await seen(e)).map(m => m.answer), ['yes']);
+  assert.deepEqual((await seen(a))[0].answers.map(x => [x.name, x.answer]), [['Elena', 'yes']]);
+  assert.ok(!data.has('here:' + b.id), 'forgotten');
+
+  // Taken back by hand, and gone with the account.
+  await call('PUT', '/v1/me/presence', { token: b.token, body: { lat: 45.93, lon: 7.63 } });
+  assert.deepEqual((await call('DELETE', '/v1/me/presence', { token: b.token })).body.meetings, []);
+  await call('PUT', '/v1/me/presence', { token: c.token, body: { lat: 45.93, lon: 7.63 } });
+  await call('DELETE', '/v1/me', { token: c.token, body: { password: 'neve-2026' } });
+  assert.ok(!data.has('here:' + c.id));
 });

@@ -1,5 +1,5 @@
 Ski Apex 0.8.1
-- Meeting point: friends answer I'm in or Not coming, and who set it sees who accepted, who refused and who has not answered yet. With a notice when a friend asks to meet or answers yours.
+- Meeting point: the invitation reaches only the friends skiing in that area that day. They answer I'm in or Not coming, and who set it sees who accepted, who refused and who has not answered yet. With a notice when a friend asks to meet or answers yours.
 To test: send a meeting point from Explore to a friend, answer on their iPhone and look at the list of the answers on yours.
 - Your pistes: for each piste how many times you skied it, your best time and your top speed. In Days, Statistics, Your pistes; and on the page of a ski area and of a run.
 - Challenge on a piste: turn it on in Friends and each piste shows the ranking of the times with your friends.

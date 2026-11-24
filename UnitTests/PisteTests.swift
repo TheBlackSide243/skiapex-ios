@@ -195,6 +195,12 @@ final class PisteTests: XCTestCase {
         meetings[1].answers?[1].answer = "yes"
         let later = MeetingNews.notices(meetings, told: Set(first.map(\.key)))
         XCTAssertEqual(later.map(\.key), ["answer:b:1794990000000:yes"])
+        // Where the day is, is said to the server every five minutes, not more.
+        let said = Date(timeIntervalSinceReferenceDate: 800_000_000)
+        XCTAssertTrue(Presence.due(last: .distantPast, now: said))
+        XCTAssertFalse(Presence.due(last: said, now: said.addingTimeInterval(120)))
+        XCTAssertTrue(Presence.due(last: said, now: said.addingTimeInterval(300)))
+
         meetings[0].answer = nil
         meetings[0].at += 60_000
         XCTAssertEqual(MeetingNews.notices(meetings, told: Set(first.map(\.key) + later.map(\.key))).map(\.key), ["ask:a:1795000060000"])
