@@ -125,7 +125,8 @@ struct PisteRowView: View {
     }
 
     private var detail: String {
-        if showsPlace, let place = entry.place { return "\(place) · \(timesText(entry.count))" }
+        // How many times first: a long name of a place is what gets cut.
+        if showsPlace, let place = entry.place { return "\(timesText(entry.count)) · \(place)" }
         return "\(timesText(entry.count)) · \(Fmt.speed(entry.topSpeed))"
     }
 }
