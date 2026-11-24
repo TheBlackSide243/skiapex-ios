@@ -1,8 +1,14 @@
-Ski Apex 0.7.0
+Ski Apex 0.8.0
+- Le tue piste: per ogni pista quante volte l'hai fatta, il tempo migliore e la velocita' massima. In Giornate, Statistiche, Le tue piste; e nella pagina di una stazione e di una discesa.
+- Sfida sulla pista: accendila in Amici e in ogni pista vedi la classifica dei tempi con gli amici.
+- Punto d'incontro: in Esplora tocca un rifugio, una pista o un impianto e scegli Troviamoci qui. Gli amici lo vedono sulla mappa, con il percorso per arrivarci.
+- Schede da condividere nuove, in formato post o storia.
+- Watch e widget con lo stesso aspetto dell'app, e una complicazione per aprire Ski Apex dal quadrante.
+- Copia su iCloud delle giornate: l'interruttore c'e' in Impostazioni, Copia di sicurezza, ma in questa build iCloud non e' ancora attivo.
+Da provare: aprire Le tue piste e una pista; accendere la sfida con un amico; mandare un punto d'incontro da Esplora; condividere una giornata nei due formati; la complicazione e le schermate nuove sul Watch.
 - Il profilo della giornata: su con gli impianti, giu' per le piste nel colore dei cartelli. In ogni giornata dell'elenco e in testa alla sua pagina.
 - Bollini delle piste, con colore e numero come sui cartelli; sulla mappa le discese prendono il colore della pista, e i posti dove hai sciato sono segnati con la lente dell'icona.
 - La stazione sulla mappa: apri una stazione dalla Guida e la mappa dietro la mostra con tutte le piste e gli impianti.
-Da provare: cercare una stazione nella Guida e aprirla; aprire una giornata gia' salvata e guardare profilo e bollini.
 - Icona nuova: una maschera da sci con la vetta nella lente. In Impostazioni, Aspetto, scegli tra quattro disegni, e il primo anche negli altri colori.
 - Sugli iPhone con l'ora e la batteria sul bordo destro dello schermo la barra dei pulsanti sta in quella fascia: niente piu' vuoto a destra.
 - In fondo a ogni schermata c'e' spazio per scorrere oltre il pulsante tondo.
@@ -10,4 +16,3 @@ Da provare: cercare una stazione nella Guida e aprirla; aprire una giornata gia'
 - Interfaccia nuova: la mappa e' sempre dietro, e le schermate stanno su un pannello che tiri su e giu'. A destra la tua foto (Impostazioni), Giornate, Guida, Amici e il pulsante tondo per registrare.
 - Mappa invernale: neve, ombre e curve di livello, con le montagne di notte da lontano.
 - Cosa fai oggi? Sci, snowboard, telemark o slittino: lo scegli prima di iniziare.
-Da provare: muoversi tra le schermate dal bordo destro, tirare il pannello su e giu', aprire una giornata e Rivivi, la mappa di una stazione in Esplora.

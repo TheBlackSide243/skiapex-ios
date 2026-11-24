@@ -186,12 +186,12 @@ import Observation
                 out.up += 1
                 continue
             }
+            let a = modified(mine), b = modified(theirs)
+            guard abs(a - b) > 2 else { continue }
             guard ready(theirs) else {
                 out.waiting += 1
                 continue
             }
-            let a = modified(mine), b = modified(theirs)
-            guard abs(a - b) > 2 else { continue }
             // Changed on one side: unless the two are the same anyway.
             if let x = try? Data(contentsOf: mine), let y = try? Data(contentsOf: theirs), x == y { continue }
             if a > b {

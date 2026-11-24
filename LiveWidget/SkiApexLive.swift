@@ -101,7 +101,7 @@ private struct LockScreenView: View {
 
 /// What is happening now, in a pill of its color: skiing, on a lift, standing.
 private struct PhasePill: View {
-    let label: String
+    let label: LocalizedStringKey
     let symbol: String
     let phase: String
 
