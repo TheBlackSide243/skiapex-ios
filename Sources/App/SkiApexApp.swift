@@ -83,7 +83,8 @@ enum Prefs {
 
 /// Launched with `-demo`: made-up days and a day under way, for the screenshots. `-screen <name>`
 /// opens one screen: ready, live, days, day, timeline, run, replay, share, manual, stats, heat,
-/// recap, snow, guide, resort, explore, friends, settings, looks, profile, empty.
+/// recap, snow, guide, resort, explore, friends, settings, looks, profile, empty, pistes, piste,
+/// story, meet.
 enum Demo {
     static let isOn = ProcessInfo.processInfo.arguments.contains("-demo")
 
@@ -104,7 +105,7 @@ enum Demo {
     /// The tab the screen asked for is in.
     static var tab: Int {
         switch screen {
-        case "days", "day", "timeline", "run", "replay", "share", "manual", "stats", "heat", "recap", "snow", "empty", "pistes", "piste": 1
+        case "days", "day", "timeline", "run", "replay", "share", "story", "manual", "stats", "heat", "recap", "snow", "empty", "pistes", "piste": 1
         case "guide", "explore", "resort", "meet": 2
         case "friends": 3
         case "settings", "looks", "profile": 4

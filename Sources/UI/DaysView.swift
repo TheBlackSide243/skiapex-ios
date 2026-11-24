@@ -60,7 +60,7 @@ struct DaysView: View {
             .onAppear {
                 if season == nil { season = library.seasons.first }
                 // The screenshots of a day open the newest one.
-                let inside = ["day", "timeline", "run", "replay", "share"]
+                let inside = ["day", "timeline", "run", "replay", "share", "story"]
                 if inside.contains(Demo.screen ?? ""), path.isEmpty, let first = library.days.first { path = [first.id] }
             }
         }
