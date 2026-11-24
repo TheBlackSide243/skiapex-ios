@@ -91,6 +91,7 @@ jobs:
             archive 2>&1 | tee build.log | grep -E "error:|warning: unre|BUILD|ARCHIVE|Signing" || true
           test -d build/SkiApex.xcarchive/Products/Applications/SkiApex.app || { grep -E "error" build.log | head -60; exit 1; }
           test -d build/SkiApex.xcarchive/Products/Applications/SkiApex.app/Watch/SkiApexWatch.app || { echo "::error::The Apple Watch app is not inside the iPhone app"; exit 1; }
+          test -d build/SkiApex.xcarchive/Products/Applications/SkiApex.app/Watch/SkiApexWatch.app/PlugIns/SkiApexWatchFace.appex || { echo "::error::The complication is not inside the Apple Watch app"; exit 1; }
 
       # An unsigned archive has no entitlements, and the export would sign it without them. A
       # signature of its own carries them (Apple Health) to the export, which signs the app for
@@ -100,12 +101,30 @@ jobs:
           set -eu
           APP=build/SkiApex.xcarchive/Products/Applications/SkiApex.app
           for x in "$APP"/PlugIns/*.appex; do if [ -d "$x" ]; then codesign --force --sign - --timestamp=none "$x"; fi; done
-          # The watch app with Apple Health too: its workout session keeps a recording going.
+          # The complication inside the watch app first, then the watch app with Apple Health too:
+          # its workout session keeps a recording going.
+          for x in "$APP"/Watch/SkiApexWatch.app/PlugIns/*.appex; do if [ -d "$x" ]; then codesign --force --sign - --timestamp=none "$x"; fi; done
           codesign --force --sign - --timestamp=none --entitlements Support/SkiApexWatch.entitlements "$APP/Watch/SkiApexWatch.app"
-          codesign --force --sign - --timestamp=none --entitlements Support/SkiApex.entitlements "$APP"
+          # The copy of the days in iCloud needs a container made by hand on developer.apple.com
+          # and given to the App ID: until the repository variable ICLOUD_CONTAINER names it, the
+          # build is signed without iCloud and the app says that it has none.
+          cp Support/SkiApex.entitlements "$RUNNER_TEMP/app.entitlements"
+          if [ -n "${ICLOUD_CONTAINER:-}" ]; then
+            PB=/usr/libexec/PlistBuddy
+            for key in com.apple.developer.icloud-container-identifiers com.apple.developer.ubiquity-container-identifiers; do
+              "$PB" -c "Add :$key array" -c "Add :$key:0 string $ICLOUD_CONTAINER" "$RUNNER_TEMP/app.entitlements"
+            done
+            "$PB" -c "Add :com.apple.developer.icloud-services array" -c "Add :com.apple.developer.icloud-services:0 string CloudDocuments" "$RUNNER_TEMP/app.entitlements"
+            echo "Signed with iCloud: $ICLOUD_CONTAINER"
+          else
+            echo "::notice::ICLOUD_CONTAINER is not set: this build has no iCloud"
+          fi
+          codesign --force --sign - --timestamp=none --entitlements "$RUNNER_TEMP/app.entitlements" "$APP"
           codesign -d --entitlements - "$APP" 2>&1 | tee "$RUNNER_TEMP/entitlements.txt"
           grep -q healthkit "$RUNNER_TEMP/entitlements.txt"
           grep -q applesignin "$RUNNER_TEMP/entitlements.txt"
+        env:
+          ICLOUD_CONTAINER: ${{ vars.ICLOUD_CONTAINER }}
 
       - name: Upload to TestFlight
         run: |

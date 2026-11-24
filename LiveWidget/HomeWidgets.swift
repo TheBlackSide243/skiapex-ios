@@ -43,26 +43,27 @@ struct RecordWidgetView: View {
             HStack(spacing: 8) {
                 Image(systemName: "figure.skiing.downhill").font(.title2.weight(.semibold))
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("Ski Apex").font(.headline)
-                    Text("Registra la giornata").font(.caption)
+                    Text("Ski Apex").font(.system(.headline, design: .rounded, weight: .heavy))
+                    Text("Registra la giornata").font(.system(.caption, design: .rounded))
                 }
                 Spacer(minLength: 0)
             }
             .containerBackground(for: .widget) { Color.clear }
         default:
-            VStack(alignment: .leading, spacing: 6) {
-                Image(systemName: "figure.skiing.downhill")
-                    .font(.title2.weight(.semibold))
-                    .foregroundStyle(Ink.bg)
-                    .frame(width: 46, height: 46)
-                    .background(Ink.accent, in: Circle())
+            // The button that records, as in the app: white and round, with a red dot.
+            VStack(alignment: .leading, spacing: 4) {
+                ZStack {
+                    Circle().fill(Color.white)
+                    Circle().fill(Ink.record).frame(width: 19, height: 19)
+                }
+                .frame(width: 52, height: 52)
                 Spacer(minLength: 0)
-                Text("Registra").font(.system(.headline)).foregroundStyle(Ink.text)
-                Text("Tocca per iniziare la giornata").font(.caption2).foregroundStyle(Ink.sub)
+                Text("Registra").font(.system(.title3, design: .rounded, weight: .heavy)).foregroundStyle(Ink.text)
+                Text("Tocca per iniziare la giornata").font(.system(.caption2, design: .rounded)).foregroundStyle(Ink.sub)
                     .lineLimit(2)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-            .containerBackground(for: .widget) { Ink.bg }
+            .containerBackground(for: .widget) { Ink.ground }
         }
     }
 }
@@ -336,11 +337,11 @@ struct SnowWidgetView: View {
                 if !entry.days.isEmpty { bars.frame(maxWidth: .infinity) }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .containerBackground(for: .widget) { Ink.bg }
+            .containerBackground(for: .widget) { Ink.ground }
         default:
             summary
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .containerBackground(for: .widget) { Ink.bg }
+                .containerBackground(for: .widget) { Ink.ground }
         }
     }
 
@@ -350,15 +351,15 @@ struct SnowWidgetView: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 5) {
                     Image(systemName: "snowflake").font(.caption2.weight(.bold)).foregroundStyle(Ink.accent)
-                    Text(place.name).font(.caption.weight(.semibold)).foregroundStyle(Ink.text).lineLimit(1)
+                    Text(place.name).font(.system(.caption, design: .rounded, weight: .bold)).foregroundStyle(Ink.text).lineLimit(1)
                 }
                 Spacer(minLength: 0)
                 if let today = entry.days.first {
-                    Text(WidgetUnits.snow(threeDays))
-                        .font(.system(.title, weight: .semibold))
+                    Text(UnitText.styled(WidgetUnits.snow(threeDays), big: .system(.largeTitle, design: .rounded, weight: .heavy),
+                                         small: .system(.footnote, design: .rounded, weight: .heavy)))
                         .foregroundStyle(threeDays >= 0.5 ? Ink.accent : Ink.text)
                         .lineLimit(1).minimumScaleFactor(0.6)
-                    Text("di neve in 3 giorni").font(.caption2).foregroundStyle(Ink.sub).lineLimit(1)
+                    Text("di neve in 3 giorni").font(.system(.caption2, design: .rounded)).foregroundStyle(Ink.sub).lineLimit(1)
                     HStack(spacing: 5) {
                         Image(systemName: today.symbol).font(.caption2).foregroundStyle(Ink.sub)
                         Text("\(WidgetUnits.temperature(today.low)) / \(WidgetUnits.temperature(today.high))")
@@ -373,7 +374,7 @@ struct SnowWidgetView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Image(systemName: "snowflake").font(.title3.weight(.semibold)).foregroundStyle(Ink.accent)
                 Spacer(minLength: 0)
-                Text("Neve in arrivo").font(.system(.headline)).foregroundStyle(Ink.text)
+                Text("Neve in arrivo").font(.system(.headline, design: .rounded, weight: .heavy)).foregroundStyle(Ink.text)
                 Text("Tieni premuto e scegli una località").font(.caption2).foregroundStyle(Ink.sub).lineLimit(3)
             }
         }
@@ -386,11 +387,11 @@ struct SnowWidgetView: View {
             ForEach(entry.days) { day in
                 VStack(spacing: 3) {
                     Text(day.snow >= 0.5 ? WidgetUnits.snowShort(day.snow) : "–")
-                        .font(.caption2.weight(.semibold).monospacedDigit())
+                        .font(.system(.caption2, design: .rounded, weight: .bold).monospacedDigit())
                         .foregroundStyle(day.snow >= 0.5 ? Ink.text : Ink.sub)
                     ZStack(alignment: .bottom) {
-                        RoundedRectangle(cornerRadius: 4, style: .continuous).fill(Ink.panel)
-                        RoundedRectangle(cornerRadius: 4, style: .continuous).fill(Ink.accent)
+                        Capsule().fill(Color.white.opacity(0.08))
+                        Capsule().fill(Ink.accent)
                             .frame(height: max(day.snow >= 0.5 ? 3 : 0, 62 * min(1, day.snow / top)))
                     }
                     .frame(height: 62)
