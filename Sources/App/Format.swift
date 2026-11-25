@@ -70,6 +70,11 @@ enum Fmt {
 
     static func percent(_ x: Double) -> String { "\(number(x)) %" }
 
+    /// Euros: "74,50 €", "412 €".
+    static func money(_ x: Double) -> String {
+        x.formatted(.currency(code: "EUR").precision(.fractionLength(abs(x - x.rounded()) < 0.005 ? 0 : 2)))
+    }
+
     static func time(_ d: Date) -> String { d.formatted(date: .omitted, time: .shortened) }
 
     static func day(_ d: Date) -> String { d.formatted(.dateTime.weekday(.wide).day().month(.wide)) }

@@ -110,6 +110,8 @@ struct MeetingAnswer: Codable, Identifiable, Hashable {
     var photo: Double?
     /// "yes", "no", or nil while they have not answered.
     var answer: String?
+    /// The server sent a notification for this answer: the app says nothing more of it.
+    var pushed: Bool? = nil
 }
 
 /// A place to meet, set by you or by a friend: a hut, the top of a lift, a point of a piste. The
@@ -133,6 +135,8 @@ struct Meeting: Codable, Identifiable, Hashable {
     var answer: String? = nil
     /// To yours: every friend, with what each said.
     var answers: [MeetingAnswer]? = nil
+    /// To a friend's: the server sent a notification for it, so the app says nothing more of it.
+    var pushed: Bool? = nil
 
     var coordinate: CLLocationCoordinate2D { CLLocationCoordinate2D(latitude: lat, longitude: lon) }
     var time: Date? { when.map { Date(timeIntervalSince1970: $0 / 1000) } }
@@ -373,8 +377,20 @@ enum SocialError: LocalizedError {
     }
 
     @MainActor func signOut() async {
+        // This iPhone gets no more notifications for the account.
+        if let device = Push.token { _ = try? await call("DELETE", "/v1/me/device", ["token": device]) }
+        Push.active = false
         _ = try? await call("DELETE", "/v1/sessions")
         forget()
+    }
+
+    /// Tells the server the token Apple gave this iPhone for the notifications, and hears whether
+    /// it can send them.
+    @MainActor func sendDevice(_ device: String) async {
+        struct Answer: Decodable { let push: Bool? }
+        guard signedIn, !demo, let data = try? await call("PUT", "/v1/me/device", ["token": device]),
+              let answer = try? JSONDecoder().decode(Answer.self, from: data) else { return }
+        Push.active = answer.push == true
     }
 
     /// Deletes the account and everything it shared. True when done. The password, for the

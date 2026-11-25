@@ -52,6 +52,8 @@ struct FriendsView: View {
                 await social.refresh(season: current, days: library.days)
             }
             .task(id: social.pendingCode) { await acceptPending() }
+            // With an account, the notifications of the friends: asked once, here.
+            .task(id: social.account?.id) { await Push.register(asking: true) }
             .alert("Codice dell'invito", isPresented: $typingCode) {
                 TextField("Codice di 8 caratteri", text: $code)
                     .textInputAutocapitalization(.characters)

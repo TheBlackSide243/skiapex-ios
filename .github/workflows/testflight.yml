@@ -123,6 +123,7 @@ jobs:
           codesign -d --entitlements - "$APP" 2>&1 | tee "$RUNNER_TEMP/entitlements.txt"
           grep -q healthkit "$RUNNER_TEMP/entitlements.txt"
           grep -q applesignin "$RUNNER_TEMP/entitlements.txt"
+          grep -q aps-environment "$RUNNER_TEMP/entitlements.txt"
         env:
           ICLOUD_CONTAINER: ${{ vars.ICLOUD_CONTAINER }}
 

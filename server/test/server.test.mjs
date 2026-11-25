@@ -24,9 +24,9 @@ function fakeState() {
   };
 }
 
-function server() {
+function server(objectEnv) {
   const state = fakeState();
-  const object = new Accounts(state);
+  const object = new Accounts(state, objectEnv);
   const env = {
     ACCOUNTS: {
       idFromName: name => name,
@@ -586,4 +586,99 @@ test('a meeting point reaches only the friends skiing around there that day', as
   await call('PUT', '/v1/me/presence', { token: c.token, body: { lat: 45.93, lon: 7.63 } });
   await call('DELETE', '/v1/me', { token: c.token, body: { password: 'neve-2026' } });
   assert.ok(!data.has('here:' + c.id));
+});
+
+test('notifications go out through Apple for a new friend, a meeting point and its answers', async () => {
+  const sent = [];
+  let gone = null;
+  const { privateKey } = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
+  const pkcs8 = Buffer.from(await crypto.subtle.exportKey('pkcs8', privateKey)).toString('base64');
+  const { call, signUp, befriend, data } = server({
+    APNS_KEY: `-----BEGIN PRIVATE KEY-----\n${pkcs8.match(/.{1,64}/g).join('\n')}\n-----END PRIVATE KEY-----`,
+    APNS_KEY_ID: 'KEY1234567',
+    APNS_TEAM_ID: 'TEAM123456',
+    APNS_SEND: async (url, init) => {
+      const token = url.split('/').pop();
+      sent.push({ url, token, headers: init.headers, body: JSON.parse(init.body) });
+      return token === gone ? new Response(JSON.stringify({ reason: 'Unregistered' }), { status: 410 }) : new Response('', { status: 200 });
+    },
+  });
+  const a = await signUp('Alessio');
+  const b = await signUp('Alex');
+  const c = await signUp('Carla');
+  const phone = letter => letter.repeat(64);
+  const devices = async who => (await call('GET', '/v1/me', { token: who.token })).body.devices;
+  const seen = async who => (await call('GET', '/v1/meetings', { token: who.token })).body.meetings;
+
+  assert.equal((await call('PUT', '/v1/me/device', { body: { token: phone('a') } })).status, 401);
+  assert.equal((await call('PUT', '/v1/me/device', { token: a.token, body: { token: 'not a token' } })).status, 400);
+  assert.deepEqual((await call('PUT', '/v1/me/device', { token: a.token, body: { token: phone('A') } })).body, { ok: true, push: true });
+  await call('PUT', '/v1/me/device', { token: b.token, body: { token: phone('b') } });
+  assert.equal(await devices(a), 1);
+
+  // A new friend: who sent the invitation hears of it. Carla has no iPhone here: nothing for her.
+  await befriend(a, b);
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].url, 'https://api.push.apple.com/3/device/' + phone('a'));
+  assert.equal(sent[0].headers['apns-topic'], 'win.shadowbyte.skiapex');
+  assert.equal(sent[0].headers['apns-push-type'], 'alert');
+  assert.match(sent[0].headers.authorization, /^bearer [\w-]+\.[\w-]+\.[\w-]+$/);
+  assert.deepEqual(sent[0].body.aps.alert['title-loc-args'], ['Alex']);
+  assert.equal(sent[0].body.aps.alert['title-loc-key'], '%@ ha accettato il tuo invito');
+  await befriend(c, a);
+  assert.equal(sent.length, 1, 'Carla sent the invitation and has no iPhone');
+
+  // A place to meet: a notification to the friends skiing there, and the app is told so.
+  for (const who of [b, c]) await call('PUT', '/v1/me/presence', { token: who.token, body: { lat: 45.93, lon: 7.63 } });
+  await call('PUT', '/v1/me/meeting', { token: a.token, body: { lat: 45.9412, lon: 7.6388, label: 'Rifugio Teodulo' } });
+  assert.equal(sent.length, 2);
+  assert.equal(sent[1].token, phone('b'));
+  assert.deepEqual(sent[1].body.aps.alert['loc-args'], ['Rifugio Teodulo']);
+  assert.equal(sent[1].body.kind, 'meeting');
+  assert.equal((await seen(b))[0].pushed, true);
+  assert.equal((await seen(c))[0].pushed, false);
+
+  // The answers: whose place it is hears each, and a change of mind, not the same answer twice.
+  await call('PUT', `/v1/meetings/${a.id}/answer`, { token: b.token, body: { coming: true } });
+  assert.equal(sent.length, 3);
+  assert.equal(sent[2].token, phone('a'));
+  assert.equal(sent[2].body.aps.alert['title-loc-key'], '%@ ci sarà');
+  assert.equal(sent[2].body.aps.alert.body, 'Rifugio Teodulo');
+  await call('PUT', `/v1/meetings/${a.id}/answer`, { token: b.token, body: { coming: true } });
+  assert.equal(sent.length, 3);
+  await call('PUT', `/v1/meetings/${a.id}/answer`, { token: b.token, body: { coming: false } });
+  assert.equal(sent.length, 4);
+  assert.equal(sent[3].body.aps.alert['title-loc-key'], '%@ non viene');
+  assert.deepEqual((await seen(a))[0].answers.map(x => [x.name, x.answer, x.pushed]), [['Alex', 'no', true], ['Carla', null, false]]);
+
+  // An iPhone Apple no longer knows is forgotten, and the app is told nothing went out.
+  gone = phone('a');
+  await call('PUT', `/v1/meetings/${a.id}/answer`, { token: c.token, body: { coming: true } });
+  assert.equal(sent.length, 5);
+  assert.equal(await devices(a), 0);
+  assert.ok(!data.has('device:' + phone('a')));
+  assert.deepEqual((await seen(a))[0].answers.map(x => [x.name, x.pushed]), [['Carla', false], ['Alex', true]]);
+
+  // One iPhone, one account: signing in as someone else there moves it. Then it is taken back.
+  await call('PUT', '/v1/me/device', { token: c.token, body: { token: phone('b') } });
+  assert.deepEqual([await devices(b), await devices(c)], [0, 1]);
+  await call('DELETE', '/v1/me/device', { token: c.token, body: { token: phone('b') } });
+  assert.equal(await devices(c), 0);
+  assert.ok(!data.has('device:' + phone('b')));
+  // Gone with the account, too.
+  await call('PUT', '/v1/me/device', { token: b.token, body: { token: phone('d') } });
+  await call('DELETE', '/v1/me', { token: b.token, body: { password: 'neve-2026' } });
+  assert.ok(!data.has('device:' + phone('d')));
+});
+
+test('without the key from Apple no notification is sent, and the app is told', async () => {
+  const { call, signUp, befriend } = server();
+  const a = await signUp('Alessio');
+  const b = await signUp('Alex');
+  assert.deepEqual((await call('PUT', '/v1/me/device', { token: b.token, body: { token: 'b'.repeat(64) } })).body, { ok: true, push: false });
+  await befriend(a, b);
+  await call('PUT', '/v1/me/presence', { token: b.token, body: { lat: 45.93, lon: 7.63 } });
+  await call('PUT', '/v1/me/meeting', { token: a.token, body: { lat: 45.9412, lon: 7.6388, label: 'Rifugio Teodulo' } });
+  const mine = (await call('GET', '/v1/meetings', { token: b.token })).body.meetings;
+  assert.deepEqual(mine.map(m => [m.label, m.pushed]), [['Rifugio Teodulo', false]]);
 });
