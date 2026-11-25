@@ -713,9 +713,14 @@
 "Spesa della stagione" = "Spent this season";
 "A giornata" = "Per day";
 "A discesa" = "Per run";
-"Ogni 1000 m di dislivello" = "Per 1000 m of vertical";
+"Ogni 1000 m" = "Per 1000 m";
 "Compresi %@ per attivare SnowitPass." = "Including %@ to activate SnowitPass.";
-"%lld giornate senza prezzo: toccale per scriverlo." = "%lld days with no price: touch them to enter it.";
+"%lld giornate senza prezzo, non contate qui: toccale per scriverlo." = "%lld days with no price, not counted here: touch them to enter it.";
+"1 giornata senza prezzo, non contata qui: toccala per scriverlo." = "1 day with no price, not counted here: touch it to enter it.";
+"Manca 1 giornata" = "1 day to go";
+"Mancano %lld giornate" = "%lld days to go";
+"%@: una ogni %lld settimane fino a metà aprile" = "%1$@: one every %2$lld weeks until mid-April";
+"%@: %@ a settimana fino a metà aprile" = "%1$@: %2$@ a week until mid-April";
 "Si è ripagato?" = "Has it paid for itself?";
 "Le stesse giornate coi giornalieri" = "The same days with day passes";
 "Sì: coi giornalieri avresti speso %@ in più." = "Yes: with day passes you would have spent %@ more.";

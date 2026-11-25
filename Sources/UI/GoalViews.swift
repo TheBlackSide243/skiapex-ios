@@ -5,7 +5,7 @@ extension GoalProgress {
         switch kind {
         case .days: "Giornate sulla neve"
         case .vertical: "Dislivello"
-        case .distance: "Chilometri sciati"
+        case .distance: "Chilometri"
         }
     }
 
@@ -27,21 +27,29 @@ extension GoalProgress {
     }
 
     /// "8 di 12", "42.300 m di 60.000 m".
-    var count: String { String(localized: "\(text(done.rounded(.down))) di \(text(target))") }
+    var count: String { String(localized: "\(text(done)) di \(text(target))") }
 
-    /// What is left, and the pace it takes: "Mancano 4: una ogni due settimane…".
+    /// What is left, and the pace it takes: "Mancano 8 giornate: una ogni 2 settimane fino a
+    /// metà aprile", "Mancano 36.128 m: 1806 m a settimana fino a metà aprile".
     func note(season: Season, now: Date = Date()) -> String? {
         guard !reached else { return nil }
-        guard let weekly = Goals.weekly(self, season: season, now: now) else {
-            return String(localized: "Mancano \(text(left))")
-        }
-        let pace: String
+        let weekly = Goals.weekly(self, season: season, now: now)
         switch kind {
-        case .days: pace = weekly.formatted(.number.precision(.fractionLength(weekly < 10 ? 1 : 0)))
-        case .vertical: pace = Fmt.height(weekly)
-        case .distance: pace = Fmt.distance(weekly)
+        case .days:
+            let days = Int(left.rounded(.up))
+            let what = days == 1 ? String(localized: "Manca 1 giornata") : String(localized: "Mancano \(days) giornate")
+            guard let weekly else { return what }
+            // Less than one a week reads better as one every so many weeks.
+            if weekly < 0.95 {
+                return String(localized: "\(what): una ogni \(max(2, Int((1 / weekly).rounded()))) settimane fino a metà aprile")
+            }
+            let pace = weekly.formatted(.number.precision(.fractionLength(weekly < 10 ? 1 : 0)))
+            return String(localized: "\(what): \(pace) a settimana fino a metà aprile")
+        case .vertical, .distance:
+            guard let weekly else { return String(localized: "Mancano \(text(left))") }
+            let pace = kind == .vertical ? Fmt.height(weekly) : Fmt.distance(weekly)
+            return String(localized: "Mancano \(text(left)): \(pace) a settimana fino a metà aprile")
         }
-        return String(localized: "Mancano \(text(left)): \(pace) a settimana fino a metà aprile")
     }
 }
 

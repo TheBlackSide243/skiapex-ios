@@ -209,6 +209,8 @@ final class CostTests: XCTestCase {
         cost = Passes.summary(plan, days: days, book: book)
         XCTAssertEqual(cost.total, 60)
         XCTAssertEqual(cost.bill.unknown, 3)
+        XCTAssertEqual(cost.perDay, 60, "the days with no price are not counted")
+        XCTAssertEqual(cost.perRun, 6)
         // Without the tariffs of that winter: only what was written.
         XCTAssertEqual(Passes.summary(PassPlan(kind: .snowit, activation: false), days: days, book: nil).total, 0)
 

@@ -488,9 +488,12 @@ enum Passes {
         case .off:
             break
         }
-        out.days = out.bill.days
-        out.runs = days.reduce(0) { $0 + $1.stats.runs }
-        out.vertical = days.reduce(0) { $0 + $1.stats.vertical }
+        // With a season pass every day counts. Otherwise only the days whose cost is known: a
+        // day with no price would make the others look cheaper than they were.
+        let counted = plan.kind == .season ? days : days.filter { out.bill.charges[$0.id]?.amount != nil }
+        out.days = plan.kind == .season ? out.bill.days : out.bill.days - out.bill.unknown
+        out.runs = counted.reduce(0) { $0 + $1.stats.runs }
+        out.vertical = counted.reduce(0) { $0 + $1.stats.vertical }
         return out
     }
 

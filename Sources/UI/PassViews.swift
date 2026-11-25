@@ -165,13 +165,15 @@ struct PassView: View {
                 StatTile(value: Fmt.money(summary.total), label: "Spesa della stagione", symbol: "eurosign")
                 StatTile(value: summary.perDay.map(Fmt.money) ?? "–", label: "A giornata", symbol: "calendar")
                 StatTile(value: summary.perRun.map(Fmt.money) ?? "–", label: "A discesa", symbol: "figure.skiing.downhill")
-                StatTile(value: summary.perKilometer.map(Fmt.money) ?? "–", label: "Ogni 1000 m di dislivello", symbol: "arrow.down.right")
+                StatTile(value: summary.perKilometer.map(Fmt.money) ?? "–", label: "Ogni 1000 m", symbol: "arrow.down.right")
             }
             if summary.bill.activation > 0 {
                 words("Compresi \(Fmt.money(summary.bill.activation)) per attivare SnowitPass.")
             }
-            if plan.kind != .season, summary.bill.unknown > 0 {
-                words("\(summary.bill.unknown) giornate senza prezzo: toccale per scriverlo.")
+            if plan.kind != .season, summary.bill.unknown == 1 {
+                words("1 giornata senza prezzo, non contata qui: toccala per scriverlo.")
+            } else if plan.kind != .season, summary.bill.unknown > 1 {
+                words("\(summary.bill.unknown) giornate senza prezzo, non contate qui: toccale per scriverlo.")
             }
         }
     }
