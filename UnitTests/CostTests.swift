@@ -237,6 +237,66 @@ final class CostTests: XCTestCase {
         XCTAssertEqual(Passes.plan(of: Season(date(2025, 12, 20)), in: defaults), PassPlan())
     }
 
+    /// The price of a day written by hand for a place stands for the tariffs there: where Snowit
+    /// publishes none, and where they changed. What was written for one day still comes first.
+    func testAPriceWrittenByHandForAPlace() throws {
+        let book = try XCTUnwrap(Snowit.book)
+        // Carona: a place of SnowitPass with no prices published.
+        let carona = (0..<2).map { summary(date(2027, 2, 1 + 2 * $0, 9), place: "Carona", lat: 46.02, lon: 9.78) }
+        var plan = PassPlan(kind: .snowit, activation: false)
+        var cost = Passes.summary(plan, days: carona, book: book)
+        XCTAssertEqual(cost.bill.unknown, 2)
+        XCTAssertEqual(cost.total, 0)
+        plan.prices = ["Carona": 32]
+        cost = Passes.summary(plan, days: carona, book: book)
+        XCTAssertEqual(cost.bill.charges[carona[0].id], PassCharge(amount: 32, tariff: .yours, zone: "carona"))
+        XCTAssertEqual(cost.bill.charges[carona[0].id]?.note, PassCharge.Tariff.yours.label, "yours, not an estimate")
+        XCTAssertEqual(cost.bill.unknown, 0)
+        XCTAssertEqual(cost.total, 64)
+        XCTAssertEqual(cost.perDay, 32)
+        // It still counts toward the spending goal of its region.
+        XCTAssertEqual(cost.bill.goals.first { $0.goal.n == "Lombardia" }?.spent, 64)
+
+        // Livigno: prices are published, and yours takes their place. What was paid for a day comes first.
+        let livigno = (0..<3).map { summary(date(2027, 2, 1 + 2 * $0, 9)) }
+        plan = PassPlan(kind: .snowit, activation: false, prices: ["Livigno": 80], paid: [livigno[2].id.uuidString: 50])
+        cost = Passes.summary(plan, days: livigno, book: book)
+        XCTAssertEqual(cost.bill.charges[livigno[0].id]?.amount, 80)
+        XCTAssertEqual(cost.bill.charges[livigno[2].id]?.tariff, .paid)
+        XCTAssertEqual(cost.total, 210)
+        // The same with day passes, and for what a season pass is compared with.
+        plan.kind = .daily
+        XCTAssertEqual(Passes.summary(plan, days: livigno, book: book).total, 210)
+        plan = PassPlan(kind: .season, seasonPrice: 800, prices: ["Livigno": 80])
+        XCTAssertEqual(Passes.summary(plan, days: livigno, book: book).list, 240)
+        // A place Snowit does not know at all, in a winter with no tariffs: yours is all there is.
+        let abroad = [summary(date(2027, 2, 1, 9), place: "Zermatt", lat: 46.02, lon: 7.75)]
+        cost = Passes.summary(PassPlan(kind: .daily, prices: ["Zermatt": 95]), days: abroad, book: nil)
+        XCTAssertEqual(cost.total, 95)
+        XCTAssertEqual(cost.bill.unknown, 0)
+        // A spending goal reached makes a day free, also at a price of yours.
+        let many = (0..<14).map { summary(date(2027, 1, 30 + 2 * $0, 9)) }
+        plan = PassPlan(kind: .snowit, activation: false, prices: ["Livigno": 100])
+        cost = Passes.summary(plan, days: many, book: book)
+        XCTAssertEqual(cost.total, 980, accuracy: 0.001)
+        XCTAssertEqual(cost.bill.charges[many[13].id]?.tariff, .reached)
+
+        // The activation: the price of the list, or what was really paid for it.
+        plan = PassPlan(kind: .snowit)
+        XCTAssertEqual(Passes.summary(plan, days: [], book: book).total, 15)
+        plan.activationPrice = 1
+        XCTAssertEqual(Passes.summary(plan, days: [], book: book).total, 1)
+        plan.activation = false
+        XCTAssertEqual(Passes.summary(plan, days: [], book: book).total, 0)
+
+        // What was kept before there were prices of yours is still read.
+        let old = Data(#"{"kind":"snowit","age":"a","activation":true,"paid":{},"zones":{"Livigno":"livigno"}}"#.utf8)
+        let read = try JSONDecoder().decode(PassPlan.self, from: old)
+        XCTAssertEqual(read.kind, .snowit)
+        XCTAssertNil(read.prices)
+        XCTAssertNil(read.activationPrice)
+    }
+
     func testSumsAreReadAndWritten() {
         XCTAssertEqual(MoneyField.parse("74,50"), 74.5)
         XCTAssertEqual(MoneyField.parse(" 74.5 "), 74.5)

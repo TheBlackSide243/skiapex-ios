@@ -4,6 +4,7 @@ extension PassCharge.Tariff {
     var label: String {
         switch self {
         case .paid: String(localized: "Pagato")
+        case .yours: String(localized: "Prezzo tuo")
         case .day: String(localized: "Giornaliero")
         case .hours(let hours): String(localized: "\(hours) ore")
         case .morning: String(localized: "Mattiniero")
@@ -75,6 +76,13 @@ struct PassView: View {
     @State private var plan = PassPlan()
     @State private var loaded = false
     @State private var editing: DaySummary?
+    @State private var placing: Place?
+
+    /// A place the days were at, to write its price.
+    private struct Place: Identifiable {
+        let title: String
+        var id: String { title }
+    }
 
     private var days: [DaySummary] { library.days(in: season) }
     private var book: SnowitBook? { Snowit.tariffs(for: season) }
@@ -88,6 +96,7 @@ struct PassView: View {
                     figures(summary)
                     if plan.kind == .season { payOff(summary) }
                     if !summary.bill.goals.isEmpty { goals(summary) }
+                    places
                     if plan.kind != .season { list(summary) }
                     about
                 }
@@ -108,6 +117,47 @@ struct PassView: View {
         }
         .sheet(item: $editing) { day in
             PassDayEditor(day: day, season: season, plan: $plan)
+        }
+        .sheet(item: $placing) { place in
+            PassPlaceEditor(title: place.title, season: season, plan: $plan)
+        }
+    }
+
+    /// Where the price of a day at a place comes from: written by you, the tariffs of Snowit, or
+    /// nowhere yet.
+    private func source(_ title: String) -> (text: String, missing: Bool) {
+        if let own = plan.prices?[title] { return (String(localized: "\(Fmt.money(own)) · prezzo tuo"), false) }
+        guard let book, let day = days.first(where: { $0.title == title }),
+              let zone = book.zone(Passes.passDay(day, plan: plan, book: book).zone), zone.hasRates else {
+            return (String(localized: "Da scrivere"), true)
+        }
+        return (String(localized: "Tariffe Snowit · \(zone.n)"), false)
+    }
+
+    /// The places of the season, each with where its price comes from: touched, the price of a
+    /// day there is written by hand.
+    @ViewBuilder private var places: some View {
+        let titles = Array(Set(days.compactMap(\.title))).sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+        if !titles.isEmpty {
+            Panel("Prezzi dei posti") {
+                ForEach(titles, id: \.self) { title in
+                    let from = source(title)
+                    Button { placing = Place(title: title) } label: {
+                        HStack(spacing: 10) {
+                            Text(verbatim: title).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text).lineLimit(1)
+                            Spacer(minLength: 6)
+                            Text(from.text).font(.caption.weight(from.missing ? .semibold : .regular))
+                                .foregroundStyle(from.missing ? Theme.accent : Theme.sub)
+                                .lineLimit(1).minimumScaleFactor(0.8)
+                            Image(systemName: "chevron.right").font(.caption.weight(.bold)).foregroundStyle(Theme.sub)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(PressStyle())
+                    Divider().overlay(Theme.line)
+                }
+                words("Dove Snowit non pubblica i prezzi, o se sono cambiati, tocca il posto e scrivi quanto costa una giornata: vale per tutte le giornate lì.")
+            }
         }
     }
 
@@ -138,6 +188,10 @@ struct PassView: View {
                     Text("Conta l'attivazione").font(.subheadline).foregroundStyle(Theme.text)
                 }
                 .tint(Theme.accent)
+                if plan.activation {
+                    MoneyField(title: "Quanto l'hai pagata", value: $plan.activationPrice)
+                    words("Lascia vuoto per il prezzo di listino. Con un'offerta o un codice sconto scrivi quello che hai pagato davvero.")
+                }
                 words("SnowitPass è lo skipass a consumo di Snowit: passi dai tornelli e a fine giornata paghi la tariffa migliore per il tempo che hai sciato.")
             }
         }
@@ -315,23 +369,13 @@ struct PassDayEditor: View {
                         }
                         MoneyField(title: "Quanto hai pagato", value: $amount)
                         if let estimate, let sum = estimate.amount, estimate.tariff != .same {
-                            Text("Stima: \(Fmt.money(sum)) · \(estimate.tariff.label)")
+                            Text("Se lo lasci vuoto: \(Fmt.money(sum)) · \(estimate.tariff.label)")
                                 .font(.caption).foregroundStyle(Theme.sub)
                         }
-                    }
-                    if let book, let title = day.title {
-                        Panel {
-                            HStack {
-                                Text("Tariffe di").font(.subheadline).foregroundStyle(Theme.text)
-                                Spacer(minLength: 8)
-                                Picker("Tariffe di", selection: zone(title, book: book)) {
-                                    Text("Nessuna").tag("-")
-                                    ForEach(book.zones.filter(\.hasRates)) { Text(verbatim: $0.n).tag($0.s) }
-                                }
-                                .pickerStyle(.menu)
-                                .tint(Theme.accent)
-                            }
-                            Text("Vale per tutte le giornate a \(title).").font(.caption).foregroundStyle(Theme.sub)
+                        if let title = day.title {
+                            Text("Vale solo per questa giornata. Per dare un prezzo a tutte le giornate a \(title), usa Prezzi dei posti nella pagina prima.")
+                                .prose().font(.caption).foregroundStyle(Theme.sub)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
                     Button {
@@ -343,7 +387,7 @@ struct PassDayEditor: View {
                         Button {
                             plan.paid[key] = nil
                             dismiss()
-                        } label: { Label("Torna alla stima", systemImage: "arrow.uturn.backward") }
+                        } label: { Label("Togli l'importo scritto", systemImage: "arrow.uturn.backward") }
                             .buttonStyle(SecondaryButtonStyle())
                     }
                 }
@@ -361,13 +405,92 @@ struct PassDayEditor: View {
         .presentationDetents([.medium, .large])
         .onAppear { amount = plan.paid[key] }
     }
+}
 
-    /// The place whose tariffs the days there are reckoned with: the one chosen, or the one found.
-    private func zone(_ title: String, book: SnowitBook) -> Binding<String> {
-        Binding(
-            get: { Passes.passDay(day, plan: plan, book: book).zone ?? "-" },
-            set: { plan.zones[title] = $0 }
-        )
+/// The price of a day at a place, written by hand: for the places Snowit publishes no prices of,
+/// and for when its prices changed. And whose tariffs the days there are reckoned with otherwise.
+struct PassPlaceEditor: View {
+    let title: String
+    let season: Season
+    @Binding var plan: PassPlan
+    @Environment(Library.self) private var library
+    @Environment(\.dismiss) private var dismiss
+    @State private var price: Double?
+
+    private var book: SnowitBook? { Snowit.tariffs(for: season) }
+
+    /// The place of SnowitPass the days there are reckoned with: the one chosen, or the one found.
+    private var zone: SnowitBook.Zone? {
+        guard let book, let day = library.days(in: season).first(where: { $0.title == title }) else { return nil }
+        return book.zone(Passes.passDay(day, plan: plan, book: book).zone)
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    Panel {
+                        Text(verbatim: title).font(.headline).foregroundStyle(Theme.text)
+                        MoneyField(title: "Prezzo di una giornata", value: $price)
+                        if zone?.hasRates == true {
+                            Text("Lascia vuoto per usare le tariffe di Snowit. Se lo scrivi, ogni giornata qui costa così al posto di quelle tariffe: serve se sono cambiate.")
+                                .prose().font(.caption).foregroundStyle(Theme.sub)
+                                .fixedSize(horizontal: false, vertical: true)
+                        } else {
+                            Text("Di questo posto non ho i prezzi di Snowit: scrivi quanto costa una giornata e vale per tutte le giornate qui.")
+                                .prose().font(.caption).foregroundStyle(Theme.sub)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    if let book {
+                        Panel {
+                            HStack {
+                                Text("Tariffe di").font(.subheadline).foregroundStyle(Theme.text)
+                                Spacer(minLength: 8)
+                                Picker("Tariffe di", selection: Binding(get: { zone?.s ?? "-" }, set: { plan.zones[title] = $0 })) {
+                                    Text("Nessuna").tag("-")
+                                    ForEach(book.zones) { Text(verbatim: $0.n).tag($0.s) }
+                                }
+                                .pickerStyle(.menu)
+                                .tint(Theme.accent)
+                            }
+                            Text("Il comprensorio di SnowitPass a cui appartiene questo posto: da lì vengono le tariffe e i traguardi di spesa.")
+                                .prose().font(.caption).foregroundStyle(Theme.sub)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    Button {
+                        keep(price)
+                        dismiss()
+                    } label: { Label("Salva", systemImage: "checkmark") }
+                        .buttonStyle(PrimaryButtonStyle())
+                    if plan.prices?[title] != nil {
+                        Button {
+                            keep(nil)
+                            dismiss()
+                        } label: { Label("Togli il prezzo scritto", systemImage: "arrow.uturn.backward") }
+                            .buttonStyle(SecondaryButtonStyle())
+                    }
+                }
+                .padding(20)
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .background(Theme.bg.ignoresSafeArea())
+            .navigationTitle("Prezzo del posto")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) { Button("Chiudi") { dismiss() } }
+            }
+        }
+        .modifier(Dressed())
+        .presentationDetents([.medium, .large])
+        .onAppear { price = plan.prices?[title] }
+    }
+
+    private func keep(_ price: Double?) {
+        var all = plan.prices ?? [:]
+        all[title] = price
+        plan.prices = all.isEmpty ? nil : all
     }
 }
 
