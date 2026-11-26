@@ -71,3 +71,20 @@ npx wrangler deploy --var GOOGLE_CLIENT_IDS:<id>.apps.googleusercontent.com
 (or `[vars]` in `wrangler.toml`). The same ID goes in the app, in the build setting
 `GOOGLE_CLIENT_ID` of `project.yml`: it is public, not a secret. Only an identifier and a name
 are kept of who signs in this way: no email.
+
+## Notifications
+
+When a friend asks to meet, answers, or accepts an invitation, the worker sends a notification to
+the iPhones of who it is for, through Apple (APNs). The app from TestFlight gives the worker the
+token Apple gave it (`PUT /v1/me/device`), and takes it back when the account signs out there
+(`DELETE /v1/me/device`). A token Apple no longer knows is forgotten.
+
+It needs a key for the Apple Push Notifications service, made on developer.apple.com (Keys), set
+as three secrets of the worker. Without them nothing is sent, and the app goes on saying these
+things by itself while it is open or recording.
+
+```
+npx wrangler secret put APNS_KEY       # the contents of the .p8 file
+npx wrangler secret put APNS_KEY_ID    # the ten characters of the key
+npx wrangler secret put APNS_TEAM_ID   # the ten characters of the team
+```

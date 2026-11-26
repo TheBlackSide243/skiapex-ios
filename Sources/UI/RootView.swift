@@ -33,6 +33,8 @@ struct RootView: View {
                 .presentationBackground(Theme.bg)
                 .interactiveDismissDisabled()
         }
+        // With an account: the token for the notifications, when they are allowed already.
+        .task(id: social.account?.id) { await Push.register() }
         // The copy in iCloud, a moment after every save and when the app opens.
         .task(id: library.saves) {
             guard CloudCopy.isOn else { return }
@@ -54,6 +56,9 @@ struct RootView: View {
                 tab = 0
             case "guide":
                 tab = 2
+            case "friends":
+                // From a notification of the friends.
+                tab = 3
             default:
                 break
             }

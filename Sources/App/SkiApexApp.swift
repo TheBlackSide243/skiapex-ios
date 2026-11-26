@@ -12,7 +12,24 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
         WatchBridge.shared.start()
+        Task { await Push.register() }
         return true
+    }
+
+    /// The token for the notifications sent by the server of the friends.
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        Push.took(deviceToken)
+    }
+
+    /// No token: a build not signed for them (Feather), or no network. The app goes on without.
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {}
+
+    /// A notification of the friends was touched: the app opens on them.
+    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
+        let kind = response.notification.request.content.userInfo["kind"] as? String
+        let key = response.notification.request.identifier
+        guard kind != nil || key.hasPrefix("ask:") || key.hasPrefix("answer:"), let url = URL(string: "skiapex://friends") else { return }
+        _ = await UIApplication.shared.open(url)
     }
 
     /// "A friend is close" is shown also with the app on screen.
@@ -87,7 +104,7 @@ enum Prefs {
 /// Launched with `-demo`: made-up days and a day under way, for the screenshots. `-screen <name>`
 /// opens one screen: ready, live, days, day, timeline, run, replay, share, manual, stats, heat,
 /// recap, snow, guide, resort, explore, friends, settings, looks, profile, empty, pistes, piste,
-/// story, meet.
+/// story, meet, pass, goals.
 enum Demo {
     static let isOn = ProcessInfo.processInfo.arguments.contains("-demo")
 
@@ -108,7 +125,7 @@ enum Demo {
     /// The tab the screen asked for is in.
     static var tab: Int {
         switch screen {
-        case "days", "day", "timeline", "run", "replay", "share", "story", "manual", "stats", "heat", "recap", "snow", "empty", "pistes", "piste": 1
+        case "days", "day", "timeline", "run", "replay", "share", "story", "manual", "stats", "heat", "recap", "snow", "empty", "pistes", "piste", "pass", "goals": 1
         case "guide", "explore", "resort", "meet": 2
         case "friends": 3
         case "settings", "looks", "profile": 4

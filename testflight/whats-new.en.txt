@@ -1,4 +1,8 @@
-Ski Apex 0.8.2
+Ski Apex 0.9.0
+- Season goals: in Statistics choose a goal of days, vertical or distance and see how far along you are.
+- Ski pass and costs: in Statistics say whether you have a season pass, day passes or SnowitPass and see what each day and each run cost you. With SnowitPass the app estimates the charges from the tariffs published by Snowit and follows the spending goals; the real charge you write yourself by touching the day.
+- Notifications from friends: the invitation to a meeting point, the answers and new friends arrive as a notification, also with the app closed.
+To test: open Friends and allow notifications, then have a friend send you a meeting point with the app closed. In Statistics, Ski pass and costs, choose how you pay and check the figures.
 - Fixed: the notice "I can't reach the friends server" showed up with the network working, when changing tab while the leaderboard was updating, and stayed in the Profile.
 - Meeting point: the invitation reaches only the friends skiing in that area that day. They answer I'm in or Not coming, and who set it sees who accepted, who refused and who has not answered yet. With a notice when a friend asks to meet or answers yours.
 - Your pistes: for each piste how many times you skied it, your best time and your top speed. In Days, Statistics, Your pistes; and on the page of a ski area and of a run.

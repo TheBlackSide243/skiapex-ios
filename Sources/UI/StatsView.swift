@@ -11,6 +11,7 @@ struct StatsView: View {
     @State private var heat = Demo.screen == "heat"
     @State private var recapping = Demo.screen == "recap"
     @State private var pistes = ["pistes", "piste"].contains(Demo.screen ?? "")
+    @State private var pass = Demo.screen == "pass"
 
     var body: some View {
         Group {
@@ -20,10 +21,16 @@ struct StatsView: View {
                         empty
                     } else {
                         scope
+                        // The goals of a season lead when there are some, and close when there are none.
+                        if let current, hasGoals(current) { GoalsPanel(season: current, days: days) }
                         totals
                         records
                         Button { pistes = true } label: { pistesRow }
                             .buttonStyle(PressStyle())
+                        if let current {
+                            Button { pass = true } label: { passRow(current) }
+                                .buttonStyle(PressStyle())
+                        }
                         HStack(spacing: 10) {
                             Button { heat = true } label: { Label("Mappa di calore", systemImage: "flame") }
                                 .buttonStyle(SecondaryButtonStyle())
@@ -31,6 +38,7 @@ struct StatsView: View {
                                 .buttonStyle(SecondaryButtonStyle())
                         }
                         if days.count > 1 { charts }
+                        if let current, !hasGoals(current) { GoalsPanel(season: current, days: days) }
                     }
                 }
                 .padding(16)
@@ -40,6 +48,9 @@ struct StatsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(isPresented: $heat) { HeatmapView() }
             .navigationDestination(isPresented: $pistes) { PistesView() }
+            .navigationDestination(isPresented: $pass) {
+                if let current { PassView(season: current) }
+            }
             .sheet(isPresented: $recapping) {
                 SeasonSheet(recap: SeasonRecap(label: current?.label ?? String(localized: "Sempre"), days: days))
             }
@@ -58,6 +69,37 @@ struct StatsView: View {
                 Text(known == 0 ? String(localized: "Quante volte, tempo migliore, sfida con gli amici")
                      : String(localized: "\(known) piste: volte, tempo migliore, sfida con gli amici"))
                     .font(.caption).foregroundStyle(Theme.sub).lineLimit(1).minimumScaleFactor(0.8)
+            }
+            Spacer(minLength: 6)
+            Image(systemName: "chevron.right").font(.subheadline.weight(.bold)).foregroundStyle(Theme.sub)
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .card()
+        .contentShape(Rectangle())
+    }
+
+    private func hasGoals(_ season: Season) -> Bool { Demo.isOn || !Goals.of(season).isEmpty }
+
+    /// The way to what skiing cost, with the sum when the pass was set.
+    private func passRow(_ season: Season) -> some View {
+        let plan = Demo.isOn ? Passes.demo : Passes.plan(of: season)
+        let summary = Passes.summary(plan, days: days, book: Snowit.tariffs(for: season))
+        let detail: String
+        if plan.kind == .off {
+            detail = String(localized: "Stagionale, giornalieri o SnowitPass: quanto ti costa sciare")
+        } else if let perDay = summary.perDay {
+            detail = String(localized: "\(Fmt.money(summary.total)) · \(Fmt.money(perDay)) a giornata")
+        } else {
+            detail = Fmt.money(summary.total)
+        }
+        return HStack(spacing: 12) {
+            Image(systemName: "ticket.fill").font(.footnote.weight(.semibold)).foregroundStyle(Theme.accent)
+                .frame(width: 40, height: 40)
+                .iconBox()
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Skipass e costi").font(.headline).foregroundStyle(Theme.text)
+                Text(detail).font(.caption).foregroundStyle(Theme.sub).lineLimit(1).minimumScaleFactor(0.8)
             }
             Spacer(minLength: 6)
             Image(systemName: "chevron.right").font(.subheadline.weight(.bold)).foregroundStyle(Theme.sub)

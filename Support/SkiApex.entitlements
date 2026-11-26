@@ -10,5 +10,8 @@
 	<array>
 		<string>Default</string>
 	</array>
+	<!-- Notifications from the server of the friends, through Apple. -->
+	<key>aps-environment</key>
+	<string>production</string>
 </dict>
 </plist>

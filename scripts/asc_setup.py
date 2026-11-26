@@ -110,7 +110,7 @@ def main():
     # Apple Health on the App IDs of the app and of the watch app, and Sign in with Apple on the
     # app's: the TestFlight build is signed with their entitlements.
     wanted = ((bundle, "HEALTHKIT", "Apple Health"), (bundle + ".watchkitapp", "HEALTHKIT", "Apple Health on the watch"),
-              (bundle, "APPLE_ID_AUTH", "Sign in with Apple"))
+              (bundle, "APPLE_ID_AUTH", "Sign in with Apple"), (bundle, "PUSH_NOTIFICATIONS", "Push notifications"))
     for identifier, capability, label in wanted:
         capabilities = need(*call("GET", f"bundleIds/{ids[identifier]}/bundleIdCapabilities"), "capabilities")["data"]
         if any(c["attributes"]["capabilityType"] == capability for c in capabilities):

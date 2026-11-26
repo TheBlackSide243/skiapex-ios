@@ -15,6 +15,11 @@
 // with who said they are coming and who said they are not. It reaches only the friends skiing
 // around there that day: for that, while a day is recorded the phone says in which area it is,
 // to the kilometer, and that is forgotten half a day later.
+//
+// For the notifications (a friend asks to meet, a friend answered, an invitation was accepted) it
+// keeps the tokens Apple gives the iPhones of an account, a few for each, until the account signs
+// out there. They are sent through Apple (APNs) only when the secrets APNS_KEY, APNS_KEY_ID and
+// APNS_TEAM_ID are set: without them nothing is sent and the app says so itself when it asks.
 
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const USERNAME = /^[A-Za-z0-9_.-]{3,20}$/;
@@ -57,6 +62,11 @@ const PROVIDERS = {
 };
 // The apps an Apple token may be for: the TestFlight one and the sideloaded one.
 const APPLE_AUDIENCES = ['win.shadowbyte.skiapex', 'com.local.skiapex'];
+// Where Apple takes the notifications, and the app they are for: the one from TestFlight, the
+// only one signed to receive them.
+const APNS_HOST = 'https://api.push.apple.com';
+const APNS_TOPIC = 'win.shadowbyte.skiapex';
+const MAX_DEVICES = 4;
 
 export default {
   async fetch(request, env) {
@@ -107,6 +117,8 @@ export class Accounts {
     const found = await this.byToken(request);
     if (!found) return json({ error: 'signed out' }, 401);
     const { user, hash } = found;
+    if (path === '/v1/me/device' && method === 'PUT') return this.device(user, await body(request));
+    if (path === '/v1/me/device' && method === 'DELETE') return this.undevice(user, await body(request));
     if (path === '/v1/sessions' && method === 'DELETE') {
       user.tokens = user.tokens.filter(t => t !== hash);
       await this.save(user);
@@ -126,7 +138,8 @@ export class Accounts {
       this.positions.delete(user.id);
       const seasons = (user.seasons || []).map(year => `season:${user.id}:${year}`);
       await this.forgetVisits(user);
-      const own = ['photo:' + user.id, 'pistes:' + user.id, 'meet:' + user.id, 'here:' + user.id, ...(user.ext ? [user.ext] : [])];
+      const own = ['photo:' + user.id, 'pistes:' + user.id, 'meet:' + user.id, 'here:' + user.id, ...(user.ext ? [user.ext] : []),
+        ...(user.devices || []).map(t => 'device:' + t)];
       await this.state.storage.delete([...user.tokens.map(t => 'token:' + t), ...seasons, ...own, 'user:' + user.name.toLowerCase(), 'id:' + user.id]);
       return json({ ok: true });
     }
@@ -367,10 +380,114 @@ export class Accounts {
     return this.state.storage.put('user:' + user.name.toLowerCase(), user);
   }
 
+  // Notifications
+
+  /// Whether notifications can be sent: the key Apple gave for them is here.
+  get pushes() {
+    return !!(this.env.APNS_KEY && this.env.APNS_KEY_ID && this.env.APNS_TEAM_ID);
+  }
+
+  /// The token Apple gave an iPhone for the notifications of the app, kept with the account
+  /// signed in there: the last few, and each with one account only.
+  async device(user, b) {
+    const token = typeof b?.token === 'string' ? b.token.toLowerCase() : '';
+    if (!/^[0-9a-f]{64,200}$/.test(token)) return json({ error: 'bad device' }, 400);
+    const before = await this.state.storage.get('device:' + token);
+    if (before && before !== user.id) {
+      const other = await this.byID(before);
+      if (other) {
+        other.devices = (other.devices || []).filter(t => t !== token);
+        await this.save(other);
+      }
+    }
+    const devices = [token, ...(user.devices || []).filter(t => t !== token)];
+    const gone = devices.slice(MAX_DEVICES);
+    user.devices = devices.slice(0, MAX_DEVICES);
+    await this.state.storage.put({ ['device:' + token]: user.id, ['user:' + user.name.toLowerCase()]: user });
+    if (gone.length) await this.state.storage.delete(gone.map(t => 'device:' + t));
+    return json({ ok: true, push: this.pushes });
+  }
+
+  /// An iPhone that is to get no more notifications for this account: one, or with no token all.
+  async undevice(user, b) {
+    const token = typeof b?.token === 'string' ? b.token.toLowerCase() : null;
+    const gone = (user.devices || []).filter(t => !token || t === token);
+    if (gone.length) {
+      user.devices = (user.devices || []).filter(t => !gone.includes(t));
+      await this.save(user);
+      await this.state.storage.delete(gone.map(t => 'device:' + t));
+    }
+    return json({ ok: true });
+  }
+
+  /// What tells Apple who is sending: signed with the key, good for an hour there, made again
+  /// every forty minutes here.
+  async apnsToken() {
+    const now = Math.floor(Date.now() / 1000);
+    if (this.apns && now - this.apns.at < 2400) return this.apns.jwt;
+    const pem = String(this.env.APNS_KEY).replace(/-----[^-]+-----/g, '').replace(/\s+/g, '');
+    const key = await crypto.subtle.importKey('pkcs8', Uint8Array.from(atob(pem), c => c.charCodeAt(0)),
+      { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+    const part = o => base64url(new TextEncoder().encode(JSON.stringify(o)));
+    const head = part({ alg: 'ES256', kid: String(this.env.APNS_KEY_ID) }) + '.' + part({ iss: String(this.env.APNS_TEAM_ID), iat: now });
+    const signature = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, key, new TextEncoder().encode(head));
+    this.apns = { jwt: head + '.' + base64url(new Uint8Array(signature)), at: now };
+    return this.apns.jwt;
+  }
+
+  /// Sends a notification to the iPhones of some accounts. `alert` is what Apple shows: its
+  /// words are keys the app has in each language, with the names to put in. Gives back the ids
+  /// of the accounts Apple took it for. A token Apple no longer knows is forgotten.
+  async push(people, alert, data = {}) {
+    const reached = new Set();
+    if (!this.pushes || !people.some(p => p.devices?.length)) return reached;
+    let jwt;
+    try {
+      jwt = await this.apnsToken();
+    } catch (e) {
+      console.error('apns key', e);
+      return reached;
+    }
+    const send = this.env.APNS_SEND || fetch;
+    for (const person of people) {
+      for (const token of person.devices || []) {
+        try {
+          const res = await send(`${APNS_HOST}/3/device/${token}`, {
+            method: 'POST',
+            headers: {
+              authorization: 'bearer ' + jwt,
+              'apns-topic': APNS_TOPIC,
+              'apns-push-type': 'alert',
+              'apns-priority': '10',
+              // Not worth showing half a day late.
+              'apns-expiration': String(Math.floor(Date.now() / 1000) + 6 * 3600),
+            },
+            body: JSON.stringify({ aps: { alert, sound: 'default' }, ...data }),
+          });
+          if (res.status === 200) {
+            reached.add(person.id);
+          } else {
+            const why = await res.text();
+            if (res.status === 410 || /BadDeviceToken|DeviceTokenNotForTopic|Unregistered/.test(why)) {
+              person.devices = (person.devices || []).filter(t => t !== token);
+              await this.save(person);
+              await this.state.storage.delete('device:' + token);
+            } else {
+              console.error('apns', res.status, why);
+            }
+          }
+        } catch (e) {
+          console.error('apns', e);
+        }
+      }
+    }
+    return reached;
+  }
+
   /// An account as its owner sees it. `photo` is when the picture was set (0: none); `kind` is
   /// how one signs in: password, apple or google.
   view(user) {
-    return { ...this.card(user), kind: user.kind || 'password' };
+    return { ...this.card(user), kind: user.kind || 'password', devices: (user.devices || []).length };
   }
 
   /// An account as the others see it.
@@ -424,6 +541,9 @@ export class Accounts {
     user.friends.push({ id: other.id, since });
     other.friends.push({ id: user.id, since });
     await this.state.storage.put({ ['user:' + user.name.toLowerCase()]: user, ['user:' + other.name.toLowerCase()]: other });
+    // Who sent the invitation hears that it was taken.
+    await this.push([other], { 'title-loc-key': '%@ ha accettato il tuo invito', 'title-loc-args': [user.name], 'loc-key': 'Ora siete amici su Ski Apex.' },
+      { kind: 'friend' });
     return json(this.friendView(other, user), 201);
   }
 
@@ -564,7 +684,26 @@ export class Accounts {
     const when = typeof b.when === 'number' && b.when > now - 3600 * 1000 && b.when < now + MAX_MEETING ? Math.round(b.when) : null;
     // Over an hour after its time; half a day after it was set when it has none.
     const until = when ? when + 3600 * 1000 : now + MEETING_TTL;
-    await this.state.storage.put('meet:' + user.id, { lat: b.lat, lon: b.lon, label, when, until, at: now, answers: {} });
+    const m = { lat: b.lat, lon: b.lon, label, when, until, at: now, answers: {}, pushed: {} };
+    await this.state.storage.put('meet:' + user.id, m);
+    // A notification to the friends it is for, now: the ones skiing around there today.
+    const asked = [];
+    for (const f of user.friends || []) {
+      const friend = await this.byID(f.id);
+      if (friend?.devices?.length && await this.invited(friend, m, now)) asked.push(friend);
+    }
+    const alert = { 'title-loc-key': '%@ propone di trovarvi', 'title-loc-args': [user.name] };
+    if (label) {
+      alert['loc-key'] = '%@. Apri Ski Apex per dire se ci sei.';
+      alert['loc-args'] = [label];
+    } else {
+      alert['loc-key'] = 'Apri Ski Apex per dire se ci sei.';
+    }
+    const reached = await this.push(asked, alert, { kind: 'meeting' });
+    if (reached.size) {
+      for (const id of reached) m.pushed[id] = true;
+      await this.state.storage.put('meet:' + user.id, m);
+    }
     return json({ ok: true, meetings: await this.meetings(user) }, 201);
   }
 
@@ -597,7 +736,21 @@ export class Accounts {
     if (typeof b?.coming !== 'boolean') return json({ error: 'bad answer' }, 400);
     const m = user.friends?.some(f => f.id === owner) ? await this.state.storage.get('meet:' + owner) : null;
     if (!m || m.until <= Date.now() || !(await this.invited(user, m, Date.now()))) return json({ error: 'no such meeting' }, 404);
-    m.answers = { ...(m.answers || {}), [user.id]: { a: b.coming ? 'yes' : 'no', at: Date.now() } };
+    const said = b.coming ? 'yes' : 'no';
+    const before = m.answers?.[user.id];
+    const entry = { a: said, at: Date.now() };
+    // Whose place it is hears the answer, and a change of mind: not the same answer twice.
+    if (before?.a !== said) {
+      const whose = await this.byID(owner);
+      if (whose) {
+        const alert = { 'title-loc-key': b.coming ? '%@ ci sarà' : '%@ non viene', 'title-loc-args': [user.name] };
+        if (m.label) alert.body = m.label;
+        if ((await this.push([whose], alert, { kind: 'meeting' })).size) entry.p = true;
+      }
+    } else if (before?.p) {
+      entry.p = true;
+    }
+    m.answers = { ...(m.answers || {}), [user.id]: entry };
     await this.state.storage.put('meet:' + owner, m);
     return json({ ok: true, meetings: await this.meetings(user) });
   }
@@ -630,12 +783,14 @@ export class Accounts {
         const order = { yes: 0, no: 1 };
         const asked = [];
         for (const friend of people.slice(1)) if (await this.invited(friend, m, now)) asked.push(friend);
+        // `pushed`: a notification went out for it, so the app says nothing more of it.
         view.answers = asked
-          .map(friend => ({ ...this.card(friend), answer: answers[friend.id]?.a || null }))
+          .map(friend => ({ ...this.card(friend), answer: answers[friend.id]?.a || null, pushed: !!answers[friend.id]?.p }))
           .sort((a, b) => (order[a.answer] ?? 2) - (order[b.answer] ?? 2) || a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
       } else {
         // The others see what they said themselves.
         view.answer = answers[user.id]?.a || null;
+        view.pushed = !!m.pushed?.[user.id];
       }
       out.push(view);
     }
