@@ -107,6 +107,8 @@ struct PassDay: Equatable {
     var last: Date?
     /// The Snowit place it was in, when it was in one.
     var zone: String?
+    /// What a day there costs, when you wrote it yourself: it takes the place of the tariffs.
+    var price: Double? = nil
 }
 
 /// What a day cost, or is reckoned to have cost.
@@ -114,6 +116,8 @@ struct PassCharge: Equatable {
     enum Tariff: Equatable {
         /// What you wrote you paid.
         case paid
+        /// The price of a day you wrote for that place.
+        case yours
         case day, hours(Int), morning, afternoon
         /// The second, third… day in a row.
         case days(Int)
@@ -128,7 +132,8 @@ struct PassCharge: Equatable {
     var tariff: Tariff
     var zone: String?
 
-    var estimated: Bool { tariff != .paid && tariff != .same }
+    /// Reckoned from the tariffs of Snowit, not written by you.
+    var estimated: Bool { tariff != .paid && tariff != .same && tariff != .yours }
 }
 
 /// How far a spending goal of SnowitPass is.
@@ -295,7 +300,9 @@ enum Snowit {
 
     /// The days of a season with what each cost. `payPerUse`: as SnowitPass charges, with the
     /// parts of a day, the days in a row and the spending goals. Otherwise the price of a day
-    /// pass each. What you wrote you paid always comes first.
+    /// pass each. What you wrote you paid for a day always comes first; then the price of a day
+    /// you wrote for its place, which stands for the tariffs there (Snowit publishes none for
+    /// some places, and may change the others); then the tariffs.
     static func bill(_ days: [PassDay], age: PassAge, paid: [UUID: Double], payPerUse: Bool, activation: Bool,
                      in book: SnowitBook) -> PassBill {
         var bill = PassBill()
@@ -318,29 +325,36 @@ enum Snowit {
             }
             let goals = payPerUse ? book.goals.filter { goal in zone.map { goal.z.contains($0.s) } ?? false } : []
             var charge: PassCharge
-            if let real = paid[day.id] {
-                charge = PassCharge(amount: max(0, real), tariff: .paid, zone: zone?.s)
-            } else if let zone, payPerUse {
-                charge = estimate(day, zone: zone, age: age, streak: streak, in: book)
-                if let amount = charge.amount {
-                    var factor = 1.0
-                    var room = Double.infinity
-                    for goal in goals {
-                        guard let target = goal.target(age) else { continue }
-                        let before = spent[goal.n] ?? 0
-                        if before >= target {
-                            factor = min(factor, goal.x)
-                        } else if goal.x == 0 {
-                            room = min(room, target - before)
-                        }
-                    }
-                    if factor < 1 {
-                        charge.amount = amount * factor
-                        charge.tariff = factor == 0 ? .reached : .discounted
-                    } else if amount > room {
-                        charge.amount = room
+            // Once a spending goal is reached a day there is free or discounted, and the day that
+            // reaches it costs only what was left to it.
+            func capped(_ charge: PassCharge) -> PassCharge {
+                guard let amount = charge.amount else { return charge }
+                var out = charge
+                var factor = 1.0
+                var room = Double.infinity
+                for goal in goals {
+                    guard let target = goal.target(age) else { continue }
+                    let before = spent[goal.n] ?? 0
+                    if before >= target {
+                        factor = min(factor, goal.x)
+                    } else if goal.x == 0 {
+                        room = min(room, target - before)
                     }
                 }
+                if factor < 1 {
+                    out.amount = amount * factor
+                    out.tariff = factor == 0 ? .reached : .discounted
+                } else if amount > room {
+                    out.amount = room
+                }
+                return out
+            }
+            if let real = paid[day.id] {
+                charge = PassCharge(amount: max(0, real), tariff: .paid, zone: zone?.s)
+            } else if let own = day.price {
+                charge = capped(PassCharge(amount: max(0, own), tariff: .yours, zone: zone?.s))
+            } else if let zone, payPerUse {
+                charge = capped(estimate(day, zone: zone, age: age, streak: streak, in: book))
             } else if let zone, let price = dayPrice(of: zone, on: day.start, age: age, in: book) {
                 charge = PassCharge(amount: price, tariff: .day, zone: zone.s)
             } else {
@@ -386,6 +400,11 @@ struct PassPlan: Codable, Equatable {
     var age = PassAge.adult
     /// Count what turning SnowitPass on costs.
     var activation = true
+    /// What it really cost, when it was not the price of the list (an offer, a discount code).
+    var activationPrice: Double?
+    /// The price of a day written by hand for a place, by the name of the place: it stands for
+    /// the tariffs of Snowit there, which for some places are not published and may change.
+    var prices: [String: Double]?
     /// What was really paid for a day, by the id of the day.
     var paid: [String: Double] = [:]
     /// The Snowit place chosen by hand for the days of a place, by the name of the place. "-": none.
@@ -458,7 +477,8 @@ enum Passes {
                 zone = Snowit.zone(named: title, in: book)?.s
             }
         }
-        return PassDay(id: day.id, start: day.start, first: first, last: last, zone: zone)
+        return PassDay(id: day.id, start: day.start, first: first, last: last, zone: zone,
+                       price: day.title.flatMap { plan.prices?[$0] })
     }
 
     /// What the days of a season cost, by how the pass is paid.
@@ -478,6 +498,7 @@ enum Passes {
         switch plan.kind {
         case .snowit:
             out.bill = Snowit.bill(passDays, age: plan.age, paid: paid, payPerUse: true, activation: plan.activation, in: tariffs)
+            if plan.activation, let own = plan.activationPrice { out.bill.activation = max(0, own) }
             out.total = out.bill.total
         case .daily:
             out.bill = Snowit.bill(passDays, age: plan.age, paid: paid, payPerUse: false, activation: false, in: tariffs)

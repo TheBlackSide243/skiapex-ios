@@ -1,8 +1,9 @@
-Ski Apex 0.9.0
+Ski Apex 0.9.1
+- Skipass e costi: in Prezzi dei posti scrivi tu quanto costa una giornata in un posto, quando Snowit non pubblica il prezzo o quando e' cambiato. Vale per tutte le giornate li'. Puoi scrivere anche quanto hai pagato davvero l'attivazione di SnowitPass.
+Da provare: in Statistiche, Skipass e costi, toccare un posto in Prezzi dei posti, scrivere un prezzo e controllare che le giornate li' lo prendano.
 - Obiettivi della stagione: in Statistiche scegli un traguardo di giornate, dislivello o chilometri e vedi a che punto sei.
 - Skipass e costi: in Statistiche dici se hai lo stagionale, i giornalieri o SnowitPass e vedi quanto ti costa ogni giornata e ogni discesa. Con SnowitPass l'app stima gli addebiti dalle tariffe pubblicate da Snowit e segue i traguardi di spesa; l'addebito vero lo scrivi tu toccando la giornata.
 - Notifiche degli amici: l'invito a un punto d'incontro, le risposte e le nuove amicizie arrivano come notifica anche ad app chiusa.
-Da provare: aprire Amici e accettare le notifiche, poi farsi mandare un punto d'incontro da un amico con l'app chiusa. In Statistiche, Skipass e costi, scegliere come si paga e controllare le cifre.
 - Corretto: l'avviso "Non riesco a raggiungere il server degli amici" compariva anche con la rete a posto, quando si cambiava scheda mentre la classifica si aggiornava, e restava nel Profilo.
 - Punto d'incontro: l'invito arriva solo agli amici che quel giorno sciano in quella zona. Rispondono Ci sono o Non vengo, e chi l'ha proposto vede chi ha accettato, chi ha rifiutato e chi non ha ancora risposto. Con un avviso quando un amico propone un posto o risponde al tuo.
 - Le tue piste: per ogni pista quante volte l'hai fatta, il tempo migliore e la velocita' massima. In Giornate, Statistiche, Le tue piste; e nella pagina di una stazione e di una discesa.
