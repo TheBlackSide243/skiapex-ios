@@ -338,6 +338,7 @@ struct ResortDetailView: View {
 
                 CommunityPanel(lat: resort.lat, lon: resort.lon)
                 PassPricePanel(lat: resort.lat, lon: resort.lon)
+                ResortCompletion(resort: resort, terrain: terrain)
                 ResortPistes(resort: resort)
 
                 if !mine.isEmpty {

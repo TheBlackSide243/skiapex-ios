@@ -12,6 +12,7 @@ struct StatsView: View {
     @State private var recapping = Demo.screen == "recap"
     @State private var pistes = ["pistes", "piste"].contains(Demo.screen ?? "")
     @State private var pass = Demo.screen == "pass"
+    @State private var trophies = Demo.screen == "trophies"
 
     var body: some View {
         Group {
@@ -26,6 +27,8 @@ struct StatsView: View {
                         totals
                         records
                         Button { pistes = true } label: { pistesRow }
+                            .buttonStyle(PressStyle())
+                        Button { trophies = true } label: { trophiesRow }
                             .buttonStyle(PressStyle())
                         if let current {
                             Button { pass = true } label: { passRow(current) }
@@ -48,6 +51,7 @@ struct StatsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(isPresented: $heat) { HeatmapView() }
             .navigationDestination(isPresented: $pistes) { PistesView() }
+            .navigationDestination(isPresented: $trophies) { TrophiesView() }
             .navigationDestination(isPresented: $pass) {
                 if let current { PassView(season: current) }
             }
@@ -80,6 +84,30 @@ struct StatsView: View {
     }
 
     private func hasGoals(_ season: Season) -> Bool { Demo.isOn || !Goals.of(season).isEmpty }
+
+    /// The way to the trophies, with how many are earned: from every day, whatever the season shown.
+    private var trophiesRow: some View {
+        let all = Trophies.all(library.days)
+        let earned = all.filter(\.done)
+        let newest = earned.max { ($0.earned ?? .distantPast) < ($1.earned ?? .distantPast) }
+        return HStack(spacing: 12) {
+            Image(systemName: "trophy.fill").font(.footnote.weight(.semibold)).foregroundStyle(Theme.accent)
+                .frame(width: 40, height: 40)
+                .iconBox()
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Trofei").font(.headline).foregroundStyle(Theme.text)
+                Text(newest.map { String(localized: "\(earned.count) di \(all.count) · l'ultimo: \(String(localized: String.LocalizationValue($0.title)))") }
+                     ?? String(localized: "Giornate, velocità, dislivello: quelli da conquistare"))
+                    .font(.caption).foregroundStyle(Theme.sub).lineLimit(1).minimumScaleFactor(0.8)
+            }
+            Spacer(minLength: 6)
+            Image(systemName: "chevron.right").font(.subheadline.weight(.bold)).foregroundStyle(Theme.sub)
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .card()
+        .contentShape(Rectangle())
+    }
 
     /// The way to what skiing cost, with the sum when the pass was set.
     private func passRow(_ season: Season) -> some View {

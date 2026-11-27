@@ -1,6 +1,10 @@
-Ski Apex 0.9.1
+Ski Apex 0.10.0
+- Piste completate: nella pagina di una stazione vedi quante delle sue piste hai gia' sciato e quali ti mancano; sulla mappa, con Fatte, le altre sbiadiscono.
+- Trofei: in Statistiche, per giornate, velocita', dislivello, posti e piste nere.
+- Video della giornata: dalla pagina di una giornata, con la traccia che si disegna sulla mappa e i numeri che salgono.
+- Contro il tuo migliore: mentre scendi una pista gia' fatta, in Registra vedi se sei avanti o indietro rispetto al tuo tempo migliore.
+Da provare: creare il video di una giornata e mandarlo; aprire la pagina di una stazione dove hai sciato e guardare le piste completate; rifare una pista gia' fatta guardando Registra.
 - Skipass e costi: in Prezzi dei posti scrivi tu quanto costa una giornata in un posto, quando Snowit non pubblica il prezzo o quando e' cambiato. Vale per tutte le giornate li'. Puoi scrivere anche quanto hai pagato davvero l'attivazione di SnowitPass.
-Da provare: in Statistiche, Skipass e costi, toccare un posto in Prezzi dei posti, scrivere un prezzo e controllare che le giornate li' lo prendano.
 - Obiettivi della stagione: in Statistiche scegli un traguardo di giornate, dislivello o chilometri e vedi a che punto sei.
 - Skipass e costi: in Statistiche dici se hai lo stagionale, i giornalieri o SnowitPass e vedi quanto ti costa ogni giornata e ogni discesa. Con SnowitPass l'app stima gli addebiti dalle tariffe pubblicate da Snowit e segue i traguardi di spesa; l'addebito vero lo scrivi tu toccando la giornata.
 - Notifiche degli amici: l'invito a un punto d'incontro, le risposte e le nuove amicizie arrivano come notifica anche ad app chiusa.
@@ -20,5 +24,3 @@ Da provare: in Statistiche, Skipass e costi, toccare un posto in Prezzi dei post
 - In fondo a ogni schermata c'e' spazio per scorrere oltre il pulsante tondo.
 - Sci, snowboard, telemark e slittino si vedono tutti, senza scorrere.
 - Interfaccia nuova: la mappa e' sempre dietro, e le schermate stanno su un pannello che tiri su e giu'. A destra la tua foto (Impostazioni), Giornate, Guida, Amici e il pulsante tondo per registrare.
-- Mappa invernale: neve, ombre e curve di livello, con le montagne di notte da lontano.
-- Cosa fai oggi? Sci, snowboard, telemark o slittino: lo scegli prima di iniziare.

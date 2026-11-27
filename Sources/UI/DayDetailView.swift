@@ -27,6 +27,7 @@ struct DayDetailView: View {
     @State private var missing = false
     @State private var replaying = false
     @State private var sharing = false
+    @State private var filming = false
     @State private var photos: [PhotoItem] = []
     @State private var viewing: PhotoItem?
     @State private var canAskPhotos = DayPhotos.canAsk
@@ -54,6 +55,9 @@ struct DayDetailView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Button { sharing = true } label: { Label("Condividi immagine", systemImage: "photo") }
+                    if day?.points.isEmpty == false {
+                        Button { filming = true } label: { Label("Crea il video", systemImage: "film") }
+                    }
                     if let gpx {
                         ShareLink(item: gpx) { Label("Esporta GPX", systemImage: "square.and.arrow.up") }
                     }
@@ -118,6 +122,9 @@ struct DayDetailView: View {
         .sheet(isPresented: $sharing) {
             if let day { ShareSheet(day: day) }
         }
+        .sheet(isPresented: $filming) {
+            if let day { FilmSheet(day: day) }
+        }
         .fullScreenCover(item: $viewing) { PhotoViewer(asset: $0.asset) }
     }
 
@@ -137,6 +144,7 @@ struct DayDetailView: View {
         case "run": if loaded.runs.count > 2 { run = loaded.runs[2] }
         case "replay": replaying = true
         case "share", "story": sharing = true
+        case "film": filming = true
         default: break
         }
     }
@@ -201,6 +209,11 @@ struct DayDetailView: View {
                 Button { sharing = true } label: { Label("Condividi", systemImage: "square.and.arrow.up") }
                     .buttonStyle(SecondaryButtonStyle())
             }
+            if !day.points.isEmpty {
+                Button { filming = true } label: { Label("Crea il video della giornata", systemImage: "film") }
+                    .buttonStyle(SecondaryButtonStyle())
+            }
+            DayTrophies(id: day.id)
 
             if let legs = Leg.of(day), legs.count > 1, let range = DayProfile.range(legs) {
                 Panel("Profilo della giornata") {

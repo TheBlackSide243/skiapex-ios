@@ -18,6 +18,10 @@ struct LiveView: View {
     /// The pistes and the lifts around, to say which one is under the skis.
     @State private var around: Terrain?
     @State private var passing = false
+    /// Your best runs on the pistes around, to measure the run under way against, and where they
+    /// were read for.
+    @State private var ghosts: [GhostLap] = []
+    @State private var ghostsAt: TrackPoint?
 
     var body: some View {
         NavigationStack {
@@ -45,6 +49,7 @@ struct LiveView: View {
                 guard recorder.state == .recording else { return }
                 while !Task.isCancelled {
                     await loadAround()
+                    await loadGhosts()
                     await social.loadLive()
                     try? await Task.sleep(for: .seconds(30))
                 }
@@ -100,6 +105,34 @@ struct LiveView: View {
             case .run: return Theme.accent
             case .lift: return Theme.lift
             case .idle: return Theme.good
+            }
+        }
+    }
+
+    /// Your best runs on the pistes around here, read from the days they were skied on: once
+    /// for a place, and again after moving well away from it.
+    private func loadGhosts() async {
+        guard !Demo.isOn, let point = recorder.lastPoint else { return }
+        if let at = ghostsAt, Geo.distance(at, point) < 5000 { return }
+        ghostsAt = point
+        let book = self.library
+        let days = book.days
+        ghosts = await Task.detached(priority: .utility) {
+            Ghost.laps(nearLat: point.lat, lon: point.lon, days: days) { book.day($0) }
+        }.value
+    }
+
+    /// Against your best on this piste: while going down, how far ahead or behind you are; on
+    /// the lift after, how the run went. Only where you have skied before.
+    @ViewBuilder private var ghostLine: some View {
+        if Demo.isOn, Demo.screen == "live" {
+            GhostPill(standing: Ghost.Standing(name: "Gran Bosco", delta: -3.2, best: 161, share: 0.6), live: true)
+        } else if recorder.state == .recording, let run = recorder.lastRun {
+            if run.live, let now = recorder.lastPoint, let standing = Ghost.standing(start: run.start, now: now, among: ghosts) {
+                GhostPill(standing: standing, live: true)
+            } else if !run.live, Date().timeIntervalSince(run.end.t) < 20 * 60,
+                      let standing = Ghost.standing(start: run.start, now: run.end, among: ghosts), standing.share >= 0.5 {
+                GhostPill(standing: standing, live: false)
             }
         }
     }
@@ -217,6 +250,7 @@ struct LiveView: View {
 
     @ViewBuilder private var livePanel: some View {
         status
+        ghostLine
         HStack(alignment: .lastTextBaseline) {
             FigureText("\(currentSpeed) \(Fmt.speedUnit)", big: .system(size: 84, weight: .heavy, design: .rounded), small: .system(size: 18, weight: .bold, design: .rounded))
                 .foregroundStyle(Theme.text)
@@ -306,6 +340,43 @@ private struct LiveCell: View {
             .foregroundStyle(Theme.sub).lineLimit(1).minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// How the run stands against your best on its piste: ahead in green, behind in red.
+struct GhostPill: View {
+    let standing: Ghost.Standing
+    /// Still going down: otherwise it is the verdict of the run just ended.
+    let live: Bool
+
+    private var color: Color { standing.even ? Theme.sub : standing.ahead ? Theme.good : Theme.bad }
+
+    private var words: String {
+        let gap = Ghost.text(standing.delta)
+        if standing.even { return String(localized: live ? "Pari con il tuo migliore" : "Come il tuo migliore") }
+        if live { return standing.ahead ? String(localized: "Avanti di \(gap)") : String(localized: "Indietro di \(gap)") }
+        return standing.ahead ? String(localized: "\(gap) più veloce del tuo migliore") : String(localized: "\(gap) più lenta del tuo migliore")
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: standing.even ? "equal" : standing.ahead ? "arrow.up.right" : "arrow.down.right")
+                .font(.footnote.weight(.bold)).foregroundStyle(color)
+                .frame(width: 36, height: 36)
+                .background(color.opacity(0.18), in: Circle())
+            VStack(alignment: .leading, spacing: 2) {
+                Text(words).font(.headline).monospacedDigit().foregroundStyle(color)
+                    .contentTransition(.numericText())
+                    .lineLimit(1).minimumScaleFactor(0.7)
+                Text("\(standing.name) · il tuo migliore \(Fmt.lap(standing.best))")
+                    .font(.caption).foregroundStyle(Theme.sub).lineLimit(1)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.input, in: Theme.roundSmall)
         .accessibilityElement(children: .combine)
     }
 }

@@ -13,7 +13,7 @@ struct DaysView: View {
     @State private var trip: Trip?
     @State private var newTrip: Trip?
     @State private var error: String?
-    @State private var numbers = ["stats", "heat", "recap", "pistes", "piste", "pass", "goals"].contains(Demo.screen ?? "")
+    @State private var numbers = ["stats", "heat", "recap", "pistes", "piste", "pass", "goals", "trophies"].contains(Demo.screen ?? "")
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -60,7 +60,7 @@ struct DaysView: View {
             .onAppear {
                 if season == nil { season = library.seasons.first }
                 // The screenshots of a day open the newest one.
-                let inside = ["day", "timeline", "run", "replay", "share", "story"]
+                let inside = ["day", "timeline", "run", "replay", "share", "story", "film"]
                 if inside.contains(Demo.screen ?? ""), path.isEmpty, let first = library.days.first { path = [first.id] }
             }
         }

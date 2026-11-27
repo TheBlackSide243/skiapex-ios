@@ -468,6 +468,10 @@ private struct NewsPage: View {
     private static let news: [(symbol: String, title: String, text: String)] = [
         ("signpost.right.fill", "Le tue piste", "Per ogni pista quante volte l'hai fatta, il tuo tempo migliore e la velocità massima. In Statistiche, nella pagina di una stazione e di una discesa."),
         ("flag.checkered", "Sfida sulla pista", "Accendi la sfida e in ogni pista vedi la classifica dei tempi con i tuoi amici."),
+        ("checkmark.seal.fill", "Piste completate", "Nella pagina di una stazione vedi quante delle sue piste hai già sciato e quali ti mancano. Sulla mappa, con Fatte, quelle ancora da fare sbiadiscono."),
+        ("trophy.fill", "Trofei", "In Statistiche: giornate, velocità, dislivello, posti e piste nere. Si conquistano da soli, e la giornata che ne porta uno lo mostra."),
+        ("film", "Video della giornata", "Dalla pagina di una giornata crei un video con la traccia che si disegna sulla mappa e i numeri che salgono, da mandare o pubblicare."),
+        ("stopwatch.fill", "Contro il tuo migliore", "Mentre scendi una pista già fatta, in Registra vedi se sei avanti o indietro rispetto al tuo tempo migliore, e in seggiovia com'è andata."),
         ("target", "Obiettivi della stagione", "In Statistiche scegli un traguardo di giornate, dislivello o chilometri e vedi a che punto sei, con il ritmo che serve per arrivarci."),
         ("ticket.fill", "Skipass e costi", "In Statistiche dici se hai lo stagionale, i giornalieri o SnowitPass e vedi quanto ti costa ogni giornata e ogni discesa. Con SnowitPass l'app stima gli addebiti dalle tariffe di Snowit e segue i traguardi di spesa."),
         ("bell.badge.fill", "Notifiche degli amici", "Con la versione TestFlight l'invito a un punto d'incontro, le risposte e le nuove amicizie arrivano come notifica anche ad app chiusa."),

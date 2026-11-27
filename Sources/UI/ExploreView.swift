@@ -13,6 +13,7 @@ struct ExploreView: View {
 
     @Environment(Recorder.self) private var recorder
     @Environment(Social.self) private var social
+    @Environment(Library.self) private var library
     @AppStorage(Prefs.mapLook) private var mapLook = MapLook.standard.rawValue
     @State private var region: MKCoordinateRegion
     /// Counts the times the map was asked to go somewhere.
@@ -24,6 +25,8 @@ struct ExploreView: View {
     @State private var showPistes = true
     @State private var showLifts = true
     @State private var showHuts = true
+    /// Only the pistes you skied in full color: the others fade.
+    @State private var showDone: Bool
     /// The line touched: its place in `terrain.ways`, and where it was touched.
     @State private var picked: Int?
     @State private var pickedAt: CLLocationCoordinate2D?
@@ -37,10 +40,11 @@ struct ExploreView: View {
     @State private var met: Meeting?
     @State private var draft: MeetingDraft?
 
-    init(name: String, center: CLLocationCoordinate2D, meeting: Meeting? = nil) {
+    init(name: String, center: CLLocationCoordinate2D, meeting: Meeting? = nil, highlight: Bool = false) {
         self.name = name
         self.center = center
         self.meeting = meeting
+        _showDone = State(initialValue: highlight)
         _region = State(initialValue: MKCoordinateRegion(center: center, latitudinalMeters: 6500, longitudinalMeters: 6500))
     }
 
@@ -62,7 +66,7 @@ struct ExploreView: View {
                         MapLine(coordinates: $0.coordinates, color: UIColor($0.color), width: $0.style.lineWidth,
                                 dash: $0.style.dash.isEmpty ? nil : $0.style.dash.map { NSNumber(value: Double($0)) })
                     },
-                    linesKey: "\(picked ?? -1)|\(showPistes)|\(showLifts)|\(route?.lats.count ?? 0)|\(terrain?.ways.count ?? 0)",
+                    linesKey: "\(picked ?? -1)|\(showPistes)|\(showLifts)|\(showDone)|\(route?.lats.count ?? 0)|\(terrain?.ways.count ?? 0)",
                     region: region, regionKey: "\(moves)", onTap: { touch($0) })
                 .ignoresSafeArea(edges: .bottom)
 
@@ -116,15 +120,18 @@ struct ExploreView: View {
         guard let terrain else { return [] }
         var out: [Line] = []
         let round = StrokeStyle(lineWidth: 3.5, lineCap: .round, lineJoin: .round)
+        let skied = showDone ? self.skied : []
         for (i, way) in terrain.ways.enumerated() {
             let coordinates = zip(way.lats, way.lons).map { CLLocationCoordinate2D(latitude: $0, longitude: $1) }
             let chosen = picked == i
             switch way.kind {
             case .piste:
                 guard showPistes else { continue }
-                let color = Theme.difficultyColor(way.difficulty) ?? Theme.sub
+                // With the pistes done lit, the ones still to ski fade: the one touched never does.
+                let faded = showDone && !chosen && !(way.label.map { skied.contains(Completion.key($0)) } ?? false)
+                let color = (Theme.difficultyColor(way.difficulty) ?? Theme.sub).opacity(faded ? 0.3 : 1)
                 // Every piste has a white edge, to stand out on the snow and on the rock.
-                out.append(Line(id: -i - 1, coordinates: coordinates, color: Color.white.opacity(0.9),
+                out.append(Line(id: -i - 1, coordinates: coordinates, color: Color.white.opacity(faded ? 0.3 : 0.9),
                                 style: StrokeStyle(lineWidth: chosen ? 9 : 5.5, lineCap: .round, lineJoin: .round)))
                 out.append(Line(id: i, coordinates: coordinates, color: color,
                                 style: chosen ? StrokeStyle(lineWidth: 6.5, lineCap: .round, lineJoin: .round) : round))
@@ -144,12 +151,18 @@ struct ExploreView: View {
         return out
     }
 
+    /// The names of the pistes you skied around here.
+    private var skied: Set<String> {
+        Completion.skied(library.days, nearLat: center.latitude, lon: center.longitude)
+    }
+
     /// What to show, on glass at the top.
     private var layers: some View {
         HStack(spacing: 8) {
             LayerChip(title: "Piste", symbol: "figure.skiing.downhill", on: $showPistes)
             LayerChip(title: "Impianti", symbol: "cablecar", on: $showLifts)
             LayerChip(title: "Rifugi", symbol: "fork.knife", on: $showHuts)
+            LayerChip(title: "Fatte", symbol: "checkmark", on: $showDone)
         }
     }
 
@@ -182,6 +195,12 @@ struct ExploreView: View {
                 } else {
                     Text("\(terrain.pistes) piste · \(terrain.lifts) impianti · \(Fmt.distance(terrain.pisteMeters))")
                         .font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text)
+                    if showDone {
+                        let tally = Completion.tally(terrain.ways, skied: skied)
+                        Label("Ne hai sciate \(tally.done) su \(tally.total): le altre sono sbiadite", systemImage: "checkmark.circle.fill")
+                            .font(.caption.weight(.semibold)).foregroundStyle(Theme.accent)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                     Text(hint).prose().font(.caption).foregroundStyle(Theme.sub)
                         .fixedSize(horizontal: false, vertical: true)
                     if from != nil || to != nil {
