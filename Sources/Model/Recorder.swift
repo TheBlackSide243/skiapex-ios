@@ -17,6 +17,8 @@ import Observation
     /// The lines for the map, made with the numbers.
     private(set) var tracks: [MapTrack] = []
     private(set) var lastPoint: TrackPoint?
+    /// The run going on, or the last one of the day: to measure it against your best there.
+    private(set) var lastRun: LiveRun?
     /// The last fix, also one too imprecise to keep: for the accuracy shown on screen.
     private(set) var lastFix: CLLocation?
     private(set) var authorization: CLAuthorizationStatus = .notDetermined
@@ -200,6 +202,12 @@ import Observation
         let clean = Segmenter.clean(points)
         analysis = Segmenter.analyze(clean)
         tracks = MapTrack.build(points: clean, segments: analysis.segments)
+        if let run = analysis.segments.last(where: { $0.kind == .run }), run.start < run.end, run.end < clean.count {
+            lastRun = LiveRun(start: clean[run.start], end: clean[run.end],
+                              live: analysis.current == .run && run.end >= clean.count - 3)
+        } else {
+            lastRun = nil
+        }
         // The lock screen and the Dynamic Island, for a real recording only.
         if journal != nil {
             LiveStatus.update(state: state, analysis: analysis, start: startDate)

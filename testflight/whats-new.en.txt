@@ -1,6 +1,10 @@
-Ski Apex 0.9.1
+Ski Apex 0.10.0
+- Pistes done: on the page of a ski area you see how many of its pistes you have skied and which are left; on the map, with Done, the others fade.
+- Trophies: in Statistics, for days, speed, vertical, places and black pistes.
+- Film of the day: from the page of a day, with the track drawing itself on the map and the numbers counting up.
+- Against your best: while you go down a piste you skied before, in Record you see whether you are ahead of your best time or behind.
+To test: make the film of a day and send it; open the page of a ski area you skied at and look at the pistes done; ski a piste again while looking at Record.
 - Ski pass and costs: in Prices of the places you write what a day costs at a place, when Snowit publishes no price or when it changed. It applies to all the days there. You can also write what you really paid to activate SnowitPass.
-To test: in Statistics, Ski pass and costs, touch a place in Prices of the places, write a price and check that the days there take it.
 - Season goals: in Statistics choose a goal of days, vertical or distance and see how far along you are.
 - Ski pass and costs: in Statistics say whether you have a season pass, day passes or SnowitPass and see what each day and each run cost you. With SnowitPass the app estimates the charges from the tariffs published by Snowit and follows the spending goals; the real charge you write yourself by touching the day.
 - Notifications from friends: the invitation to a meeting point, the answers and new friends arrive as a notification, also with the app closed.
