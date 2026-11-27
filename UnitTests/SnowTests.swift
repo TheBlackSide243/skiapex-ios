@@ -196,6 +196,9 @@ final class SnowTests: XCTestCase {
         XCTAssertTrue(lines.contains { $0.run })
         XCTAssertTrue(lines.flatMap(\.points).allSatisfy { box.insetBy(dx: -1, dy: -1).contains($0) }, "the whole track is on the frame")
 
+        // Its last frame as a picture, for while the film is made.
+        XCTAssertEqual(DayFilm.still(day)?.size, DayFilm.size)
+
         // The film itself, without the map and short: its length and its shape.
         XCTAssertEqual(DayFilm.frames(drawing: 1, holding: 0.2), 36)
         XCTAssertEqual(DayFilm.progress(at: 15, drawing: 1), 0.5, accuracy: 0.001)

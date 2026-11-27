@@ -7,6 +7,8 @@ struct FilmSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var file: URL?
     @State private var player: AVPlayer?
+    /// The last frame, shown while the film is being made.
+    @State private var still: UIImage?
     @State private var progress = 0.0
     @State private var failed = false
 
@@ -27,6 +29,14 @@ struct FilmSheet: View {
                     Button { Task { await make() } } label: { Label("Riprova", systemImage: "arrow.clockwise") }
                         .buttonStyle(SecondaryButtonStyle())
                 } else {
+                    if let still {
+                        Image(uiImage: still)
+                            .resizable().scaledToFit()
+                            .clipShape(Theme.round)
+                            .overlay(Theme.round.strokeBorder(Theme.line, lineWidth: 1))
+                            .opacity(0.55)
+                            .accessibilityHidden(true)
+                    }
                     ProgressView(value: progress).tint(Theme.accent).frame(maxWidth: 220)
                     Text("Preparo il video…").font(.subheadline).foregroundStyle(Theme.sub)
                 }
@@ -54,6 +64,7 @@ struct FilmSheet: View {
         guard file == nil else { return }
         failed = false
         progress = 0
+        if still == nil { still = DayFilm.still(day) }
         do {
             let made = try await DayFilm.make(day) { done in
                 Task { @MainActor in progress = done }

@@ -194,6 +194,20 @@ enum DayFilm {
         }
     }
 
+    /// The last frame of the film as a picture, without the map: shown while the film is made.
+    static func still(_ day: SkiDay) -> UIImage? {
+        let tracks = MapTrack.build(points: day.points, segments: day.segments, maxPoints: 160).filter { $0.kind != .idle }
+        guard tracks.contains(where: { $0.coordinates.count > 1 }) else { return nil }
+        let drawn = lines(tracks, place: fit(tracks, in: CGRect(x: 70, y: 280, width: size.width - 140, height: size.height - 600)))
+        let words = Words(title: day.title ?? String(localized: "Giornata sulla neve"), date: Fmt.day(day.start),
+                          vertical: day.stats.vertical, distance: day.stats.runDistance, runs: day.stats.runs, maxSpeed: day.stats.maxSpeed)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        return UIGraphicsImageRenderer(size: size, format: format).image { context in
+            draw(drawn, progress: 1, words: words, backdrop: nil, in: context.cgContext)
+        }
+    }
+
     /// Makes the film of a day and gives back its file. `mapped`: with the map under the track,
     /// when it can be had. `drawing` and `holding`: how long the track takes to draw itself and
     /// how long the finished picture stays. `told`: how far along it is, from 0 to 1.
