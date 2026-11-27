@@ -13,9 +13,17 @@ enum DayFilm {
     static let drawing = 7.0
     static let holding = 1.8
 
-    static var frames: Int { Int(((drawing + holding) * Double(fps)).rounded()) }
+    static var frames: Int { frames(drawing: drawing, holding: holding) }
+    static func frames(drawing: Double, holding: Double) -> Int { Int(((drawing + holding) * Double(fps)).rounded()) }
 
-    enum Failure: Error { case noTrack, writer }
+    /// What went wrong: no track to draw, or the writer of the film, with where and why.
+    enum Failure: Error {
+        case noTrack
+        case setup(String)
+        case stalled(frame: Int)
+        case append(frame: Int, String)
+        case finish(String)
+    }
 
     /// One stretch of the day, already placed on the frame.
     struct Line {
@@ -35,8 +43,8 @@ enum DayFilm {
     }
 
     /// How much of the track is drawn at a frame: slow at the two ends, then all of it.
-    static func progress(at frame: Int) -> Double {
-        let t = min(1, max(0, Double(frame) / (drawing * Double(fps))))
+    static func progress(at frame: Int, drawing: Double = DayFilm.drawing) -> Double {
+        let t = min(1, max(0, Double(frame) / (max(0.1, drawing) * Double(fps))))
         return t * t * (3 - 2 * t)
     }
 
@@ -187,8 +195,10 @@ enum DayFilm {
     }
 
     /// Makes the film of a day and gives back its file. `mapped`: with the map under the track,
-    /// when it can be had. `told`: how far along it is, from 0 to 1.
-    static func make(_ day: SkiDay, mapped: Bool = true, told: @escaping (Double) -> Void = { _ in }) async throws -> URL {
+    /// when it can be had. `drawing` and `holding`: how long the track takes to draw itself and
+    /// how long the finished picture stays. `told`: how far along it is, from 0 to 1.
+    static func make(_ day: SkiDay, mapped: Bool = true, drawing: Double = DayFilm.drawing, holding: Double = DayFilm.holding,
+                     told: @escaping (Double) -> Void = { _ in }) async throws -> URL {
         let tracks = MapTrack.build(points: day.points, segments: day.segments, maxPoints: 160).filter { $0.kind != .idle }
         guard tracks.contains(where: { $0.coordinates.count > 1 }) else { throw Failure.noTrack }
         let snapshot = mapped ? await backdrop(for: tracks) : nil
@@ -214,24 +224,26 @@ enum DayFilm {
             kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
             kCVPixelBufferWidthKey as String: Int(size.width), kCVPixelBufferHeightKey as String: Int(size.height),
         ])
-        guard writer.canAdd(input) else { throw Failure.writer }
+        guard writer.canAdd(input) else { throw Failure.setup("input") }
         writer.add(input)
-        guard writer.startWriting() else { throw writer.error ?? Failure.writer }
+        guard writer.startWriting() else { throw Failure.setup(writer.error?.localizedDescription ?? "start") }
         writer.startSession(atSourceTime: .zero)
 
-        let count = frames
+        let count = frames(drawing: drawing, holding: holding)
         for frame in 0..<count {
             try Task.checkCancellation()
+            // The writer takes a frame when it has room: on a slow encoder that can be a while.
             var waited = 0
             while !input.isReadyForMoreMediaData {
-                try await Task.sleep(for: .milliseconds(10))
+                guard writer.status == .writing else { throw Failure.append(frame: frame, writer.error?.localizedDescription ?? "status \(writer.status.rawValue)") }
+                try await Task.sleep(for: .milliseconds(20))
                 waited += 1
-                if waited > 1000 { throw Failure.writer }
+                if waited > 3000 { throw Failure.stalled(frame: frame) }
             }
-            guard let pool = adaptor.pixelBufferPool else { throw Failure.writer }
+            guard let pool = adaptor.pixelBufferPool else { throw Failure.setup("pool") }
             var made: CVPixelBuffer?
             CVPixelBufferPoolCreatePixelBuffer(nil, pool, &made)
-            guard let buffer = made else { throw Failure.writer }
+            guard let buffer = made else { throw Failure.setup("buffer") }
             CVPixelBufferLockBaseAddress(buffer, [])
             if let context = CGContext(data: CVPixelBufferGetBaseAddress(buffer), width: Int(size.width), height: Int(size.height),
                                        bitsPerComponent: 8, bytesPerRow: CVPixelBufferGetBytesPerRow(buffer),
@@ -240,18 +252,18 @@ enum DayFilm {
                 // The top left corner at the origin, as the drawing wants it.
                 context.translateBy(x: 0, y: size.height)
                 context.scaleBy(x: 1, y: -1)
-                draw(drawn, progress: progress(at: frame), words: words, backdrop: snapshot?.image, in: context)
+                draw(drawn, progress: progress(at: frame, drawing: drawing), words: words, backdrop: snapshot?.image, in: context)
             }
             CVPixelBufferUnlockBaseAddress(buffer, [])
             guard adaptor.append(buffer, withPresentationTime: CMTime(value: CMTimeValue(frame), timescale: fps)) else {
-                throw writer.error ?? Failure.writer
+                throw Failure.append(frame: frame, writer.error?.localizedDescription ?? "append")
             }
             if frame % 6 == 0 { told(Double(frame) / Double(count)) }
         }
         input.markAsFinished()
         writer.endSession(atSourceTime: CMTime(value: CMTimeValue(count), timescale: fps))
         await writer.finishWriting()
-        guard writer.status == .completed else { throw writer.error ?? Failure.writer }
+        guard writer.status == .completed else { throw Failure.finish(writer.error?.localizedDescription ?? "status \(writer.status.rawValue)") }
         told(1)
         return url
     }

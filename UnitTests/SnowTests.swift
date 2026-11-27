@@ -196,14 +196,16 @@ final class SnowTests: XCTestCase {
         XCTAssertTrue(lines.contains { $0.run })
         XCTAssertTrue(lines.flatMap(\.points).allSatisfy { box.insetBy(dx: -1, dy: -1).contains($0) }, "the whole track is on the frame")
 
-        // The film itself, without the map: its length and its shape.
+        // The film itself, without the map and short: its length and its shape.
+        XCTAssertEqual(DayFilm.frames(drawing: 1, holding: 0.2), 36)
+        XCTAssertEqual(DayFilm.progress(at: 15, drawing: 1), 0.5, accuracy: 0.001)
         var told: [Double] = []
-        let url = try await DayFilm.make(day, mapped: false) { told.append($0) }
+        let url = try await DayFilm.make(day, mapped: false, drawing: 1, holding: 0.2) { told.append($0) }
         XCTAssertTrue(FileManager.default.fileExists(atPath: url.path))
         XCTAssertEqual(told.last, 1)
         let asset = AVURLAsset(url: url)
         let duration = try await asset.load(.duration)
-        XCTAssertEqual(duration.seconds, 8.8, accuracy: 0.3)
+        XCTAssertEqual(duration.seconds, 1.2, accuracy: 0.2)
         let videos = try await asset.loadTracks(withMediaType: .video)
         let video = try XCTUnwrap(videos.first)
         let size = try await video.load(.naturalSize)
