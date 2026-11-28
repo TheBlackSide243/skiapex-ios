@@ -244,14 +244,28 @@ final class ReliefOverlay: MKTileOverlay {
             result(nil, URLError(.badURL))
             return
         }
-        Self.session.dataTask(with: url) { data, _, error in
+        Self.fetch(url, key: key, path: path, tries: 3, result: result)
+    }
+
+    /// A square from the internet, asked again a moment later when it does not come (a weak
+    /// signal on the mountain): a square that fails stays empty until the map is moved.
+    private static func fetch(_ url: URL, key: NSString, path: MKTileOverlayPath, tries: Int, result: @escaping (Data?, Error?) -> Void) {
+        session.dataTask(with: url) { data, response, error in
+            let status = (response as? HTTPURLResponse)?.statusCode ?? 200
             // Drawn away from the queue of the answers, several squares at a time.
             DispatchQueue.global(qos: .userInitiated).async {
-                guard let data, let tile = Relief.tile(from: data, z: path.z, y: path.y) else {
-                    result(nil, error ?? URLError(.cannotDecodeContentData))
+                guard status == 200, let data, let tile = Relief.tile(from: data, z: path.z, y: path.y) else {
+                    // Not there at all (the sea, the edge of the world): no use asking again.
+                    if tries > 1, status != 404, status != 403 {
+                        DispatchQueue.global().asyncAfter(deadline: .now() + 1.5) {
+                            fetch(url, key: key, path: path, tries: tries - 1, result: result)
+                        }
+                    } else {
+                        result(nil, error ?? URLError(.cannotDecodeContentData))
+                    }
                     return
                 }
-                Self.drawn.setObject(tile as NSData, forKey: key)
+                drawn.setObject(tile as NSData, forKey: key)
                 result(tile, nil)
             }
         }.resume()

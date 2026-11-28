@@ -48,6 +48,10 @@ enum WatchFmt {
 
     /// Gets the file of a day that ended, to send it to the iPhone.
     @ObservationIgnored var deliver: ((URL) -> Void)?
+    /// Gets the day under way a little at a time, for the iPhone to show it (see `tell()`).
+    @ObservationIgnored var live: (([String: Any]) -> Bool)?
+    /// How many points the iPhone was told of.
+    @ObservationIgnored private var told = 0
 
     @ObservationIgnored private var points: [TrackPoint] = []
     private let manager = CLLocationManager()
@@ -97,6 +101,8 @@ enum WatchFmt {
                 state = .paused
                 journal = try? FileHandle(forWritingTo: Self.journalFile)
                 _ = try? journal?.seekToEnd()
+                // The iPhone had these already, as they came.
+                told = saved.count
                 refresh()
             }
         }
@@ -145,6 +151,7 @@ enum WatchFmt {
         heart = nil
         note = nil
         startDate = Date()
+        told = 0
         FileManager.default.createFile(atPath: Self.journalFile.path, contents: nil)
         journal = try? FileHandle(forWritingTo: Self.journalFile)
         resume()
@@ -154,9 +161,12 @@ enum WatchFmt {
         guard state != .recording else { return }
         state = .recording
         note = nil
+        let rate = GPSRate.current
+        manager.desiredAccuracy = rate == .saver ? kCLLocationAccuracyNearestTenMeters : kCLLocationAccuracyBest
         if Self.backgroundLocation { manager.allowsBackgroundLocationUpdates = true }
         manager.startUpdatingLocation()
         startBarometer()
+        tell()
         Task { @MainActor in await self.beginWorkout() }
     }
 
@@ -166,6 +176,7 @@ enum WatchFmt {
         stopSensors()
         session?.pause()
         refresh()
+        tell()
     }
 
     /// Ends the day: its points go to the folder of the days for the iPhone.
@@ -178,6 +189,8 @@ enum WatchFmt {
         journal = nil
         let count = Segmenter.clean(points).count
         state = .idle
+        tell()
+        told = 0
         points = []
         lastPoint = nil
         startDate = nil
@@ -299,7 +312,8 @@ enum WatchFmt {
 
     private func add(_ fix: CLLocation) {
         guard fix.horizontalAccuracy >= 0, fix.horizontalAccuracy <= 50 else { return }
-        if let last = points.last, fix.timestamp <= last.t { return }
+        // As often as chosen on the iPhone: every second, or fewer for the battery.
+        if let last = points.last, !GPSRate.current.keeps(after: fix.timestamp.timeIntervalSince(last.t)) { return }
         let point = TrackPoint(t: fix.timestamp, lat: fix.coordinate.latitude, lon: fix.coordinate.longitude,
                                alt: altitude(of: fix), speed: fix.speed, hAcc: fix.horizontalAccuracy, sAcc: fix.speedAccuracy)
         points.append(point)
@@ -310,12 +324,35 @@ enum WatchFmt {
         }
         route?.insertRouteData([fix]) { _, _ in }
         // The numbers are worked out every quarter of a minute: the watch is a small computer.
-        if Date().timeIntervalSince(lastRefresh) >= 15 { refresh() }
+        if Date().timeIntervalSince(lastRefresh) >= 15 {
+            refresh()
+            tell()
+        }
     }
 
     private func refresh() {
         lastRefresh = Date()
         analysis = Segmenter.analyze(Segmenter.clean(points))
+    }
+
+    /// Tells the iPhone how the day stands and the points it has not had yet: it shows the day
+    /// under way while the watch records it, the numbers and the line on the map.
+    private func tell() {
+        guard let live else { return }
+        let from = min(told, points.count)
+        var lines = Data()
+        for point in points[from...] {
+            guard let data = try? encoder.encode(point) else { continue }
+            lines.append(data)
+            lines.append(0x0A)
+        }
+        var packet: [String: Any] = [WatchLink.kindKey: WatchLink.liveKind,
+                                     WatchLink.stateNameKey: state == .idle ? "idle" : state == .paused ? "paused" : "recording",
+                                     WatchLink.fromKey: from, WatchLink.pointsKey: lines]
+        if let startDate { packet[WatchLink.startKey] = startDate }
+        if let heart { packet[WatchLink.heartKey] = Int(heart.rounded()) }
+        // Not on its way (the link not ready yet): the same points go with the next one.
+        if live(packet) { told = points.count }
     }
 
     // MARK: CLLocationManagerDelegate

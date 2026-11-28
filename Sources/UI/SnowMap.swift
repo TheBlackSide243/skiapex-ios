@@ -244,7 +244,15 @@ struct SnowMap: UIViewRepresentable {
 
     final class Coordinator: NSObject, MKMapViewDelegate {
         private var pinsKey = ""
-        private var linesKey = ""
+        /// The lines are on the map in three layers, each changed by itself: the pistes under,
+        /// the day over them, what a screen draws of its own on top. The day changes every few
+        /// seconds while it is recorded: the pistes stay as they are, and nothing goes blank.
+        private var groundKey: String?
+        private var dayKey: String?
+        private var extraKey: String?
+        private var ground: [StyledLine] = []
+        private var day: [StyledLine] = []
+        private var extra: [StyledLine] = []
         private var regionKey: String?
         private var recenter = 0
         private var dot: MovingDot?
@@ -268,11 +276,26 @@ struct SnowMap: UIViewRepresentable {
                 map.addAnnotations(Self.annotations(view))
             }
 
-            let lines = "\(view.terrain?.ways.count ?? 0)|\(view.tracks.count)|\(view.tracks.reduce(0) { $0 + $1.coordinates.count })|\(view.dimmed)|\(view.lines.count)|\(view.linesKey)"
-            if lines != linesKey {
-                linesKey = lines
-                map.removeOverlays(map.overlays.filter { $0 is StyledLine })
-                map.addOverlays(Self.lines(terrain: view.terrain, tracks: view.tracks, dimmed: view.dimmed, more: view.lines), level: .aboveLabels)
+            let groundNow = Self.key(view.terrain)
+            if groundNow != groundKey {
+                groundKey = groundNow
+                let new = Self.lines(terrain: view.terrain, tracks: [])
+                Self.replace(ground, with: new, below: day.first ?? extra.first, on: map)
+                ground = new
+            }
+            let dayNow = "\(view.tracks.count)|\(view.tracks.reduce(0) { $0 + $1.coordinates.count })|\(view.tracks.map { $0.difficulty ?? "" }.joined())|\(view.dimmed)"
+            if dayNow != dayKey {
+                dayKey = dayNow
+                let new = Self.lines(terrain: nil, tracks: view.tracks, dimmed: view.dimmed)
+                Self.replace(day, with: new, below: extra.first, on: map)
+                day = new
+            }
+            let extraNow = "\(view.lines.count)|\(view.linesKey)"
+            if extraNow != extraKey {
+                extraKey = extraNow
+                let new = Self.lines(terrain: nil, tracks: [], more: view.lines)
+                Self.replace(extra, with: new, below: nil, on: map)
+                extra = new
             }
 
             if let place = view.dot {
@@ -303,6 +326,24 @@ struct SnowMap: UIViewRepresentable {
                 recenter = view.recenter
                 map.setUserTrackingMode(.follow, animated: true)
             }
+        }
+
+        /// What tells one set of pistes from another.
+        static func key(_ terrain: Terrain?) -> String {
+            guard let terrain else { return "" }
+            let first = terrain.ways.first, last = terrain.ways.last
+            return "\(terrain.ways.count)|\(first?.lats.first ?? 0),\(first?.lons.first ?? 0)|\(last?.lats.last ?? 0),\(last?.lons.last ?? 0)"
+        }
+
+        /// The new lines of a layer go on first and the old ones come off after: in between the map
+        /// is never without them.
+        static func replace(_ old: [StyledLine], with new: [StyledLine], below: MKOverlay?, on map: MKMapView) {
+            if let below {
+                for line in new { map.insertOverlay(line, below: below) }
+            } else if !new.isEmpty {
+                map.addOverlays(new, level: .aboveLabels)
+            }
+            if !old.isEmpty { map.removeOverlays(old) }
         }
 
         static func annotations(_ view: SnowMap) -> [PinAnnotation] {
@@ -418,9 +459,11 @@ struct SnowMap: UIViewRepresentable {
         }()
 
         func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
-            // From the zoom of a valley in the map is snow, and its words are dark.
+            // From the zoom of a valley in the map is snow, and its words are dark. With a little
+            // room either side: on the edge, the map would be drawn again and again from scratch.
             let zoom = Self.zoom(span: mapView.region.span.longitudeDelta, width: mapView.bounds.width)
-            let style: UIUserInterfaceStyle = zoom >= Double(Relief.snowFrom) - 0.5 ? .light : .dark
+            let edge = Double(Relief.snowFrom) - 0.5
+            let style: UIUserInterfaceStyle = zoom >= edge + 0.3 ? .light : zoom < edge - 0.3 ? .dark : mapView.overrideUserInterfaceStyle
             if mapView.overrideUserInterfaceStyle != style { mapView.overrideUserInterfaceStyle = style }
             onMove?(mapView.region.center, mapView.region.span.latitudeDelta)
         }
@@ -488,6 +531,10 @@ struct Backdrop: View {
     var body: some View {
         let pins = PlacePin.of(library.days)
         let live = tab == 0
+        // The day the watch records by itself, when the iPhone is not recording one of its own.
+        let watch = WatchDay.shared
+        let fromWatch = live && watch.active && (recorder.handed || recorder.state == .idle)
+        let here = fromWatch ? watch.lastPoint : recorder.lastPoint
         // A ski area a screen asked to show: alone, with all its pistes and lifts.
         let shown = live ? nil : Stage.shared.place
         let shownTerrain = Stage.shared.terrain
@@ -497,11 +544,11 @@ struct Backdrop: View {
                     // The places to meet, while a day is recorded or about to be: from far away,
                     // among the places skied, they would only be in the way.
                     marks: live ? social.meetings.map(\.mark) : [],
-                    tracks: live ? recorder.tracks : [],
+                    tracks: live ? (fromWatch ? watch.tracks : recorder.tracks) : [],
                     terrain: shown == nil ? terrain : (shownTerrain ?? terrain),
-                    region: shown.map { Stage.region(of: $0, terrain: shownTerrain) } ?? region(pins: pins, live: live),
+                    region: shown.map { Stage.region(of: $0, terrain: shownTerrain) } ?? region(pins: pins, live: live, here: here),
                     regionKey: shown.map { "stage\($0.id)|\(shownTerrain?.ways.count ?? 0)" }
-                        ?? (live ? "live\(recorder.lastPoint == nil ? 0 : 1)" : "places\(pins.count)"),
+                        ?? (live ? "live\(here == nil ? 0 : 1)\(fromWatch ? "w" : "")" : "places\(pins.count)"),
                     recenter: recenter,
                     bottomInset: box.size.height * covered,
                     onMove: { center, span in moved(to: center, span: span) })
@@ -509,8 +556,8 @@ struct Backdrop: View {
         .accessibilityLabel(Text("Mappa"))
     }
 
-    private func region(pins: [PlacePin], live: Bool) -> MKCoordinateRegion {
-        if live, let point = recorder.lastPoint {
+    private func region(pins: [PlacePin], live: Bool, here: TrackPoint?) -> MKCoordinateRegion {
+        if live, let point = here {
             return MKCoordinateRegion(center: point.coordinate, span: MKCoordinateSpan(latitudeDelta: 0.035, longitudeDelta: 0.035))
         }
         return PlacePin.region(pins)

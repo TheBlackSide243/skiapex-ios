@@ -22,6 +22,8 @@ struct LiveView: View {
     /// were read for.
     @State private var ghosts: [GhostLap] = []
     @State private var ghostsAt: TrackPoint?
+    /// The day the Apple Watch is recording by itself, as it tells it.
+    private var watchDay: WatchDay { WatchDay.shared }
 
     var body: some View {
         NavigationStack {
@@ -29,7 +31,9 @@ struct LiveView: View {
                 VStack(spacing: 18) {
                     ErrorBanner(error: $error)
                     MeetingBanner()
-                    if recorder.handed {
+                    if watchDay.active, recorder.handed || recorder.state == .idle {
+                        watchPanel
+                    } else if recorder.handed {
                         handedPanel
                     } else if recorder.state == .idle {
                         startPanel
@@ -248,6 +252,102 @@ struct LiveView: View {
             .buttonStyle(SecondaryButtonStyle())
     }
 
+    /// The day the watch is recording: its numbers as it tells them, a little at a time.
+    @ViewBuilder private var watchPanel: some View {
+        let day = watchDay
+        HStack(spacing: 8) {
+            Circle().fill(watchColor).frame(width: 10, height: 10)
+            Text(LocalizedStringKey(watchText)).font(.headline).foregroundStyle(Theme.text).lineLimit(1)
+            Spacer(minLength: 6)
+            Label("Apple Watch", systemImage: "applewatch").font(.subheadline).foregroundStyle(Theme.sub).lineLimit(1)
+        }
+        .accessibilityElement(children: .combine)
+        HStack(alignment: .lastTextBaseline) {
+            let speed = day.speed.map { Fmt.speedValue($0) } ?? "–"
+            FigureText("\(speed) \(Fmt.speedUnit)", big: .system(size: 84, weight: .heavy, design: .rounded), small: .system(size: 18, weight: .bold, design: .rounded))
+                .foregroundStyle(Theme.text)
+                .contentTransition(.numericText())
+                .animation(.snappy, value: speed)
+                .lineLimit(1).minimumScaleFactor(0.6)
+            Spacer()
+            VStack(alignment: .trailing, spacing: 4) {
+                TimelineView(.periodic(from: .now, by: 1)) { _ in
+                    Text(Fmt.clock(watchElapsed)).font(.title2.weight(.bold)).monospacedDigit().foregroundStyle(Theme.text)
+                }
+                if let heart = day.heart {
+                    Label("\(heart)", systemImage: "heart.fill").font(.subheadline.weight(.semibold)).monospacedDigit()
+                        .foregroundStyle(Theme.bad)
+                        .accessibilityLabel(Text("\(heart) battiti al minuto"))
+                } else {
+                    Text("dall'inizio").font(.subheadline).foregroundStyle(Theme.sub)
+                }
+            }
+        }
+        numbers(day.analysis.stats)
+        Words(watchWords)
+        if let updated = day.updated {
+            TimelineView(.periodic(from: .now, by: 15)) { _ in
+                Label(String(localized: "Ultimo aggiornamento dal Watch: \(Fmt.time(updated))"), systemImage: "arrow.triangle.2.circlepath")
+                    .font(.caption).foregroundStyle(Theme.sub)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        if recorder.handed {
+            Button { recorder.takeBack() } label: { Label("Torna a registrare con l'iPhone", systemImage: "iphone") }
+                .buttonStyle(SecondaryButtonStyle())
+        }
+    }
+
+    private var watchText: String {
+        switch watchDay.state {
+        case .paused: return "In pausa sul Watch"
+        case .ended: return "Finita sul Watch"
+        default:
+            switch watchDay.analysis.current {
+            case .run: return "In pista"
+            case .lift: return "In risalita"
+            case .idle: return "Fermo"
+            }
+        }
+    }
+
+    private var watchColor: Color {
+        switch watchDay.state {
+        case .paused: return Theme.warn
+        case .ended: return Theme.sub
+        default:
+            switch watchDay.analysis.current {
+            case .run: return Theme.accent
+            case .lift: return Theme.lift
+            case .idle: return Theme.good
+            }
+        }
+    }
+
+    private var watchWords: LocalizedStringKey {
+        watchDay.state == .ended
+            ? "Il Watch ha finito la giornata: arriva qui da sola appena è vicino all'iPhone, con il resto dei punti."
+            : "Il Watch registra da solo. Qui vedi i suoi numeri e la traccia sulla mappa: arrivano ogni quarto di minuto quando il Watch è vicino all'iPhone. Pausa e Fine si premono sul Watch."
+    }
+
+    private var watchElapsed: TimeInterval {
+        guard let start = recorder.handed ? (recorder.startDate ?? watchDay.start) : watchDay.start else { return 0 }
+        let end = watchDay.state == .recording ? Date() : (watchDay.lastPoint?.t ?? Date())
+        return max(0, end.timeIntervalSince(start))
+    }
+
+    /// The six numbers of the day under way.
+    private func numbers(_ s: DayStats) -> some View {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), alignment: .leading, spacing: 18) {
+            LiveCell(value: "\(s.runs)", label: "discese", symbol: "arrow.triangle.2.circlepath")
+            LiveCell(value: Fmt.height(s.vertical), label: "dislivello", symbol: "arrow.down")
+            LiveCell(value: Fmt.speed(s.maxSpeed), label: "vel. max", symbol: "speedometer")
+            LiveCell(value: Fmt.distance(s.runDistance), label: "sciati", symbol: "arrow.right")
+            LiveCell(value: "\(s.lifts)", label: "risalite", symbol: "cablecar")
+            LiveCell(value: Fmt.height(s.topAlt), label: "quota max", symbol: "mountain.2")
+        }
+    }
+
     @ViewBuilder private var livePanel: some View {
         status
         ghostLine
@@ -265,15 +365,7 @@ struct LiveView: View {
                 Text("dall'inizio").font(.subheadline).foregroundStyle(Theme.sub)
             }
         }
-        let s = recorder.analysis.stats
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), alignment: .leading, spacing: 18) {
-            LiveCell(value: "\(s.runs)", label: "discese", symbol: "arrow.triangle.2.circlepath")
-            LiveCell(value: Fmt.height(s.vertical), label: "dislivello", symbol: "arrow.down")
-            LiveCell(value: Fmt.speed(s.maxSpeed), label: "vel. max", symbol: "speedometer")
-            LiveCell(value: Fmt.distance(s.runDistance), label: "sciati", symbol: "arrow.right")
-            LiveCell(value: "\(s.lifts)", label: "risalite", symbol: "cablecar")
-            LiveCell(value: Fmt.height(s.topAlt), label: "quota max", symbol: "mountain.2")
-        }
+        numbers(recorder.analysis.stats)
         HStack(spacing: 10) {
             if recorder.state == .recording {
                 Button { recorder.pause() } label: { Label("Pausa", systemImage: "pause.fill") }
@@ -318,6 +410,18 @@ struct LiveView: View {
             // The points stay: the day can be saved again from the paused recording.
             self.error = String(localized: "Non sono riuscito a salvare la giornata: \(error.localizedDescription)")
         }
+    }
+}
+
+/// A few words under the numbers.
+private struct Words: View {
+    let text: LocalizedStringKey
+    init(_ text: LocalizedStringKey) { self.text = text }
+
+    var body: some View {
+        Text(text).font(.footnote).foregroundStyle(Theme.sub)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

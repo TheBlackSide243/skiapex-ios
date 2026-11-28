@@ -653,4 +653,70 @@ final class FeatureTests: XCTestCase {
         XCTAssertNil(old.sport)
         XCTAssertEqual(old.title, "Vecchia")
     }
+
+    func testTheRateOfTheGPS() {
+        // Every second keeps a fix that comes a little early; every 5 s leaves out the ones between.
+        XCTAssertTrue(GPSRate.best.keeps(after: 0.9))
+        XCTAssertFalse(GPSRate.best.keeps(after: 0))
+        XCTAssertFalse(GPSRate.saver.keeps(after: 3))
+        XCTAssertTrue(GPSRate.saver.keeps(after: 4.8))
+        XCTAssertEqual(GPSRate.near(2.1), .balanced)
+        XCTAssertEqual(GPSRate.near(9), .saver)
+        // The iPhone tells the watch, also before a day.
+        let told = WatchState(packed: WatchState(state: "idle", phase: "idle", start: nil, speed: "0", speedUnit: "km/h", runs: 0,
+                                                 vertical: "–", distance: "–", maxSpeed: "–", altitude: "–", every: 5).packed)
+        XCTAssertEqual(told?.every, 5)
+    }
+
+    func testTheDayOfTheWatchOnTheIPhone() throws {
+        let points = Segmenter.clean(SkiSim.day(laps: 2, start: Date(timeIntervalSinceNow: -7200), seed: 3))
+        XCTAssertGreaterThan(points.count, 200)
+        let start = try XCTUnwrap(points.first?.t)
+        func packet(_ state: String, from: Int, _ part: ArraySlice<TrackPoint>, start: Date = start) -> [String: Any] {
+            var lines = Data()
+            for point in part {
+                lines.append(try! JSONEncoder().encode(point))
+                lines.append(0x0A)
+            }
+            return [WatchLink.kindKey: WatchLink.liveKind, WatchLink.stateNameKey: state, WatchLink.startKey: start,
+                    WatchLink.fromKey: from, WatchLink.pointsKey: lines, WatchLink.heartKey: 131]
+        }
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer {
+            try? FileManager.default.removeItem(at: folder)
+            UserDefaults.standard.removeObject(forKey: "watchDay")
+        }
+        let day = WatchDay(directory: folder)
+        XCTAssertFalse(day.active)
+        let half = points.count / 2
+        day.take(packet("recording", from: 0, points[..<half]))
+        XCTAssertTrue(day.active)
+        XCTAssertEqual(day.points.count, half)
+        XCTAssertEqual(day.heart, 131)
+        // The next piece, then the same one again: told twice, kept once.
+        day.take(packet("recording", from: half, points[half...]))
+        day.take(packet("recording", from: half, points[half...]))
+        XCTAssertEqual(day.points.count, points.count)
+        XCTAssertEqual(day.analysis.stats.runs, Segmenter.analyze(points).stats.runs)
+        XCTAssertFalse(day.tracks.isEmpty)
+        // Found again when the app is opened later.
+        let again = WatchDay(directory: folder)
+        XCTAssertEqual(again.points.count, points.count)
+        XCTAssertEqual(again.state, .recording)
+        // Ended on the watch: waits for the day, then goes when it arrives.
+        day.take(packet("idle", from: points.count, points[points.count...]))
+        XCTAssertEqual(day.state, .ended)
+        day.clear()
+        XCTAssertFalse(day.active)
+        XCTAssertFalse(WatchDay(directory: folder).active)
+        // A day ended with too little to keep: nothing to wait for.
+        day.take(packet("idle", from: 0, points[..<5], start: start.addingTimeInterval(9000)))
+        XCTAssertFalse(day.active)
+        // The iPhone's points from before the watch are shown with it.
+        day.take(packet("recording", from: 0, points[half...]))
+        let alone = day.analysis.stats.vertical
+        day.setBefore(Array(points[..<half]))
+        XCTAssertGreaterThan(day.analysis.stats.vertical, alone)
+    }
 }
