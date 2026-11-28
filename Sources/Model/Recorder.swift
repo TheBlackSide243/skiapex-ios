@@ -3,8 +3,8 @@ import CoreMotion
 import Foundation
 import Observation
 
-/// Records the day: the GPS about once a second, even with the screen off and the iPhone in a
-/// pocket, and the barometer for the altitude. Every point is also written to a file as it comes,
+/// Records the day: the GPS about once a second (or every few, as chosen in Settings), even with
+/// the screen off and the iPhone in a pocket, and the barometer for the altitude. Every point is also written to a file as it comes,
 /// so that a day is not lost if the app is closed or iOS ends it: it is found again at the next
 /// launch, paused.
 @Observable final class Recorder: NSObject, CLLocationManagerDelegate {
@@ -45,6 +45,8 @@ import Observation
     @ObservationIgnored private var offset: Double?
     @ObservationIgnored private var gpsAlt: Double?
     @ObservationIgnored private var lastRefresh = Date.distantPast
+    /// When the watch was last told the speed.
+    @ObservationIgnored private var lastToWatch = Date.distantPast
     @ObservationIgnored private var startWhenAllowed = false
     @ObservationIgnored private var background: CLBackgroundActivitySession?
 
@@ -140,12 +142,19 @@ import Observation
         guard state != .recording else { return }
         state = .recording
         recovered = false
+        applyRate()
         background = CLBackgroundActivitySession()
         manager.allowsBackgroundLocationUpdates = true
         manager.showsBackgroundLocationIndicator = true
         manager.startUpdatingLocation()
         startBarometer()
         refresh()
+    }
+
+    /// The rate of the GPS chosen in Settings, also in the middle of a day. Every few seconds is
+    /// enough with the GPS less precise, and it spends less.
+    func applyRate() {
+        manager.desiredAccuracy = GPSRate.current == .saver ? kCLLocationAccuracyNearestTenMeters : kCLLocationAccuracyBest
     }
 
     func pause() {
@@ -214,6 +223,7 @@ import Observation
             // And the friends, when sharing is on.
             LiveShare.update(state: state, point: lastPoint, phase: analysis.current)
             // And the Apple Watch.
+            lastToWatch = Date()
             WatchBridge.shared.push(WatchBridge.state(of: self))
         }
     }
@@ -260,7 +270,8 @@ import Observation
     private func add(_ fix: CLLocation) {
         lastFix = fix
         guard fix.horizontalAccuracy >= 0, fix.horizontalAccuracy <= 50 else { return }
-        if let last = points.last, fix.timestamp <= last.t { return }
+        // As often as chosen in Settings: every second, or fewer for the battery.
+        if let last = points.last, !GPSRate.current.keeps(after: fix.timestamp.timeIntervalSince(last.t)) { return }
         let point = TrackPoint(t: fix.timestamp,
                                lat: fix.coordinate.latitude, lon: fix.coordinate.longitude,
                                alt: altitude(of: fix),
@@ -270,7 +281,13 @@ import Observation
         lastPoint = point
         journal?.append(point)
         // On screen the numbers follow closely; in a pocket, often enough for the lock screen.
-        if Date().timeIntervalSince(lastRefresh) >= (appIsActive ? 8 : 30) { refresh() }
+        if Date().timeIntervalSince(lastRefresh) >= (appIsActive ? 5 : 30) {
+            refresh()
+        } else if journal != nil, Date().timeIntervalSince(lastToWatch) >= 2 {
+            // The watch shows the speed: told every couple of seconds, not only with the numbers.
+            lastToWatch = Date()
+            WatchBridge.shared.push(WatchBridge.state(of: self))
+        }
     }
 
     // MARK: CLLocationManagerDelegate

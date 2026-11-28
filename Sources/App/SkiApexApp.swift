@@ -128,7 +128,7 @@ enum Demo {
         case "days", "day", "timeline", "run", "replay", "share", "story", "manual", "stats", "heat", "recap", "snow", "empty", "pistes", "piste", "pass", "goals", "trophies", "film": 1
         case "guide", "explore", "resort", "meet": 2
         case "friends": 3
-        case "settings", "looks", "profile": 4
+        case "settings", "looks", "profile", "gps": 4
         default: 0
         }
     }
@@ -200,16 +200,28 @@ enum Demo {
     /// A day under way, stopped in the middle of its last run as if it were now; nothing yet for
     /// the screen before starting.
     static func recorder() -> Recorder {
-        if screen == "ready" { return Recorder(journal: nil) }
+        // The watch records: the iPhone does not.
+        if screen == "ready" || screen == "watch" { return Recorder(journal: nil) }
+        return Recorder.preview(underWay())
+    }
+
+    /// For `-screen watch`: the day under way on the watch, as it told it.
+    static func watchDay() -> WatchDay {
+        guard screen == "watch" else { return WatchDay(directory: nil) }
+        return WatchDay.preview(underWay(), heart: 132)
+    }
+
+    /// The points of a day under way, stopped in the middle of its last run as if it were now.
+    private static func underWay() -> [TrackPoint] {
         let points = Segmenter.clean(SkiSim.day(laps: 4, start: Date(timeIntervalSinceNow: -3 * 3600), seed: 5))
         let runs = Segmenter.analyze(points).segments.filter { $0.kind == .run }
-        guard let last = runs.last else { return Recorder.preview(points) }
+        guard let last = runs.last else { return points }
         let cut = last.start + (last.end - last.start) * 6 / 10
         let shift = Date().timeIntervalSince(points[cut].t)
-        return Recorder.preview(points[...cut].map { p in
+        return points[...cut].map { p in
             var q = p
             q.t = p.t.addingTimeInterval(shift)
             return q
-        })
+        }
     }
 }

@@ -859,3 +859,17 @@
 "Dalla pagina di una giornata crei un video con la traccia che si disegna sulla mappa e i numeri che salgono, da mandare o pubblicare." = "From the page of a day you make a film with the track drawing itself on the map and the numbers counting up, to send or to post.";
 "Contro il tuo migliore" = "Against your best";
 "Mentre scendi una pista già fatta, in Registra vedi se sei avanti o indietro rispetto al tuo tempo migliore, e in seggiovia com'è andata." = "While you go down a piste you skied before, in Record you see whether you are ahead of your best time or behind, and on the lift how it went.";
+"Un punto GPS ogni" = "A GPS point every";
+"Un punto ogni secondo: le linee più precise e la velocità massima più vera. Consuma di più." = "A point every second: the most precise lines and the truest top speed. It uses more battery.";
+"Un punto ogni 2 secondi: quasi la stessa precisione, un po' meno batteria." = "A point every 2 seconds: almost the same precision, a little less battery.";
+"Un punto ogni 5 secondi e un GPS meno preciso: la batteria dura di più, ma le curve sono meno fedeli e la velocità massima può uscire più bassa." = "A point every 5 seconds and a less precise GPS: the battery lasts longer, but the turns are less true and the top speed can come out lower.";
+"In pausa sul Watch" = "Paused on the Watch";
+"Finita sul Watch" = "Ended on the Watch";
+"%lld battiti al minuto" = "%lld beats a minute";
+"Il Watch ha finito la giornata: arriva qui da sola appena è vicino all'iPhone, con il resto dei punti." = "The Watch ended the day: it comes here by itself as soon as it is near the iPhone, with the rest of the points.";
+"Il Watch registra da solo. Qui vedi i suoi numeri e la traccia sulla mappa: arrivano ogni quarto di minuto quando il Watch è vicino all'iPhone. Pausa e Fine si premono sul Watch." = "The Watch records by itself. Here you see its numbers and the track on the map: they come every quarter of a minute when the Watch is near the iPhone. Pause and End are on the Watch.";
+"Ultimo aggiornamento dal Watch: %@" = "Last update from the Watch: %@";
+"Il Watch anche sull'iPhone" = "The Watch on the iPhone too";
+"Quando registra il Watch, in Registra vedi i suoi numeri e la traccia sulla mappa, aggiornati ogni quarto di minuto." = "When the Watch records, in Record you see its numbers and the track on the map, updated every quarter of a minute.";
+"Frequenza del GPS" = "GPS rate";
+"In Impostazioni → Registrazione scegli un punto ogni secondo, ogni 2 o ogni 5 secondi per risparmiare batteria. Vale anche per il Watch." = "In Settings → Recording choose a point every second, every 2 or every 5 seconds to save battery. It goes for the Watch too.";

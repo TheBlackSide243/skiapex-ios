@@ -10,7 +10,7 @@ import WatchKit
 @main
 struct SkiApexWatchApp: App {
     @WKApplicationDelegateAdaptor(WatchDelegate.self) private var delegate
-    @State private var phone = PhoneLink()
+    @State private var phone = PhoneLink.shared
     @State private var recorder = WatchRecorder.shared
 
     var body: some Scene {
@@ -19,9 +19,6 @@ struct SkiApexWatchApp: App {
                 .environment(phone)
                 .environment(recorder)
                 .tint(Ink.accent)
-                .onAppear {
-                    recorder.deliver = { [phone] file in phone.queue(file) }
-                }
         }
     }
 }
@@ -29,7 +26,11 @@ struct SkiApexWatchApp: App {
 /// The iPhone can open the watch app for a workout ("Continua sul Watch"): the day starts here.
 final class WatchDelegate: NSObject, WKApplicationDelegate {
     func handle(_ workoutConfiguration: HKWorkoutConfiguration) {
-        DispatchQueue.main.async { WatchRecorder.shared.start() }
+        DispatchQueue.main.async {
+            // The link first: it is what passes the day to the iPhone.
+            _ = PhoneLink.shared
+            WatchRecorder.shared.start()
+        }
     }
 }
 
@@ -56,6 +57,8 @@ enum Ink {
 /// The watch's side of the link with the iPhone: what it last said, the commands to it, and the
 /// days recorded on the watch on their way to it.
 @Observable final class PhoneLink: NSObject, WCSessionDelegate {
+    static let shared = PhoneLink()
+
     private(set) var state = WatchState.idle
     /// A few words from the iPhone, or about it: shown until the next command.
     private(set) var note: String?
@@ -68,9 +71,22 @@ enum Ink {
 
     override init() {
         super.init()
+        let recorder = WatchRecorder.shared
+        recorder.deliver = { [weak self] file in self?.queue(file) }
+        recorder.live = { [weak self] packet in self?.tell(packet) ?? false }
         guard WCSession.isSupported() else { return }
         WCSession.default.delegate = self
         WCSession.default.activate()
+    }
+
+    /// The day under way here, for the iPhone to show: queued in order, it arrives when the
+    /// iPhone is near, all of it.
+    func tell(_ packet: [String: Any]) -> Bool {
+        guard WCSession.isSupported() else { return false }
+        let session = WCSession.default
+        guard session.activationState == .activated else { return false }
+        session.transferUserInfo(packet)
+        return true
     }
 
     func send(_ command: WatchCommand) {
@@ -99,6 +115,8 @@ enum Ink {
         state = new
         // The units the iPhone writes in are the ones the watch uses when it records by itself.
         if new.state != "idle" { UserDefaults.standard.set(new.speedUnit == "km/h", forKey: WatchFmt.metricKey) }
+        // And how often the GPS gives a point.
+        if let every = new.every { UserDefaults.standard.set(GPSRate.near(every).rawValue, forKey: GPSRate.key) }
     }
 
     private func take(_ packed: [String: Any]) {

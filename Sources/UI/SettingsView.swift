@@ -19,6 +19,7 @@ struct SettingsView: View {
         switch Demo.screen {
         case "looks": [.look]
         case "profile": [.profile]
+        case "gps": [.recording]
         default: []
         }
     }
@@ -249,6 +250,7 @@ private struct RecordingPage: View {
     @AppStorage(Prefs.units) private var units = Units.metric.rawValue
     @AppStorage(Prefs.mapLook) private var mapLook = MapLook.standard.rawValue
     @AppStorage(Prefs.sport) private var sport = Sport.ski.rawValue
+    @AppStorage(GPSRate.key) private var rate = GPSRate.best.rawValue
 
     var body: some View {
         SettingsPageBody(title: "Registrazione") {
@@ -271,10 +273,29 @@ private struct RecordingPage: View {
                 }
                 .pickerStyle(.segmented)
             }
+            Panel("Un punto GPS ogni") {
+                Picker("Un punto GPS ogni", selection: $rate) {
+                    ForEach(GPSRate.allCases) { Text(LocalizedStringKey($0.label)).tag($0.rawValue) }
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: rate) {
+                    recorder.applyRate()
+                    WatchBridge.shared.retell()
+                }
+                Words(LocalizedStringKey(rateWords), small: true)
+            }
             Panel("Sensori") {
                 InfoRow("Posizione", permission)
                 InfoRow("Barometro", recorder.hasBarometer ? String(localized: "Sì, per il dislivello") : String(localized: "No, quota dal GPS"))
             }
+        }
+    }
+
+    private var rateWords: String {
+        switch GPSRate(rawValue: rate) ?? .best {
+        case .best: "Un punto ogni secondo: le linee più precise e la velocità massima più vera. Consuma di più."
+        case .balanced: "Un punto ogni 2 secondi: quasi la stessa precisione, un po' meno batteria."
+        case .saver: "Un punto ogni 5 secondi e un GPS meno preciso: la batteria dura di più, ma le curve sono meno fedeli e la velocità massima può uscire più bassa."
         }
     }
 
@@ -466,6 +487,8 @@ private struct HelpPage: View {
 /// What came with this version.
 private struct NewsPage: View {
     private static let news: [(symbol: String, title: String, text: String)] = [
+        ("applewatch.radiowaves.left.and.right", "Il Watch anche sull'iPhone", "Quando registra il Watch, in Registra vedi i suoi numeri e la traccia sulla mappa, aggiornati ogni quarto di minuto."),
+        ("location.fill", "Frequenza del GPS", "In Impostazioni → Registrazione scegli un punto ogni secondo, ogni 2 o ogni 5 secondi per risparmiare batteria. Vale anche per il Watch."),
         ("signpost.right.fill", "Le tue piste", "Per ogni pista quante volte l'hai fatta, il tuo tempo migliore e la velocità massima. In Statistiche, nella pagina di una stazione e di una discesa."),
         ("flag.checkered", "Sfida sulla pista", "Accendi la sfida e in ogni pista vedi la classifica dei tempi con i tuoi amici."),
         ("checkmark.seal.fill", "Piste completate", "Nella pagina di una stazione vedi quante delle sue piste hai già sciato e quali ti mancano. Sulla mappa, con Fatte, quelle ancora da fare sbiadiscono."),

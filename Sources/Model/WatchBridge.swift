@@ -66,6 +66,8 @@ final class WatchBridge: NSObject, WCSessionDelegate {
     /// Called once, at launch.
     func start() {
         guard WCSession.isSupported(), !Demo.isOn else { return }
+        // A day the watch was recording when the app was last open, with what the iPhone had.
+        if Shared.recorder.handed { WatchDay.shared.setBefore(Shared.recorder.points) }
         WCSession.default.delegate = self
         WCSession.default.activate()
     }
@@ -77,7 +79,9 @@ final class WatchBridge: NSObject, WCSessionDelegate {
         let state: String
         switch recorder.state {
         case .idle:
-            return WatchState.idle
+            var idle = WatchState.idle
+            idle.every = GPSRate.current.every
+            return idle
         case .paused:
             state = "paused"
             phase = "paused"
@@ -91,8 +95,12 @@ final class WatchBridge: NSObject, WCSessionDelegate {
         }
         return WatchState(state: state, phase: phase, start: recorder.startDate, speed: Fmt.speedValue(speed), speedUnit: Fmt.speedUnit,
                           runs: stats.runs, vertical: Fmt.height(stats.vertical), distance: Fmt.distance(stats.runDistance),
-                          maxSpeed: Fmt.speed(stats.maxSpeed), altitude: recorder.lastPoint.map { Fmt.height($0.alt) } ?? "–")
+                          maxSpeed: Fmt.speed(stats.maxSpeed), altitude: recorder.lastPoint.map { Fmt.height($0.alt) } ?? "–",
+                          every: GPSRate.current.every)
     }
+
+    /// Tells the watch again now: a setting it follows changed.
+    func retell() { pushNow() }
 
     /// Tells the watch, if there is one with the app and something changed.
     func push(_ state: WatchState) {
@@ -181,6 +189,8 @@ final class WatchBridge: NSObject, WCSessionDelegate {
         let id = (file.metadata?[WatchLink.idKey] as? String).flatMap { UUID(uuidString: $0) } ?? UUID()
         let inHealth = file.metadata?[WatchLink.healthKey] as? Bool ?? false
         DispatchQueue.main.async {
+            // The day under way on the watch is now this one.
+            WatchDay.shared.clear()
             // A day begun on the iPhone and passed to the watch: the two parts make one day.
             let all = Shared.recorder.handed ? Self.join(Shared.recorder.surrender(), points) : points
             guard Self.keep(all, id: id, inHealth: inHealth, in: Shared.library), let start = all.first?.t else { return }
@@ -209,6 +219,18 @@ final class WatchBridge: NSObject, WCSessionDelegate {
 
     func sessionWatchStateDidChange(_ session: WCSession) {
         pushNow()
+    }
+
+    /// The day under way on the watch, a little at a time.
+    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+        guard userInfo[WatchLink.kindKey] as? String == WatchLink.liveKind else { return }
+        DispatchQueue.main.async {
+            // Already here as a whole day: a piece that came late, after the day.
+            if let start = userInfo[WatchLink.startKey] as? Date,
+               Shared.library.days.contains(where: { $0.start <= start.addingTimeInterval(300) && $0.end >= start }) { return }
+            let recorder = Shared.recorder
+            WatchDay.shared.take(userInfo, before: recorder.handed ? recorder.points : [])
+        }
     }
 
     func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
