@@ -73,9 +73,9 @@ enum GPSRate: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .best: "Ogni secondo"
-        case .balanced: "Ogni 2 s"
-        case .saver: "Ogni 5 s"
+        case .best: "1 s"
+        case .balanced: "2 s"
+        case .saver: "5 s"
         }
     }
 

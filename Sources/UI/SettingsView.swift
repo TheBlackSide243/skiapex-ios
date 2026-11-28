@@ -273,8 +273,8 @@ private struct RecordingPage: View {
                 }
                 .pickerStyle(.segmented)
             }
-            Panel("Posizione GPS") {
-                Picker("Posizione GPS", selection: $rate) {
+            Panel("Un punto GPS ogni") {
+                Picker("Un punto GPS ogni", selection: $rate) {
                     ForEach(GPSRate.allCases) { Text(LocalizedStringKey($0.label)).tag($0.rawValue) }
                 }
                 .pickerStyle(.segmented)
