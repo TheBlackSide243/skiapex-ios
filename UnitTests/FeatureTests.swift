@@ -383,7 +383,10 @@ final class FeatureTests: XCTestCase {
     }
 
     func testTheDayAsTheWatchHearsIt() throws {
-        let idle = WatchBridge.state(of: Recorder(journal: nil))
+        var idle = WatchBridge.state(of: Recorder(journal: nil))
+        // Before a day too, the watch hears how often the GPS gives a point.
+        XCTAssertEqual(idle.every, GPSRate.current.every)
+        idle.every = nil
         XCTAssertEqual(idle, WatchState.idle)
         let points = Segmenter.clean(SkiSim.day(laps: 3, start: Date(timeIntervalSinceNow: -7200), seed: 9))
         let recorder = Recorder.preview(points)
